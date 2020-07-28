@@ -1,31 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 30 20:25:26 2017
-
-@author: simon
-"""
-# Version 1.4. 4 November 2019. Updated the new melting parameterisations to exclude
-#                               transition zone melting and to incorporate more
-#                               pyroxenite melting experiments.
-# Version 1.3. 2 March 2019. Incorporated isobaric melting for super-solidus starts.
-#                            Incorporated the new parameterisations for KLB1, G2 and KG1.
-# Version 1.2. 13 November 2018. Fixed bugs occuring some of the time when lithologies
-#                                are exhausted.
-# Version 1.1. 07 September 2018. Added extracted melt temperature calculation.
 
 import numpy as np
 import pandas as pd
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-paper')
-#params = {'text.usetex': False, 'mathtext.fontset': 'stixsans',
-#          'xtick.labelsize':10, 'ytick.labelsize':10, 'axes.labelsize':10,
-#          'xtick.direction':'in','ytick.direction':'in','figure.figsize':(6,4),
-#          'xtick.top':True,'ytick.right':True}
-#plt.rcParams.update(params)
-
-
 
 class LithologyKG1:
     """
@@ -1475,6 +1455,24 @@ class LithologyKatz:
 
         return _F
 
+    def dTdPSolidus(self,P):
+        return self.A2 + 2*self.A3*P
+
+    def dTdPLiquidus(self,P):
+        return self.C2 + 2*self.C3*P
+
+    def dTdPLherzLiquidus(self,P):
+        return self.B2 + 2*self.B3*P
+
+    def dTdPcpxOut(self,P):
+        term1 = (self.TLherzLiquidus(P)-self.TSolidus(P))/self.beta1 * self.FcpxOut(P)**(1/self.beta1 - 1)
+        term2 = self.FcpxOut(P)**(1/self.beta1)*(self.dTdPLherzLiquidus(P)-self.dTdPSolidus(P)) + self.dTdPSolidus(P)
+        return term1 * self.dFdPcpxOut(P) + term2
+
+    def dFdPcpxOut(self,P):
+        return - self.Mcpx / self.RxnCoef(P)**2 * self.r2
+
+
     def dTdF(self,P,T):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is
@@ -1522,34 +1520,28 @@ class LithologyKatz:
         dTdP:   float
             dT/dP(const. F) (K GPa-1).
         """
+
         _F = self.F(P,T)
+        _FcpxOut = self.FcpxOut(P)
+        _dTdPSolidus = self.dTdPSolidus(P)
+        _TLiquidus = self.TLiquidus(P)
+        _dTdPLiquidus = self.dTdPLiquidus(P)
+        _dTdPLherzLiquidus = self.dTdPLherzLiquidus(P)
+        _TcpxOut = self.dTdPcpxOut(P)
+        _dTdPcpxOut = self.dTdPcpxOut(P)
+        _FcpxOut = self.FcpxOut(P)
+        _dFdPcpxOut = self.dFdPcpxOut(P)
+
         if _F == 0:
             _dTdP = self.alphas/self.rhos/self.CP
-        elif _F == 1.0:
-            _dTdP = self.alphaf/self.rhof/self.CP
         elif _F < self.FcpxOut(P):
-            _dTdP = ((_F**(1/self.beta1))*(self.B2-self.A2+
-                    2*(self.B3-self.A3)*P)+self.A2+2*self.A3*P)
-
+            _dTdP = ((_F**(1/self.beta1))*(_dTdPLherzLiquidus-_dTdPSolidus)) + _dTdPSolidus
+        elif _F < 1.0:
+            _Trel = (T- _TcpxOut)/(_TLiquidus-_TcpxOut)
+            _dTdP = (_TLiquidus - _TcpxOut)/(1-_FcpxOut) * (1/self.beta2)*_Trel**(1-self.beta2) * _dFdPcpxOut * (_Trel**self.beta2-1) \
+                    + _dTdPcpxOut + _Trel*(_dTdPLiquidus - _dTdPcpxOut)
         else:
-            _FcpxOut = self.FcpxOut(P)
-            _TLzLiq = self.TLherzLiquidus(P)
-            _TSol = self.TSolidus(P)
-            _dTdP1 = (((self.TLiquidus(P)-self.TcpxOut(P))/self.beta2)*
-                (((_F-_FcpxOut)/(1-_FcpxOut))**((1-self.beta2)/self.beta2))*
-                (((_F-_FcpxOut)/((1-_FcpxOut)**2))-(1/(1-_FcpxOut)))*
-                ((self.r2*(_FcpxOut**2))/self.Mcpx))
-            _dTdP2 = ((((_F-_FcpxOut)/(1-_FcpxOut))**(1/self.beta2))*
-                (self.C2+2*P*self.C3-(_TLzLiq-_TSol)*
-                (self.r2/(self.beta1*self.Mcpx))*(_FcpxOut**((1+self.beta1)/self.beta1))-
-                (_FcpxOut**(1/self.beta1))*(self.B2+2*P*self.B3)-
-                (1-(_FcpxOut**(1/self.beta1)))*(self.A2+2*P*self.A3))+
-                self.A2+2*P*self.A3)
-            _dTdP3 = ((self.r2/(self.beta1*self.Mcpx))*(_TLzLiq-
-                _TSol)*(_FcpxOut**((1+self.beta1)/self.beta1))-
-                (_FcpxOut**(1/self.beta1))*(self.B2-self.A2+2*P*(self.B3-self.A3)))
-            _dTdP =  - _dTdP1 + _dTdP2 - _dTdP3
-
+            _dTdP = self.alphaf/self.rhof/self.CP
         return _dTdP
 
 
