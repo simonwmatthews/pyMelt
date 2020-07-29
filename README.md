@@ -67,3 +67,6 @@ See documentation for how to apply this to method to other settings.
 
 ## Online App
 To see the module in action without installing the module or using any code, use our webapp at [pymeltapp.swmatthews.com](http://pymeltapp.swmatthews.com)
+
+## Citing
+If you use pyMelt in your publications, you should cite the release of pyMelt you used (coming soon), in addition to the references for the lithology melting models (see above), Phipps Morgan (2001) for the mathematical formulation, and Matthews et al. (2016) for the crystallisation temperature calculation method.
