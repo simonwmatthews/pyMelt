@@ -35,3 +35,35 @@ Next a mantle object must be constructed, which is built up of lithologies in sp
 mantle = m.mantle([lz,px],[8,2],['Lz','Px'])
 ```
 The first list provides the lithology objects you just defined. The second list supplies their relative proportions (in this case 80% lherzolite, 20% pyroxenite). The final list provides the names you wish to call the lithologies. This will be used in data outputs.
+
+To calculate the consequences of adiabatic decompression melting for this mantle object, the following method can be called, which will return a new `column` object:
+```
+column = mantle.AdiabticMelt_1D(1400.0)
+```
+The float provided is the mantle potential temperature (Tp) in °C. See the documentation for the method for how to change the starting pressure, final pressure, and number of steps. By default, the calculation starts at 8 GPa and proceeds all the way to the surface. If the calculation starts above the solidus, an interval of isobaric melting (conserving entropy) will be performed, as described in Matthews et al. (in review).
+
+A handy way of visualising the results is to use the `plot()` method of the `column` object:
+```
+column.plot()
+```
+To access the calculation results directly:
+- Temperature: `column.Temperature`
+- Pressure: `column.P`
+- Melt fraction of each lithology: `column.F`
+- Aggregate melt fraction: `column.F_total`
+
+To calculate crustal thickness (assuming passive decompression melting in a triangular spreading centre melting region) , the melt fractions must be integrated over the column:
+```
+tc = column.integrate_tri()
+print(tc)
+```
+The method returns the crustal thickness in km, but the result is also stored in the column object. See documentation for further options for the integration calculation.
+
+To estimate the crystallisation temperature of the melts, use the `MeltCrystallisationT()` method. The method returns two crystallisation temperature estimates, one for the shallowest melts, and one for the deepest melts. If no arguments are supplied to the method, the shallowest melts will be extracted from immediately below the calculated speading-centre crust, and melts will crystallise at the base of the calculated spreading-centre crust. Integration must have been performed beforehand. 
+```
+column.MeltCrystallisationT()
+```
+See documentation for how to apply this to method to other settings. 
+
+## Online App
+To see the module in action without installing the module or using any code, use our webapp at [pymeltapp.swmatthews.com](http://pymeltapp.swmatthews.com)
