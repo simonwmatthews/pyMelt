@@ -191,10 +191,6 @@ An example:
 Figure1 = mantle.PlotBoundaries()
 ```
 
-
-![png](output_14_0.png)
-
-
 ## 1D melting column
 A ```MeltingColumn_1D``` object is the result of appling ```AdiabaticMelt_1D``` to a mantle object, and contains information of the P-T-melt fraction properties of the adiabatically decompressing mantle. The ```MeltingColumn_1D``` object is visualised by using its ```plot()``` method, which generates a figure with two subplots:
 * Left subfigure depicting the thermal gradient of the melting region in relation to the melting lithology solidii,
@@ -209,10 +205,6 @@ This function generates a matplotlib.figure object given a calculated ```Melting
 ```python
 Figure2 = column.plot()
 ```
-
-
-![png](output_16_0.png)
-
 
 The calculation results, presented as pandas dataframes, can be directly accessed using the following commands:
 
