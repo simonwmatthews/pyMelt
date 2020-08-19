@@ -246,7 +246,7 @@ The method also adds the following attributes to the ```MeltingColumn_1D``` obje
 
 ```python
 P_crust = column.P_base_of_crust
-tc_lith_cont = column. tc_lithology_contributions
+tc_lith_cont = column.tc_lithology_contributions
 print(P_crust) 
 print(tc_lith_cont)
 ```
