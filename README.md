@@ -45,11 +45,11 @@ In addition, the following python packages must be installed and imported for py
 * ```pandas```
 
 ## Lithology objects
-pyMelt offers a number of different lithologies that can be thermodynamically modelled either separately or in combination. pyMelt includes the new parameterisations for KLB-1, KG1, and silica-saturated pyroxenite of Matthews et al. (2020). The lithologies included in the module are:
+pyMelt offers a number of different lithologies that can be thermodynamically modelled either separately or in combination. pyMelt includes the new parameterisations for KLB-1, KG1, and silica-saturated pyroxenite of Matthews et al. (in review). The lithologies included in the module are:
 
-* ```LithologyKLB1```: KLB-1 lherzolite (Matthews et al., 2020)
-* ```LithologyKG1```: KG1 silica-undersaturated pyroxenite (Matthews et al., 2020)
-* ```LithologyPx```: silica-saturated pyroxenite (Matthews et al., 2020)
+* ```LithologyKLB1```: KLB-1 lherzolite (Matthews et al., in review)
+* ```LithologyKG1```: KG1 silica-undersaturated pyroxenite (Matthews et al., in review)
+* ```LithologyPx```: silica-saturated pyroxenite (Matthews et al., in review)
 * ```LithologyShorttle```: KG1 silica-undersaturated pyroxenite (Shorttle et al. 2014)
 * ```LithologyKatz```: lherzolite (Katz et al., 2003)
 * ```LithologySimple```: G2 pyroxenite (Pertermann & Hirschmann, 2002)
@@ -279,7 +279,7 @@ print(Tcrys_values)
     
 
 ## pyMelt_MultiNest
-pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al. (2020).
+pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al. (in review).
 
 For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The user is directed to the [pyMultinest installation instructions](https://johannesbuchner.github.io/PyMultiNest/) for further guidance.
 
@@ -316,7 +316,7 @@ Next the data, knowns, and unknowns must be specified.
 
 ```data``` keys are the names of the parameters listed above, and ```data``` values are presented as a list of two values; the first being the parameter value; the second being its 1 standard deviation uncertainty.
 
-Below is an example ```data``` dictionary for mid-ocean ridge basalt from Matthews et al. (2020):
+Below is an example ```data``` dictionary for mid-ocean ridge basalt from Matthews et al. (in review):
 
 
 ```python
@@ -359,7 +359,7 @@ The prior types that can be used are:
 * ```'norm'```: normal distribution defined by a mean and standard deviation
 * ```'lognorm'```: log-normal distribution defined by a mean and standard deviation
 
-The following example code is also from the MORB values of Matthews et al. (2020). In this case all priors are uniform:
+The following example code is also from the MORB values of Matthews et al. (in review). In this case all priors are uniform:
 
 
 ```python
@@ -411,7 +411,7 @@ MultiNest can then be run upon creation of the ```inversion``` object:
 inv.run_multinest()
 ```
 
-A commented example pyMelt_MultiNest code snippet is provided below for the new Hawaii data published in Matthews et al. (2020), which utilises 
+A commented example pyMelt_MultiNest code snippet is provided below for the new Hawaii data published in Matthews et al. (in review), which utilises 
 
 
 ```python
@@ -484,7 +484,7 @@ Results will be returned as a median value and a standard deviation, with more d
 ## Citing pyMelt
 If pyMelt enables or aids your research please cite our publication:
 
-Matthews, S., Wong, K., Shorttle, O., Edmonds, M., & Maclennan, J. (2020). Do olivine crystallization temperatures faithfully record mantle temperature variability?
+Matthews, S., Wong, K., Shorttle, O., Edmonds, M., & Maclennan, J. (in review). Do olivine crystallization temperatures faithfully record mantle temperature variability?
 https://doi.org/10.31223/osf.io/hqbgy
 
 If pyMelt is used with pyMultinest, please additionally cite the following papers which detail the development and introduction of MultiNest and pyMultinest:
