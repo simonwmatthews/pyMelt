@@ -411,7 +411,7 @@ MultiNest can then be run upon creation of the ```inversion``` object:
 inv.run_multinest()
 ```
 
-A commented example pyMelt_MultiNest code snippet is provided below for the new Hawaii data published in Matthews et al. (in review), which utilises 
+A commented example pyMelt_MultiNest code snippet is provided below for the new Hawaii data published in Matthews et al. (in review):
 
 
 ```python
