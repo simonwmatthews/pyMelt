@@ -285,6 +285,8 @@ For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The u
 ## Citing pyMelt
 If pyMelt enables or aids your research please cite the release you used. The latest release is v1.0 and has the doi:
 [![DOI](https://zenodo.org/badge/259243892.svg)](https://zenodo.org/badge/latestdoi/259243892)
+
 You should also cite the relevant publications for the pure-lithology melting models. If you use our models, you should cite:
+
 Matthews, S., Wong, K., Shorttle, O., Edmonds, M., & Maclennan, J. (in review). Do olivine crystallization temperatures faithfully record mantle temperature variability?
 https://doi.org/10.31223/osf.io/hqbgy
