@@ -1,11 +1,6 @@
 
 # pyMelt documentation
-<b>S. Matthews<sup>1,2</sup>* and K. Wong<sup>1,3</sup></b>
-
-<sup>1</sup> Department of Earth Sciences, University of Cambridge, Cambridge, U.K.
-<sup>2</sup> Department of Earth and Planetary Sciences, Johns Hopkins University, Baltimore MD, U.S.A.
-<sup>3</sup> School of Earth and Environment, University of Leeds, Leeds, U.K.
-\* simonmatthews@jhu.edu
+S. Matthews (University of Iceland) and K. Wong (University of Leeds)
 
 ## Introduction
 
