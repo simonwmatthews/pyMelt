@@ -2,6 +2,10 @@
 # pyMelt documentation
 S. Matthews (University of Iceland) and K. Wong (University of Leeds)
 
+## Webapp
+A webapp version of the model is available here:
+[pymeltapp.swmatthews.com](http://pymeltapp.swmatthews.com)
+
 ## Introduction
 
 pyMelt is a python package for calculating the melting behaviour of mantle comprising multiple lithologies. The module implements the melting equations developed by Phipps Morgan (2001) to calculate the melting behaviour of mantle comprising any chosen lithology. 
