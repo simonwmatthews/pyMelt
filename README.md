@@ -279,7 +279,9 @@ pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson
 For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The user is directed to the [pyMultinest installation instructions](https://johannesbuchner.github.io/PyMultiNest/) for further guidance.
 
 ## Citing pyMelt
-If pyMelt enables or aids your research please cite our publication:
+If pyMelt enables or aids your research please cite the release you used. The latest release is v1.0 and has the doi:
+[![DOI](https://zenodo.org/badge/259243892.svg)](https://zenodo.org/badge/latestdoi/259243892)
 
+For an example of the model in action, see our publication:
 Matthews, S., Wong, K., Shorttle, O., Edmonds, M., & Maclennan, J. (in review). Do olivine crystallization temperatures faithfully record mantle temperature variability?
 https://doi.org/10.31223/osf.io/hqbgy
