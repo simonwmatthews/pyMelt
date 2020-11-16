@@ -65,11 +65,11 @@ hz = m.LithologyNonMelting()
 
 Each lithology object contains methods describing its thermodynamic properties. As each lithology differs in composition, the thermodynamic/melting behaviour of each lithology varies; the methods available to each lithology object in pyMelt therefore also varies. For a full list of available methods please refer to the comments present within the pyMelt code. 
 Some methods that are common to several lithologies include: 
-* ```TSolidus(self, P)```: temperature of the lithology solidus (&deg;C) at a given pressure in GPa
-* ```TLiquidus(self, P)```: temperature of the lithology liquidus (&deg;C) at a given pressure in GPa
-* ```F(self, P, T)```: melt fraction of the lithology at a given pressure (GPa) and temperature (&deg;C)
-* ```dTdF(self, P, T)```: dT/dF of the lithology at a constant pressure
-* ```dTdP(self, P, T)```: dT/dP of the lithology at a constant melt fraction
+* ```TSolidus(P)```: temperature of the lithology solidus (&deg;C) at a given pressure in GPa
+* ```TLiquidus(P)```: temperature of the lithology liquidus (&deg;C) at a given pressure in GPa
+* ```F(P, T)```: melt fraction of the lithology at a given pressure (GPa) and temperature (&deg;C)
+* ```dTdF(P, T)```: dT/dF of the lithology at a constant pressure
+* ```dTdP(P, T)```: dT/dP of the lithology at a constant melt fraction
 
 
 ```python
@@ -98,42 +98,42 @@ mantle = m.mantle([lz,px,hz],[6,2,2],['Lz', 'Px', 'Hz'])
 The following objects and methods can be called from the ```mantle``` class, with all temperatures in &deg;C and all pressures in GPa:
 
 ``` python 
-bulk_properties(self, P=False, T=False)
+bulk_properties(P=False, T=False)
 ```
 returns bulk thermodynamic properties of the solid or partially molten mantle (alpha, CP, rho; and labelled as such). If ```P```, ```T``` are ```False``` then the properties of the solid mantle will be returned.
 
 ```python
-solidus_intersection(self, Tp)
+solidus_intersection(Tp)
 ```
 returns the pressures (GPa) at which the solidus for each lithology will be intersected, in the order passed when creating the mantle class, assuming the mantle follows the solid adiabat for a potential temperature ```Tp``` up until that point.
 
 ```python
-solidus_intersection_isobaric(self, P)
+solidus_intersection_isobaric(P)
 ``` 
 returns the pressures at which the solidus for each lithology will be intersected, in the order passed when creating the mantle class, assuming the mantle is heated isobarically at a pressure ```P```.
 
 ```python
-adiabat(self, P, Tp)
+adiabat(P, Tp)
 ```
 returns the temperature of the solid mantle at a given pressure ```P``` and potential temperature ```Tp```.
 
 ```python
-F(self, P, T)
+F(P, T)
 ```
 returns the melt fraction of each lithology, in the order passed when creating the mantle class, at a given pressure ```P``` and temperature ```T```. 
 
 ```python
-dFdP(self, P, T)
+dFdP(P, T)
 ```
 returns the dF/dP for each lithology, in the order passed when creating the mantle class, at a given pressure ```P``` and temperature ```T```, following Eq(26) of Phipps Morgan (2001).
 
 ```python
-adiababatic_gradient(self, P, T)
+adiababatic_gradient(P, T)
 ```
 returns dT/dP if melting has gone to completion (or has not started) for the bulk mantle at a given pressure ```P``` and temperature ```T```.
 
 ```python
-dTdP(self, P, T, dFdP)
+dTdP(P, T, dFdP)
 ```
 returns dT/dP using Eq(28) of Phipps Morgan (2001) at a given pressure ```P```, temperature ```T```, and ```dFdP```. Selects the lithology to use by the one with the largest increase in melt fraction with decompression (although this choice should not matter). The ```dFdP``` function is not recalled in order to save re-calculation of the same numbers. This function should be primarily used to check the behaviour of the pyMelt code.
 
@@ -150,7 +150,7 @@ print(example_F)
 To calculate the consequences of adiabatic decompression melting for this ```mantle``` object, the method ```AdiabaticMelt_1D``` can be called which will return a new ```column``` object:
 
 ```python
-AdiabaticMelt_1D(self, Tp, Pstart=8.0, Pend=0.01, steps=1001, ReportSSS=True)
+AdiabaticMelt_1D(Tp, Pstart=8.0, Pend=0.01, steps=1001, ReportSSS=True)
 ```
 This function simultaneous integration of dFdP and dTdP to obtain the thermal gradient through the melting region. F of each lithology is then calculated along the P-T path. Integration is performed using a fourth-order Runge-Kutta algorithm. The P-T path is allowed to overstep the solidus on the step prior to the start of melting. Input parameters are:
 
@@ -173,7 +173,7 @@ The P-T relationship of the given lithologies is visualised using the ```PlotBou
 * Right subfigure depicting the melt fraction of each lithology at fixed temperature as a function of pressure (default of 1600 &deg;C).
 
 ```python
-PlotBoundaries(self, Pmax=8.0, Pmin=0.0, steps=1000, T_F=1600, show=True)
+PlotBoundaries(Pmax=8.0, Pmin=0.0, steps=1000, T_F=1600, show=True)
 ``` 
 Input parameters are:
 
@@ -196,7 +196,7 @@ A ```MeltingColumn_1D``` object is the result of appling ```AdiabaticMelt_1D``` 
 * Right subfigure depicting the total melt fraction in relation to the melt fractions of the melting lithologies.
 
 ```python
-plot(self, solidii=True, show=True)
+plot(solidii=True, show=True)
 ```
 This function generates a matplotlib.figure object given a calculated ```MeltingColumn_1D``` object. The ```solidii``` parameter can be set to ```False``` to hide the solidii of the chosen lithologies on the final plot; likewise the plot itself can be hidden by setting ```show``` to ```False```.
 
@@ -258,7 +258,7 @@ print(tc_lith_cont)
 pyMelt can be used to estimate the liquidus of mantle-derived melts (crystallisation temperature). This is achieved using the ```MeltCrystallisationT()``` method. Triangular integration must have been performed beforehand to achieve a liquidus temperature; else an error will be returned.
 
 ```python
-MeltCrystallisationT(self, ShallowMeltP=False, MeltStorageP=False, liqdTdP=39.16)
+MeltCrystallisationT(ShallowMeltP=False, MeltStorageP=False, liqdTdP=39.16)
 ``` 
 This function returns two crystallisation temperature estimates, the first for the melts at the top of the melting column (the shallowest melts), and the second for the melts at the bottom of the melting column (the deepest melts).
 
