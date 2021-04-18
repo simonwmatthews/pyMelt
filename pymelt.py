@@ -2595,7 +2595,7 @@ class MeltingColumn_1D():
 
         return f
 
-    def integrate_tri(self):
+    def integrate_tri(self,P_base_existingLith=0.0):
         """
         Perform an integration over the melting region, assuming it is triangular and
         passively upwelling. Adds the following attributes to the class:
@@ -2620,6 +2620,14 @@ class MeltingColumn_1D():
             The integrated proportion of generated crust derived from each lithology
             at the pressure where P(calculation) = P(exerted by generated crust)
 
+        Parameters
+        ----------
+        P_base_existingLith:    float
+            The pressure at the base of any pre-existing lithosphere. The calculated
+            thickness will be added to this value. Set to 0.0 for mid-ocean ridges,
+            set to non-zero for continental rifting.
+
+
         Returns
         -------
         tc:     float
@@ -2642,7 +2650,7 @@ class MeltingColumn_1D():
                 _tc_int[i] = _tc_int[i-1]+ _tc[i]*np.abs(self.P[i]-self.P[i-1])
                 _tc_lith_int[i] = _tc_lith_int[i-1] + _tc_lith.iloc[i]*np.abs(self.P[i]-self.P[i-1])
                 _tc_intP[i] = _tc_int[i]*_rho*_g*1e3
-                if _tc_intP[i] > self.P[i] and _tc_found == False:
+                if _tc_intP[i] + P_base_existingLith > self.P[i] and _tc_found == False:
                     _tc_found = _tc_int[i]
                     _P_basecrust = self.P[i]
                     _tc_lith_found = _tc_lith_int[i]
