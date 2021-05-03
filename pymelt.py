@@ -2595,7 +2595,7 @@ class MeltingColumn_1D():
 
         return f
 
-    def integrate_tri(self,P_base_existingLith=0.0):
+    def integrate_tri(self, P_base_existingLith=0.0, extract_melt = False):
         """
         Perform an integration over the melting region, assuming it is triangular and
         passively upwelling. Adds the following attributes to the class:
@@ -2627,6 +2627,12 @@ class MeltingColumn_1D():
             thickness will be added to this value. Set to 0.0 for mid-ocean ridges,
             set to non-zero for continental rifting.
 
+        extract_melt:       bool
+            If set to True, the melts will be extracted from the system. If False (default)
+            the melt produced is added to the top of the melting column, and the calculation
+            will stop once the pressure exerted from the newly made crust is equal to the
+            pressure in the calculation step.
+
 
         Returns
         -------
@@ -2650,7 +2656,11 @@ class MeltingColumn_1D():
                 _tc_int[i] = _tc_int[i-1]+ _tc[i]*np.abs(self.P[i]-self.P[i-1])
                 _tc_lith_int[i] = _tc_lith_int[i-1] + _tc_lith.iloc[i]*np.abs(self.P[i]-self.P[i-1])
                 _tc_intP[i] = _tc_int[i]*_rho*_g*1e3
-                if _tc_intP[i] + P_base_existingLith > self.P[i] and _tc_found == False:
+                if extract_melt == False and _tc_intP[i] + P_base_existingLith > self.P[i] and _tc_found == False:
+                    _tc_found = _tc_int[i]
+                    _P_basecrust = self.P[i]
+                    _tc_lith_found = _tc_lith_int[i]
+                elif extract_melt == True and (i == np.shape(self.P)[0] - 1 or P_base_existingLith > self.P[i]) and _tc_found == False:
                     _tc_found = _tc_int[i]
                     _P_basecrust = self.P[i]
                     _tc_lith_found = _tc_lith_int[i]
