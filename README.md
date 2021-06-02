@@ -44,11 +44,11 @@ In addition, the following python packages must be installed and imported for py
 * ```pandas```
 
 ## Lithology objects
-pyMelt offers a number of different lithologies that can be thermodynamically modelled either separately or in combination. pyMelt includes the new parameterisations for KLB-1, KG1, and silica-saturated pyroxenite of Matthews et al. (in review). The lithologies included in the module are:
+pyMelt offers a number of different lithologies that can be thermodynamically modelled either separately or in combination. pyMelt includes the new parameterisations for KLB-1, KG1, and silica-saturated pyroxenite of Matthews et al., 2021. The lithologies included in the module are:
 
-* ```LithologyKLB1```: KLB-1 lherzolite (Matthews et al., in review)
-* ```LithologyKG1```: KG1 silica-undersaturated pyroxenite (Matthews et al., in review)
-* ```LithologyPx```: silica-saturated pyroxenite (Matthews et al., in review)
+* ```LithologyKLB1```: KLB-1 lherzolite (Matthews et al., 2021)
+* ```LithologyKG1```: KG1 silica-undersaturated pyroxenite (Matthews et al., 2021)
+* ```LithologyPx```: silica-saturated pyroxenite (Matthews et al., 2021)
 * ```LithologyShorttle```: KG1 silica-undersaturated pyroxenite (Shorttle et al. 2014)
 * ```LithologyKatz```: lherzolite (Katz et al., 2003)
 * ```LithologySimple```: G2 pyroxenite (Pertermann & Hirschmann, 2002)
@@ -278,7 +278,7 @@ print(Tcrys_values)
     
 
 ## pyMelt_MultiNest
-pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al. (in review).
+pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al., 2021.
 
 For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The user is directed to the [pyMultinest installation instructions](https://johannesbuchner.github.io/PyMultiNest/) for further guidance.
 
@@ -288,5 +288,4 @@ If pyMelt enables or aids your research please cite the release you used. The la
 
 You should also cite the relevant publications for the pure-lithology melting models. If you use our models, you should cite:
 
-Matthews, S., Wong, K., Shorttle, O., Edmonds, M., & Maclennan, J. (in review). Do olivine crystallization temperatures faithfully record mantle temperature variability?
-https://doi.org/10.31223/osf.io/hqbgy
+Matthews, S., Wong, K., Shorttle, O., Edmonds, M., & Maclennan, J. (2021). Do olivine crystallization temperatures faithfully record mantle temperature variability?. Geochemistry, Geophysics, Geosystems, 22(4), e2020GC009157. https://doi.org/10.1029/2020GC009157
