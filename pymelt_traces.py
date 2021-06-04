@@ -5989,6 +5989,9 @@ class MeltingColumn_1D():
                     elif F_list[i] == 0:
                         c_vals[0,i] = starting_composition[k]
                         c_vals[1,i] = 0
+                    elif F_list[i] == 1:
+                        c_vals[0,i]=0
+                        c_vals[1,i]=starting_composition[k]
                     else:
                         k1 = dcsdX(F_list[i-1],c_vals[0,i-1], Dbar, Pbar)
                         k2 = dcsdX(F_list[i-1]+(F_list[i]-F_list[i-1])/2,c_vals[0,i-1]+k1*(F_list[i]-F_list[i-1])/2, Dbar, Pbar)
