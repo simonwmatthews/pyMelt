@@ -5727,30 +5727,41 @@ class MeltingColumn_1D():
         return self.TcrysMin, self.TcrysMax
 
     def RareEarths(self,models=['PM','MORB',None],normalise='PM',gtsp=86,sppl=25,X_1=0.18,
-                   rare_earths=['La','Ce','Nd','Sm','Eu','Gd','Tb','Dy','Ho','Er','Yb','Lu']):
+                   RareEarths=['La','Ce','Nd','Sm','Eu','Gd','Tb','Dy','Ho','Er','Yb','Lu']):
         """
         Calculates a simple magma rare-earth element concentration for a suite of rare-earths given a selection of 
         pre-determined mantle compositions (see below) and distribution coefficients
         (Gibson and Geist, 2010), following equations by McKenzie and O'Nions (1991) and White et al. (1992). 
-	Mantle mineral proportions in the garnet-field, spinel-field and plagioclase-field must 
-	all be manually set. Currently works for three lithologies.
+	    Mantle mineral proportions in the garnet-field, spinel-field and plagioclase-field must 
+        be manually set. Currently works for three lithologies.
+        
+        Assumptions:
+            - mantle mineral proportions comprise that described by McKenzie and O'Nions (1991), and is the same 
+              for every melting lithology included in pyMelt. The plagioclase field mineral proportions are yet 
+              to be included
+            - proportion of cpx and aluminous phases vary linearly between the initial proportion of each mineral 
+              present in the source and zero between F=0 and F=X_1
+            - proportion of olv to opx remains fixed
+            - distribution coefficients are independent of pressure and temperature, taking values of Gibson and 
+              Geist, 2010
+            - distribution coefficients of plagioclase all equal zero (values yet to be included)
     
         Parameters
         ----------
         models:    array of strings
             The initial rare-earth element composition of the mantle. Number of mantle models
             must match number of mantle components. Select from 'DM', 'EM' (McKenzie and O'Nions, 1991, 1995),
-            'DMM' (Workman and Hart, 2005), 'PM' (McDonough and Sun, 1995), 'MORB' (Gale et al., 2013), 
+            'DMM' (Workman and Hart, 2005), 'PM', 'CI' (McDonough and Sun, 1995), 'MORB' (Gale et al., 2013), 
             'KG1' (50:50 of 'DMM' and 'MORB'), 'KG2' (2:1 of 'DMM' and 'MORB'), None.
         normalise:    string
-            Trace element model to normalise to. The default is 'PM'.
+            Trace element model to normalise to. The default is 'PM'. No normalisation is False.
         gtsp:    float
             Depth of the garnet-spinel transition in km. The default is 86.
         sppl:    float
             Depth of the spinel-plagioclase transition in km. The default is 25.
         X_1:    float
             Melt fraction at which cpx and any aluminous phases are exhausted. The default is 0.18.
-        rare_earths: array of strings
+        RareEarths: array of strings
             Rare-earth elements included in model. The defaults included are
             La, Ce, Nd, Sm, Eu, Gd, Tb, Dy, Ho, Er, Yb, Lu.
     
@@ -5763,23 +5774,38 @@ class MeltingColumn_1D():
         """
     
 
-        lithology_proportions = self.mantle.proportions
-        lithology_names = self.mantle.names
+        SolidLithologyProportions = self.mantle.proportions
+        SolidLithologyNames = self.mantle.names
+        _rho = self.mantle.bulk_properties().rho
+        _g=9.81
+        _P = self.P.tolist()
+        _depth = [1000*i/(_g*_rho) for i in _P]
         
-        mantle_compositions = {
+        if 0 in SolidLithologyProportions:
+            AbsentLithologies = np.where(SolidLithologyProportions==0)[0]
+            for i in AbsentLithologies:
+                models[i]=None
+        
+        if None in models:
+            l = [i for i in range(len(models)) if models[i]==None]
+            for i in l:
+                SolidLithologyProportions[i]=0
+            SolidLithologyProportions = SolidLithologyProportions/sum(SolidLithologyProportions)
+        
+        MantleSourceREEs = {
         'DM': {
-            'La': 0.192,
-            'Ce': 0.550,
-            'Nd': 0.581,
-            'Sm': 0.239,
-            'Eu': 0.096,
-            'Gd': 0.358,
-            'Tb': 0.07,
-            'Dy': 0.505,
-            'Ho': 0.115,
-            'Er': 0.348,
-            'Yb': 0.365,
-            'Lu': 0.058
+            'La': 0.206,
+            'Ce': 0.722,
+            'Nd': 0.815,
+            'Sm': 0.299,
+            'Eu': 0.115,
+            'Gd': 0.419,
+            'Tb': 0.077,
+            'Dy': 0.525,
+            'Ho': 0.120,
+            'Er': 0.347,
+            'Yb': 0.347,
+            'Lu': 0.054
             },
         'EM': {
             'La': 0.55,
@@ -5797,7 +5823,7 @@ class MeltingColumn_1D():
             },
         'DMM': {
             'La': 0.192,
-            'Ce': 0.55,
+            'Ce': 0.550,
             'Nd': 0.581,
             'Sm': 0.239,
             'Eu': 0.096,
@@ -5822,6 +5848,20 @@ class MeltingColumn_1D():
             'Er': 0.438,    
             'Yb': 0.441,
             'Lu': 0.0675
+            },
+        'CI': {
+            'La': 0.237,
+            'Ce': 0.613,
+            'Nd': 0.457,
+            'Sm': 0.148,    
+            'Eu': 0.0563,
+            'Gd': 0.199,    
+            'Tb': 0.0361,    
+            'Dy': 0.246,
+            'Ho': 0.0546,
+            'Er': 0.160,    
+            'Yb': 0.161,
+            'Lu': 0.0246
             },
         'MORB': {
             'La': 5.17,
@@ -5866,29 +5906,21 @@ class MeltingColumn_1D():
             'Lu': 0.212
             }
         }
-        
-        if None in models:
-            l = [i for i in range(len(models)) if models[i]==None]
-            for i in l:
-                lithology_proportions[i]=0
-            lithology_proportions = lithology_proportions/sum(lithology_proportions)
 
-        distribution_coefficients = pd.DataFrame([
+        DistributionCoefficientsDataFrame = pd.DataFrame([
             [0.0005, 0.0027, 0.013, 0.0016, 0.0011, 0.0016, 0.0005, 0.02, 0.00042, 0.0011, 0.0015, 0.02],
             [0.004, 0.011, 0.045, 0.013, 0.0065, 0.026, 0.0031, 0.12, 0.012, 0.02, 0.019, 0.08],
             [0.08, 0.4, 0.42, 0.335, 0.35, 0.427, 0.049, 0.376, 0.178, 0.293, 0.403, 0.4],
             [0.005, 2.2, 4.4, 0.496, 0.848, 3.315, 0.001, 7.1, 0.052, 0.25, 1.477, 6.6],
-            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
             [0,0,0,0,0,0,0,0,0,0,0,0]],
             columns=['Ce','Dy','Er','Eu','Gd','Ho','La','Lu','Nd','Sm','Tb','Yb'])
-        source_minerals = pd.DataFrame([
+           
+        SourceMineralProportionsDataFrame = pd.DataFrame([
             [0.598, 0.221, 0.076, 0.115, 0, 0], 
             [0.578, 0.27, 0.119, 0, 0.033, 0], 
             [0.5, 0.3, 0.1, 0, 0, 0.1]], 
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
-        
-        P_list = self.P.tolist()
-        d_list = [1000*i/(10*3.3) for i in P_list]
         
         # Two equations to integrate using RK4
         def dcsdX(X, cs, Dbar, Pbar):
@@ -5917,7 +5949,7 @@ class MeltingColumn_1D():
         
         def cl(cs, X, Dbar, Pbar):
             """
-            Calculates instantaneous melt composition
+            Calculates instantaneous melt composition generated from a point average solid.
         
             Parameters
             ----------
@@ -5939,80 +5971,77 @@ class MeltingColumn_1D():
             _cl = cs*(1-X)/(Dbar-Pbar*X)
             return _cl
         
-        results = np.zeros((len(lithology_proportions)+1, len(rare_earths)))
-        for l in range(len(lithology_proportions)):
+        results = np.zeros((len(SolidLithologyProportions)+1, len(RareEarths)))
+        for l in range(len(SolidLithologyProportions)):
             if models[l] == None:
                 continue
-            starting_composition = mantle_compositions[models[l]]
-            F_list = self.F[lithology_names[l]]
-            final_c_vals = np.zeros((2,len(rare_earths)))
+            StartingComposition = MantleSourceREEs[models[l]]
+            LithologyF = self.F[SolidLithologyNames[l]]
+            AveragedMeltCompositions = np.zeros((2,len(RareEarths)))
             
-            for j in range(len(rare_earths)):
-                k=rare_earths[j]
-                D_vals = distribution_coefficients[k].tolist() 
-                c_vals = np.zeros((5, len(F_list)))
-                for i in range(len(F_list)):
-                    if d_list[i] >= gtsp:
-                        source_mineral_proportions = source_minerals.iloc[0]
-                        Dbar = sum([i*j for i,j in zip(D_vals, source_minerals.iloc[0].tolist())])
-                    elif d_list[i] <= sppl:
-                        source_mineral_proportions = source_minerals.iloc[2]
-                        Dbar = sum([i*j for i,j in zip(D_vals, source_minerals.iloc[2].tolist())])
+            for j in range(len(RareEarths)):
+                k=RareEarths[j]
+                DistributionCoefficients = DistributionCoefficientsDataFrame[k].tolist() 
+                PointAverageCompositions = np.zeros((5, len(LithologyF)))
+                for i in range(len(LithologyF)):
+                    if _depth[i] >= gtsp:
+                        SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]
+                        Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[0].tolist())])
+                    elif _depth[i] <= sppl:
+                        SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[2]
+                        Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[2].tolist())])
                     else:
-                        source_mineral_proportions = source_minerals.iloc[1]
-                        Dbar = sum([i*j for i,j in zip(D_vals, source_minerals.iloc[1].tolist())])
+                        SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[1]
+                        Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[1].tolist())])
                         
-                    if F_list[i] < X_1:
-                        p2 = source_mineral_proportions['cpx']*F_list[i]/X_1
-                        p3 = source_mineral_proportions['grt']*F_list[i]/X_1
-                        p4 = source_mineral_proportions['spn']*F_list[i]/X_1
-                        p5 = source_mineral_proportions['plg']*F_list[i]/X_1
-                        p0 = source_mineral_proportions['olv']*(1-(p2+p3))/(source_mineral_proportions['olv']+source_mineral_proportions['opx'])
-                        p1 = source_mineral_proportions['opx']*(1-(p2+p3))/(source_mineral_proportions['olv']+source_mineral_proportions['opx'])
-                    elif F_list[i] >= X_1: 
-                        p0 = source_mineral_proportions['olv']/(source_mineral_proportions['olv']+source_mineral_proportions['opx'])
-                        p1 = source_mineral_proportions['opx']/(source_mineral_proportions['olv']+source_mineral_proportions['opx'])
+                    if LithologyF[i] < X_1:
+                        p2 = SourceMineralProportions['cpx']*LithologyF[i]/X_1
+                        p3 = SourceMineralProportions['grt']*LithologyF[i]/X_1
+                        p4 = SourceMineralProportions['spn']*LithologyF[i]/X_1
+                        p5 = SourceMineralProportions['plg']*LithologyF[i]/X_1
+                        p0 = SourceMineralProportions['olv']*(1-(p2+p3+p4+p5))/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
+                        p1 = SourceMineralProportions['opx']*(1-(p2+p3+p4+p5))/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
+                    elif LithologyF[i] >= X_1: 
+                        p0 = SourceMineralProportions['olv']/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
+                        p1 = SourceMineralProportions['opx']/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
                         p2 = 0
                         p3 = 0
                         p4 = 0
                         p5 = 0
-                        Dbar = (D_vals[0]*source_mineral_proportions['olv']+D_vals[1]*source_mineral_proportions['opx'])/(source_mineral_proportions['olv']+source_mineral_proportions['opx'])
-                    Pbar_vals = [p0, p1, p2, p3, p4, p5]
-                    Pbar = sum([i*j for i,j in zip(D_vals, Pbar_vals)])
+                        Dbar = (DistributionCoefficients[0]*SourceMineralProportions['olv']+DistributionCoefficients[1]*SourceMineralProportions['opx'])/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
+                    Pbar = sum([i*j for i,j in zip(DistributionCoefficients, [p0, p1, p2, p3, p4, p5])])
                     if i == 0:
-                        if F_list[i] ==0:
-                            c_vals[0,i] = starting_composition[k]
-                            c_vals[1,i] = 0
+                        if LithologyF[i] == 0:
+                            PointAverageCompositions[0,i] = StartingComposition[k]
+                            PointAverageCompositions[1,i] = 0
                         else:
-                            c_vals[0,i] = starting_composition[k]
-                            c_vals[1,i] = cl(starting_composition[k], F_list[0], Dbar, Pbar)
-                    elif F_list[i] == 0:
-                        c_vals[0,i] = starting_composition[k]
-                        c_vals[1,i] = 0
-                    elif F_list[i] == 1:
-                        c_vals[0,i]=0
-                        c_vals[1,i]=starting_composition[k]
+                            PointAverageCompositions[0,i] = StartingComposition[k]
+                            PointAverageCompositions[1,i] = cl(StartingComposition[k], LithologyF[0], Dbar, Pbar)
+                    elif LithologyF[i] == 0:
+                        PointAverageCompositions[0,i] = StartingComposition[k]
+                        PointAverageCompositions[1,i] = 0
+                    elif LithologyF[i]==1:
+                        PointAverageCompositions[0,i]=0
+                        PointAverageCompositions[1,i] = StartingComposition[k]
+                        PointAverageCompositions[2,i] = PointAverageCompositions[2,i-1] + StartingComposition[k]*abs(_depth[i]-_depth[i-1])
+                        PointAverageCompositions[3,i] = abs(_depth[i]-_depth[i-1])
                     else:
-                        k1 = dcsdX(F_list[i-1],c_vals[0,i-1], Dbar, Pbar)
-                        k2 = dcsdX(F_list[i-1]+(F_list[i]-F_list[i-1])/2,c_vals[0,i-1]+k1*(F_list[i]-F_list[i-1])/2, Dbar, Pbar)
-                        k3 = dcsdX(F_list[i-1]+(F_list[i]-F_list[i-1])/2,c_vals[0,i-1]+k2*(F_list[i]-F_list[i-1])/2, Dbar, Pbar)
-                        k4 = dcsdX(F_list[i-1]+(F_list[i]-F_list[i-1]),c_vals[0,i-1]+k3*(F_list[i]-F_list[i-1]), Dbar, Pbar)
-                        c_vals[0,i] = c_vals[0,i-1]+(1/6)*(F_list[i]-F_list[i-1])*(k1+2*k2+2*k3+k4)
-                        c_vals[1,i] = cl(c_vals[0,i], F_list[i], Dbar, Pbar)   
-                    if F_list[i]==0:
-                        c_vals[2,i]=0
-                        c_vals[3,i]=0
-                    else:
-                        c_vals[2,i]=c_vals[2,i-1]+(max(F_list)/(1-max(F_list)))*c_vals[1,i]*abs(d_list[i]-d_list[i-1])
-                        c_vals[3,i]=c_vals[3,i-1]+(max(F_list)/(1-max(F_list)))*abs(d_list[i]-d_list[i-1])
-                        c_vals[4,i]=c_vals[2,i]/c_vals[3,i]
-                final_c_vals[0,j] = c_vals[4,-1]
+                        k1 = dcsdX(LithologyF[i-1],PointAverageCompositions[0,i-1], Dbar, Pbar)
+                        k2 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k1*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
+                        k3 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k2*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
+                        k4 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1]),PointAverageCompositions[0,i-1]+k3*(LithologyF[i]-LithologyF[i-1]), Dbar, Pbar)
+                        PointAverageCompositions[0,i]=PointAverageCompositions[0,i-1]+(1/6)*(LithologyF[i]-LithologyF[i-1])*(k1+2*k2+2*k3+k4)
+                        PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)   
+                        PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-max(LithologyF)))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
+                        PointAverageCompositions[3,i]=PointAverageCompositions[3,i-1]+(max(LithologyF)/(1-max(LithologyF)))*abs(_depth[i]-_depth[i-1])
+                        PointAverageCompositions[4,i]=PointAverageCompositions[2,i]/PointAverageCompositions[3,i]
+                AveragedMeltCompositions[0,j] = PointAverageCompositions[4,-1]
                 if normalise != False:
-                    final_c_vals[1,j] = final_c_vals[0,j]/mantle_compositions[normalise][k]
+                    AveragedMeltCompositions[1,j] = AveragedMeltCompositions[0,j]/MantleSourceREEs[normalise][k]
             if normalise != False:
-                results[l]=final_c_vals[1]*lithology_proportions[l]
+                results[l]=AveragedMeltCompositions[1]*SolidLithologyProportions[l]
             else:
-                results[l]=final_c_vals[0]*lithology_proportions[l]
+                results[l]=AveragedMeltCompositions[0]*SolidLithologyProportions[l]
         results[-1] = results.sum(axis=0)
-        results = pd.DataFrame(results, columns=rare_earths)
+        results = pd.DataFrame(results, columns=RareEarths)
         return results
