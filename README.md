@@ -276,6 +276,28 @@ print(Tcrys_values)
 
     (1251.591564249882, 1346.9009090794675)
     
+## Calculating rare-earth element concentrations
+This ```dev-traces``` branch of pyMelt allows for the simple forward modelling of rare-earth element (REE) concentrations in generated melts. This is performed using the ```RareEarths()``` method. 
+
+```python
+RareEarths(self,models=['PM','MORB',None],totalF=False,Passive=False,normalise='PM',gtsp=70,sppl=30,modal=0.18,RareEarths=['La','Ce','Nd','Sm','Eu','Gd','Tb','Dy','Ho','Er','Yb','Lu'])
+```
+This function returns rare-earth element distributions in a ```pandas DataFrame``` object named ```MeltingReeResults``` with column headings the REEs. Each row of the ```DataFrame``` object is the distribution for each melting lithology, followed by a final REE distribution weighted by the proportion of each melting lithology. The equations used in the calculations are those of Shaw (1970).
+
+The inputs are as follows:
+* ```models```: list of models used for initial mantle composition, one for each lithology, which are called in the order that the lithologies are called. The number of mantle models must match number of mantle components. Select from ```'DM'```, ```'EM'``` (McKenzie and O'Nions, 1991, 1995), ```'DMM'``` (Workman and Hart, 2005), ```'PM'```, ```'CI'``` (McDonough and Sun, 1995), ```'MORB'``` (Gale et al., 2013), ```'KG1'``` (50:50 of 'DMM' and 'MORB'), ```'KG2'``` (2:1 of 'DMM' and 'MORB'), ```None```. If ```None``` is selected then the lithology will be assumed to be non-melting.
+* ```totalF```: the melt fraction to be used in the calculation. If ```True```, then the total melt fraction is used and only the first lithology is melted. If ```False``` the melt fraction of each lithology will be used.
+* ```normalise```: the trace element mantle composition to normalise the results to. Select from one of the ```models``` listed above. Set to ```PM``` by default. ```None``` is no normalisation.
+* ```gtsp```: depth of the garnet-spinel transition in km. Set to ```86``` by default.
+* ```sppl```: depth of the spinel-plagioclase transition in km. Set to ```25``` by default.
+* ```modal```: if ```True``` minerals will melt modally until exhausted, then remaining minerals will continue melting at same proportions. If ```False``` minerals will melt non-modally following the stoiciometry of Gudfinnsson and Presnall (1996) until exhausted, then remaining minerals will continue melting at same proportions. If `float` (```0.18``` by default) then there will be two regimes to simulate the melting before and after clinopyroxene and aluminous phases are exhausted when the melt fraction is equal to the ```modal``` float.
+* ```RareEarths``` : array of strings of REEs. The only elements included so far are as follows: La, Ce, Nd, Sm, Eu, Gd, Tb, Dy, Ho, Er, Yb, Lu.
+
+
+```python
+RareEarthValues = column.RareEarths()
+```
+
 
 ## pyMelt_MultiNest
 pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al., 2021.
