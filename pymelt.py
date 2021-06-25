@@ -2913,7 +2913,6 @@ class MeltingColumn_1D():
             [0.2000, 0.0550, 0.010, 0.7300, 0.0660, 0.0480, 0.2700, 0.025, 0.14000, 0.1100, 0.0600, 0.031]],
             columns=['Ce','Dy','Er','Eu','Gd','Ho','La','Lu','Nd','Sm','Tb','Yb'])
            
-        # Source mineral proportions after McKenzie and O'Nions, 1991
         SourceMineralProportionsDataFrame1 = pd.DataFrame([
             [0.598, 0.221, 0.076, 0.115, 0.000, 0.000], 
             [0.578, 0.270, 0.119, 0.000, 0.033, 0.000], 
@@ -2932,14 +2931,12 @@ class MeltingColumn_1D():
             [0.636, 0.263, 0.012, 0.000, 0.000, 0.089]], 
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
         
-        # Non modal melting stoichiometry after Gudfinnsson and Presnall, 1996
-        NonModalMeltingDataFrame = pd.DataFrame([
+        GP96NonModalMeltingDataFrame = pd.DataFrame([
             [2/78, -22/78, 68/78, 30/78, 0, 0],
             [-16/84, 23/84, 68/84, 0, 9/84, 0],
             [-7/93, 32/93, 27/93, 0, 0, 41/93]],
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
         
-        # Two equations to integrate using RK4
         def dcsdX(X, cs, Dbar, Pbar):
             """
             Rate of change of rare-earth element concentration in point average solid.
@@ -2988,7 +2985,6 @@ class MeltingColumn_1D():
             _cl = cs*(1-X)/(Dbar-Pbar*X)
             return _cl
 
-        
         MeltingREEResults = np.zeros((len(SolidLithologyProportions)+1, len(RareEarths)))
         for l in range(len(SolidLithologyProportions)):
             if models[l] == None:
@@ -3016,15 +3012,15 @@ class MeltingColumn_1D():
                     if _depth[i] >= gtsp:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]
                         Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[0].tolist())])
-                        NonModalMeltingProportions = NonModalMeltingDataFrame.iloc[0]
+                        NonModalMeltingProportions = GP96NonModalMeltingDataFrame.iloc[0]
                     elif _depth[i] <= sppl:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[2]
                         Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[2].tolist())])
-                        NonModalMeltingProportions = NonModalMeltingDataFrame.iloc[2]
+                        NonModalMeltingProportions = GP96NonModalMeltingDataFrame.iloc[2]
                     else:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[1]
                         Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[1].tolist())])
-                        NonModalMeltingProportions = NonModalMeltingDataFrame.iloc[1]
+                        NonModalMeltingProportions = GP96NonModalMeltingDataFrame.iloc[1]
 
                     if modal == True:
                         p0 = SourceMineralProportions['olv']
@@ -3095,7 +3091,7 @@ class MeltingColumn_1D():
                             PointAverageCompositions[1,i] = 0
                         else:
                             PointAverageCompositions[0,i] = StartingComposition[k]*(1/(1-LithologyF[i]))*((1-Pbar*LithologyF[i])/Dbar)**((1/Pbar)-1)                     
-                            PointAverageCompositions[1,i] = cl(StartingComposition[k], LithologyF[i], Dbar, Pbar) # Need to calculate isobaric melt composition
+                            PointAverageCompositions[1,i] = cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar) 
                             
                     elif LithologyF[i] == 0:
                         PointAverageCompositions[0,i] = StartingComposition[k]
@@ -3115,19 +3111,14 @@ class MeltingColumn_1D():
                         PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-max(LithologyF)))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
                         PointAverageCompositions[3,i]=PointAverageCompositions[3,i-1]+(max(LithologyF)/(1-max(LithologyF)))*abs(_depth[i]-_depth[i-1])
                         PointAverageCompositions[4,i]=PointAverageCompositions[2,i]/PointAverageCompositions[3,i]
-                        
-                        # Passive upwelling equations
-                        
-                        Correct_ci = PointAverageCompositions[1,i] # Or should this be PointAverageCompositions[4,i] ???
-                        PointAverageCompositions[5,i]=PointAverageCompositions[5,i-1] + Correct_ci*_depth[i]*((LithologyF[i]-LithologyF[i-1])/abs(_depth[i]-_depth[i-1]))*abs(_depth[i]-_depth[i-1])
-                        PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + _depth[i]*((LithologyF[i]-LithologyF[i-1])/abs(_depth[i]-_depth[i-1]))*abs(_depth[i]-_depth[i-1])
+                        PointAverageCompositions[5,i]=PointAverageCompositions[5,i-1] + PointAverageCompositions[4,i]*_depth[i]*(LithologyF[i]-LithologyF[i-1])
+                        PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + _depth[i]*(LithologyF[i]-LithologyF[i-1])
                         PointAverageCompositions[7,i]=PointAverageCompositions[5,i]/PointAverageCompositions[6,i]
                         
                 AveragedMeltCompositions[0,j] = PointAverageCompositions[4,-1]
+                AveragedMeltCompositions[1,j] = AveragedMeltCompositions[0,j]/MantleSourceREEs[normalise][k]
                 AveragedMeltCompositions[2,j] = PointAverageCompositions[7,-1]
-                if normalise != False:
-                    AveragedMeltCompositions[1,j] = AveragedMeltCompositions[0,j]/MantleSourceREEs[normalise][k]
-                    AveragedMeltCompositions[3,j] = AveragedMeltCompositions[2,j]/MantleSourceREEs[normalise][k]
+                AveragedMeltCompositions[3,j] = AveragedMeltCompositions[2,j]/MantleSourceREEs[normalise][k]
             if Passive == False:
                 if normalise != False:
                     MeltingREEResults[l]=AveragedMeltCompositions[1]*SolidLithologyProportions[l]
