@@ -2749,7 +2749,7 @@ class MeltingColumn_1D():
             The F to be used in the calculation. If totalF is True, then the total melt fraction is used instead
             of the melt fractions for each individual lithology. Set to False by default.
         normalise:    string or False
-            Trace element model to normalise to. The default is 'PM'. No normalisation is False.
+            Trace element model to normalise to. The default is 'PM'. No normalisation is None.
         gtsp:    float
             Depth of the garnet-spinel transition in km. The default is 86.
         sppl:    float
@@ -3002,13 +3002,13 @@ class MeltingColumn_1D():
                 DistributionCoefficients = self.DistributionCoefficientsDataFrame[k].tolist() 
                 PointAverageCompositions = np.zeros((8, len(LithologyF)))
                 for i in range(len(LithologyF)):
+                    SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame1
                     if l == 0 or totalF == True:
                         SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame1
                     elif l == 1:
                         SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame2
                     elif l == 2:
                         SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame3
-                        
                     if _depth[i] >= gtsp:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]
                         Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[0].tolist())])
@@ -3066,7 +3066,7 @@ class MeltingColumn_1D():
                             p5 = 0
                         PMeltingDistributionCoefficients=[p0,p1,p2,p3,p4,p5]
 
-                    else:  
+                    if modal !=0: 
                         if LithologyF[i] < modal:
                             p2 = SourceMineralProportions['cpx']*LithologyF[i]/modal
                             p3 = SourceMineralProportions['grt']*LithologyF[i]/modal
@@ -3082,9 +3082,9 @@ class MeltingColumn_1D():
                             p4 = 0
                             p5 = 0
                             Dbar = (DistributionCoefficients[0]*SourceMineralProportions['olv']+DistributionCoefficients[1]*SourceMineralProportions['opx'])/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
-                        PMeltingDistributionCoefficients=[p0,p1,p2,p3,p4,p5]
+                    PMeltingDistributionCoefficients=[p0,p1,p2,p3,p4,p5]
                     Pbar = sum([i*j for i,j in zip(DistributionCoefficients,PMeltingDistributionCoefficients)])
-                    
+
                     if i == 0:
                         if LithologyF[i] == 0:
                             PointAverageCompositions[0,i] = StartingComposition[k]
@@ -3096,9 +3096,9 @@ class MeltingColumn_1D():
                     elif LithologyF[i] == 0:
                         PointAverageCompositions[0,i] = StartingComposition[k]
                         PointAverageCompositions[1,i] = 0
-                    elif LithologyF[i]==1:
-                        PointAverageCompositions[0,i]=0
-                        PointAverageCompositions[1,i] = StartingComposition[k]
+                    elif LithologyF[i] == 1:
+                        PointAverageCompositions[0,i] = 0
+                        PointAverageCompositions[1,i] = 0
                         PointAverageCompositions[2,i] = PointAverageCompositions[2,i-1] + StartingComposition[k]*abs(_depth[i]-_depth[i-1])
                         PointAverageCompositions[3,i] = abs(_depth[i]-_depth[i-1])
                     else:
@@ -3107,25 +3107,26 @@ class MeltingColumn_1D():
                         k3 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k2*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
                         k4 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1]),PointAverageCompositions[0,i-1]+k3*(LithologyF[i]-LithologyF[i-1]), Dbar, Pbar)
                         PointAverageCompositions[0,i]=PointAverageCompositions[0,i-1]+(1/6)*(LithologyF[i]-LithologyF[i-1])*(k1+2*k2+2*k3+k4)
-                        PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)   
+                        if PointAverageCompositions[0,i-1]<1e-10:
+                            PointAverageCompositions[0,i]=0
+                        PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)
                         PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-max(LithologyF)))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
                         PointAverageCompositions[3,i]=PointAverageCompositions[3,i-1]+(max(LithologyF)/(1-max(LithologyF)))*abs(_depth[i]-_depth[i-1])
                         PointAverageCompositions[4,i]=PointAverageCompositions[2,i]/PointAverageCompositions[3,i]
-                        PointAverageCompositions[5,i]=PointAverageCompositions[5,i-1] + PointAverageCompositions[4,i]*_depth[i]*(LithologyF[i]-LithologyF[i-1])
-                        PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + _depth[i]*(LithologyF[i]-LithologyF[i-1])
-                        PointAverageCompositions[7,i]=PointAverageCompositions[5,i]/PointAverageCompositions[6,i]
-                        
+                        PointAverageCompositions[5,i]=PointAverageCompositions[5,i-1] + PointAverageCompositions[4,i]*(_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
+                        PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + (_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
+                        PointAverageCompositions[7,i]=PointAverageCompositions[5,i]/PointAverageCompositions[6,i]  
                 AveragedMeltCompositions[0,j] = PointAverageCompositions[4,-1]
                 AveragedMeltCompositions[1,j] = AveragedMeltCompositions[0,j]/MantleSourceREEs[normalise][k]
                 AveragedMeltCompositions[2,j] = PointAverageCompositions[7,-1]
                 AveragedMeltCompositions[3,j] = AveragedMeltCompositions[2,j]/MantleSourceREEs[normalise][k]
             if Passive == False:
-                if normalise != False:
+                if normalise != None:
                     MeltingREEResults[l]=AveragedMeltCompositions[1]*SolidLithologyProportions[l]
                 else:
                     MeltingREEResults[l]=AveragedMeltCompositions[0]*SolidLithologyProportions[l]
             else:
-                if normalise != False:
+                if normalise != None:
                     MeltingREEResults[l]=AveragedMeltCompositions[3]*SolidLithologyProportions[l]
                 else:
                     MeltingREEResults[l]=AveragedMeltCompositions[2]*SolidLithologyProportions[l]
