@@ -2719,7 +2719,7 @@ class MeltingColumn_1D():
 
         return self.TcrysMin, self.TcrysMax
 
-    def RareEarths(self,models=['PM','MORB',None],totalF=False,Passive=False,normalise='PM',gtsp=70,sppl=30,modal=0.18,
+    def RareEarths(self,models=['PM','MORB',None],Passive=False,normalise='PM',gtsp=70,sppl=30,modal='NonModalFixed',
                    RareEarths=['La','Ce','Nd','Sm','Eu','Gd','Tb','Dy','Ho','Er','Yb','Lu']):
         """
         Calculates a simple magma rare-earth element concentration for a suite of rare-earths given a selection of 
@@ -2744,20 +2744,26 @@ class MeltingColumn_1D():
             The initial rare-earth element composition of the mantle. Number of mantle models
             must match number of mantle components. Select from 'DM', 'EM' (McKenzie and O'Nions, 1991, 1995),
             'DMM' (Workman and Hart, 2005), 'PM', 'CI' (McDonough and Sun, 1995), 'MORB' (Gale et al., 2013), 
-            'KG1' (50:50 of 'DMM' and 'MORB'), 'KG2' (2:1 of 'DMM' and 'MORB'), None.
-        totalF:    boolean
-            The F to be used in the calculation. If totalF is True, then the total melt fraction is used instead
-            of the melt fractions for each individual lithology. Set to False by default.
-        normalise:    string or False
-            Trace element model to normalise to. The default is 'PM'. No normalisation is None.
+            'KG1' (50:50 of 'DMM' and 'MORB'), 'KG2' (2:1 of 'DMM' and 'MORB'), None (non-melting). The mineral proportions 
+            of each melting mantle lithology are given as SourceMineralProportionsDataFrame1 through to 3.
+        Passive:    boolean
+            Option to integrate melts over a triangular melting region assuming passive decompression, equations
+            as in Slater et al., 2001. True is triangular integration, False is column.
+        normalise:    string or None
+            Trace element model to normalise to, options as in 'models'. The default is 'PM'. No normalisation is None.
         gtsp:    float
             Depth of the garnet-spinel transition in km. The default is 86.
         sppl:    float
             Depth of the spinel-plagioclase transition in km. The default is 25.
-        modal:   float or False
-            Melt fraction at which cpx and any aluminous phases are exhausted. The default is 0.18.
+        modal:    string
+            Melt fraction at which cpx and any aluminous phases are exhausted. A number of options are available:
+                - NonModalFixed: exhaustion parameter listed for each lithology in the SourceMineralNonModalFixed array
+                - NonModalVariable: exhaustion parameter calculated as the sum of the mass fractions of cpx, grt, spn, plg
+                - NonModalGP96: exhaustion of each mineral dependent on reactions of Gudfinnsson and Presnall, 1996 
+                                (suitable only for small melt fractions!)
+                - Modal: exhaustion of each mineral dependent on the initial amount of each mineral in the source
         RareEarths: array of strings
-            Rare-earth elements included in model. The defaults included are
+            Rare-earth elements included in model. The defaults included are as follows:
             La, Ce, Nd, Sm, Eu, Gd, Tb, Dy, Ho, Er, Yb, Lu.
     
         Returns
@@ -2913,23 +2919,30 @@ class MeltingColumn_1D():
             [0.2000, 0.0550, 0.010, 0.7300, 0.0660, 0.0480, 0.2700, 0.025, 0.14000, 0.1100, 0.0600, 0.031]],
             columns=['Ce','Dy','Er','Eu','Gd','Ho','La','Lu','Nd','Sm','Tb','Yb'])
            
+        # KLB-1 after Jennings and Holland, 2015
         SourceMineralProportionsDataFrame1 = pd.DataFrame([
-            [0.598, 0.221, 0.076, 0.115, 0.000, 0.000], 
-            [0.578, 0.270, 0.119, 0.000, 0.033, 0.000], 
-            [0.636, 0.263, 0.012, 0.000, 0.000, 0.089]], 
+            [0.609, 0.125, 0.119, 0.147, 0.000, 0.000], 
+            [0.597, 0.233, 0.158, 0.000, 0.012, 0.000], 
+            [0.646, 0.208, 0.076, 0.000, 0.000, 0.070]], 
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
         
+        # KG1 after Matthews et al., 2021
         SourceMineralProportionsDataFrame2 = pd.DataFrame([
-            [0.598, 0.221, 0.076, 0.115, 0.000, 0.000], 
-            [0.578, 0.270, 0.119, 0.000, 0.033, 0.000], 
-            [0.636, 0.263, 0.012, 0.000, 0.000, 0.089]], 
+            [0.181, 0.012, 0.422, 0.385, 0.000, 0.000], 
+            [0.110, 0.178, 0.641, 0.000, 0.071, 0.000], 
+            [0.118, 0.150, 0.655, 0.000, 0.000, 0.067]], 
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
         
+        # McKenzie and O'Nions, 1991
         SourceMineralProportionsDataFrame3 = pd.DataFrame([
             [0.598, 0.221, 0.076, 0.115, 0.000, 0.000], 
             [0.578, 0.270, 0.119, 0.000, 0.033, 0.000], 
             [0.636, 0.263, 0.012, 0.000, 0.000, 0.089]], 
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
+        
+        SourceMineralProportionsTotal = [SourceMineralProportionsDataFrame1, SourceMineralProportionsDataFrame2, SourceMineralProportionsDataFrame3]
+        
+        SourceMineralNonModalFixed = [0.18, 0.70, 0.18]
         
         GP96NonModalMeltingDataFrame = pd.DataFrame([
             [2/78, -22/78, 68/78, 30/78, 0, 0],
@@ -2990,11 +3003,7 @@ class MeltingColumn_1D():
             if models[l] == None:
                 continue
             StartingComposition = MantleSourceREEs[models[l]]
-
-            if totalF == True:
-                LithologyF = self.F_total
-            else:
-                LithologyF = self.F[SolidLithologyNames[l]]
+            LithologyF = self.F[SolidLithologyNames[l]]
             AveragedMeltCompositions = np.zeros((4,len(RareEarths)))
             
             for j in range(len(RareEarths)):
@@ -3002,27 +3011,21 @@ class MeltingColumn_1D():
                 DistributionCoefficients = self.DistributionCoefficientsDataFrame[k].tolist() 
                 PointAverageCompositions = np.zeros((8, len(LithologyF)))
                 for i in range(len(LithologyF)):
-                    SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame1
-                    if l == 0 or totalF == True:
-                        SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame1
-                    elif l == 1:
-                        SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame2
-                    elif l == 2:
-                        SourceMineralProportionsDataFrame = SourceMineralProportionsDataFrame3
+                    SourceMineralProportionsDataFrame = SourceMineralProportionsTotal[l]
                     if _depth[i] >= gtsp:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]
                         Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[0].tolist())])
-                        NonModalMeltingProportions = GP96NonModalMeltingDataFrame.iloc[0]
+                        NonModalGP96Proportions = GP96NonModalMeltingDataFrame.iloc[0]
                     elif _depth[i] <= sppl:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[2]
                         Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[2].tolist())])
-                        NonModalMeltingProportions = GP96NonModalMeltingDataFrame.iloc[2]
+                        NonModalGP96Proportions = GP96NonModalMeltingDataFrame.iloc[2]
                     else:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[1]
                         Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[1].tolist())])
-                        NonModalMeltingProportions = GP96NonModalMeltingDataFrame.iloc[1]
+                        NonModalGP96Proportions = GP96NonModalMeltingDataFrame.iloc[1]
 
-                    if modal == True:
+                    if modal == 'Modal':
                         p0 = SourceMineralProportions['olv']
                         p1 = SourceMineralProportions['opx']
                         p2 = SourceMineralProportions['cpx']
@@ -3042,15 +3045,14 @@ class MeltingColumn_1D():
                             p4 = 0
                         if LithologyF[i]*p5 > SourceMineralProportions['plg']:
                             p5 = 0
-                        PMeltingDistributionCoefficients=[p0,p1,p2,p3,p4,p5]
                         
-                    elif modal == False:
-                        p0 = NonModalMeltingProportions['olv']
-                        p1 = NonModalMeltingProportions['opx']
-                        p2 = NonModalMeltingProportions['cpx']
-                        p3 = NonModalMeltingProportions['grt']
-                        p4 = NonModalMeltingProportions['spn']
-                        p5 = NonModalMeltingProportions['plg']
+                    elif modal == 'NonModalGP96':
+                        p0 = NonModalGP96Proportions['olv']
+                        p1 = NonModalGP96Proportions['opx']
+                        p2 = NonModalGP96Proportions['cpx']
+                        p3 = NonModalGP96Proportions['grt']
+                        p4 = NonModalGP96Proportions['spn']
+                        p5 = NonModalGP96Proportions['plg']
                         
                         if LithologyF[i]*p0 > SourceMineralProportions['olv']:
                             p0 = 0
@@ -3064,17 +3066,20 @@ class MeltingColumn_1D():
                             p4 = 0
                         if LithologyF[i]*p5 > SourceMineralProportions['plg']:
                             p5 = 0
-                        PMeltingDistributionCoefficients=[p0,p1,p2,p3,p4,p5]
 
-                    if modal !=0: 
-                        if LithologyF[i] < modal:
-                            p2 = SourceMineralProportions['cpx']*LithologyF[i]/modal
-                            p3 = SourceMineralProportions['grt']*LithologyF[i]/modal
-                            p4 = SourceMineralProportions['spn']*LithologyF[i]/modal
-                            p5 = SourceMineralProportions['plg']*LithologyF[i]/modal
+                    elif modal == 'NonModalFixed' or 'NonModalVariable':
+                        ModalValue = SourceMineralNonModalFixed[l]
+                        if modal == 'NonModalVariable':
+                            ModalValue = SourceMineralProportions['cpx']+SourceMineralProportions['grt']+SourceMineralProportions['spn']+SourceMineralProportions['plg']
+                            
+                        if LithologyF[i] < ModalValue:
+                            p2 = SourceMineralProportions['cpx']*LithologyF[i]/ModalValue
+                            p3 = SourceMineralProportions['grt']*LithologyF[i]/ModalValue
+                            p4 = SourceMineralProportions['spn']*LithologyF[i]/ModalValue
+                            p5 = SourceMineralProportions['plg']*LithologyF[i]/ModalValue
                             p0 = SourceMineralProportions['olv']*(1-(p2+p3+p4+p5))/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
                             p1 = SourceMineralProportions['opx']*(1-(p2+p3+p4+p5))/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
-                        elif LithologyF[i] >= modal: 
+                        elif LithologyF[i] >= ModalValue: 
                             p0 = SourceMineralProportions['olv']/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
                             p1 = SourceMineralProportions['opx']/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
                             p2 = 0
@@ -3084,7 +3089,7 @@ class MeltingColumn_1D():
                             Dbar = (DistributionCoefficients[0]*SourceMineralProportions['olv']+DistributionCoefficients[1]*SourceMineralProportions['opx'])/(SourceMineralProportions['olv']+SourceMineralProportions['opx'])
                     PMeltingDistributionCoefficients=[p0,p1,p2,p3,p4,p5]
                     Pbar = sum([i*j for i,j in zip(DistributionCoefficients,PMeltingDistributionCoefficients)])
-
+                    
                     if i == 0:
                         if LithologyF[i] == 0:
                             PointAverageCompositions[0,i] = StartingComposition[k]
@@ -3107,7 +3112,7 @@ class MeltingColumn_1D():
                         k3 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k2*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
                         k4 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1]),PointAverageCompositions[0,i-1]+k3*(LithologyF[i]-LithologyF[i-1]), Dbar, Pbar)
                         PointAverageCompositions[0,i]=PointAverageCompositions[0,i-1]+(1/6)*(LithologyF[i]-LithologyF[i-1])*(k1+2*k2+2*k3+k4)
-                        if PointAverageCompositions[0,i-1]<1e-10:
+                        if PointAverageCompositions[0,i]<1e-8:
                             PointAverageCompositions[0,i]=0
                         PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)
                         PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-max(LithologyF)))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
