@@ -2719,7 +2719,7 @@ class MeltingColumn_1D():
 
         return self.TcrysMin, self.TcrysMax
 
-    def RareEarths(self,models=['PM','MORB',None],Passive=False,normalise='PM',gtsp=70,sppl=30,modal='NonModalFixed',
+    def RareEarths(self,models=['PM','MORB',None],Passive=False,normalise='PM',modal='NonModalFixed',
                    RareEarths=['La','Ce','Nd','Sm','Eu','Gd','Tb','Dy','Ho','Er','Yb','Lu']):
         """
         Calculates a simple magma rare-earth element concentration for a suite of rare-earths given a selection of 
@@ -2735,6 +2735,10 @@ class MeltingColumn_1D():
             - proportion of cpx and aluminous phases vary linearly between the initial proportion of each mineral 
               present in the source and zero between F=0 and F=modal
             - proportion of olv to opx remains fixed
+            - gt-sp and sp-pl boundaries are as described by McKenzie and O'Nions. Between sp-out and gt-in the proportions
+              of minerals vary linearly between the gt-field and sp-field proportions, and likewise for sp-out and pl-in. 
+              The sp-out and gt-in boundaries are functions of pressure and temperature as shown in McKenzie and O'Nions 1991, 
+              and the sp-in and pl-out boundaries are assumed independent of temperature and fixed at 25 and 35 km respectively.
             - distribution coefficients are independent of pressure and temperature, taking values of Gibson and 
               Geist (2010) for olivine, opx, cpx, and garnet and McKenzie and O'Nions (1991) for plagioclase and spinel
     
@@ -2751,16 +2755,10 @@ class MeltingColumn_1D():
             as in Slater et al., 2001. True is triangular integration, False is column.
         normalise:    string or None
             Trace element model to normalise to, options as in 'models'. The default is 'PM'. No normalisation is None.
-        gtsp:    float
-            Depth of the garnet-spinel transition in km. The default is 86.
-        sppl:    float
-            Depth of the spinel-plagioclase transition in km. The default is 25.
         modal:    string
             Melt fraction at which cpx and any aluminous phases are exhausted. A number of options are available:
                 - NonModalFixed: exhaustion parameter listed for each lithology in the SourceMineralNonModalFixed array
                 - NonModalVariable: exhaustion parameter calculated as the sum of the mass fractions of cpx, grt, spn, plg
-                - NonModalGP96: exhaustion of each mineral dependent on reactions of Gudfinnsson and Presnall, 1996 
-                                (suitable only for small melt fractions!)
                 - Modal: exhaustion of each mineral dependent on the initial amount of each mineral in the source
         RareEarths: array of strings
             Rare-earth elements included in model. The defaults included are as follows:
@@ -2780,6 +2778,7 @@ class MeltingColumn_1D():
         _rho = self.mantle.bulk_properties().rho
         _g=9.81
         _P = self.P.tolist()
+        _T = self.Temperature.tolist()
         _depth = [1000*i/(_g*_rho) for i in _P]
         
         self.REEElementList = RareEarths
@@ -2796,7 +2795,7 @@ class MeltingColumn_1D():
             SolidLithologyProportions = SolidLithologyProportions/sum(SolidLithologyProportions)
         
         MantleSourceREEs = {
-        'DM': {
+        'DM': { # McKenzie and O'Nions, 1991
             'La': 0.206,
             'Ce': 0.722,
             'Nd': 0.815,
@@ -2810,7 +2809,7 @@ class MeltingColumn_1D():
             'Yb': 0.347,
             'Lu': 0.054
             },
-        'EM': {
+        'EM': { # McKenzie and O'Nions, 1991
             'La': 0.55,
             'Ce': 1.4,
             'Nd': 1.08,
@@ -2824,7 +2823,7 @@ class MeltingColumn_1D():
             'Yb': 0.372,
             'Lu': 0.057
             },
-        'DMM': {
+        'DMM': { # Workmann and Hart. 2003
             'La': 0.192,
             'Ce': 0.550,
             'Nd': 0.581,
@@ -2838,7 +2837,7 @@ class MeltingColumn_1D():
             'Yb': 0.365,
             'Lu': 0.058
             },
-        'PM': {
+        'PM': { # Sun and McDonough, 1996
             'La': 0.648,
             'Ce': 1.675,
             'Nd': 1.25,
@@ -2852,7 +2851,7 @@ class MeltingColumn_1D():
             'Yb': 0.441,
             'Lu': 0.0675
             },
-        'CI': {
+        'CI': { # Sun and McDonough, 1996
             'La': 0.237,
             'Ce': 0.613,
             'Nd': 0.457,
@@ -2866,47 +2865,131 @@ class MeltingColumn_1D():
             'Yb': 0.161,
             'Lu': 0.0246
             },
-        'MORB': {
-            'La': 5.17,
-            'Ce': 14.65,
-            'Nd': 11.85,
-            'Sm': 3.76,    
-            'Eu': 1.34,
-            'Gd': 4.94,    
-            'Tb': 0.88,    
-            'Dy': 5.97,
-            'Ho': 1.26,
-            'Er': 3.72,    
-            'Yb': 3.57,
-            'Lu': 0.52
+        'MORB': { # Gale et al., 2013
+            'La': 5.21,
+            'Ce': 14.86,
+            'Nd': 12.03,
+            'Sm': 3.82,    
+            'Eu': 1.36,
+            'Gd': 4.99,    
+            'Tb': 0.90,    
+            'Dy': 6.08,
+            'Ho': 1.28,
+            'Er': 3.79,    
+            'Yb': 3.63,
+            'Lu': 0.53
             },
-        'KG1': {
-            'La': 2.681,
-            'Ce': 7.6,
-            'Nd': 6.2155,
-            'Sm': 1.9995,    
-            'Eu': 0.718,
-            'Gd': 2.634,    
-            'Tb': 0.475,    
-            'Dy': 3.2375,
-            'Ho': 0.6875,
-            'Er': 2.034,    
-            'Yb': 1.9675,
-            'Lu': 0.289
+        'NMORB': { # Gale et al., 2013
+            'La': 4.19,
+            'Ce': 12.42,
+            'Nd': 10.66,
+            'Sm': 3.48,    
+            'Eu': 1.26,
+            'Gd': 4.55,    
+            'Tb': 0.82,    
+            'Dy': 5.50,
+            'Ho': 1.18,
+            'Er': 3.42,    
+            'Yb': 3.28,
+            'Lu': 0.48
             },
-        'KG2': {
-            'La': 1.85133,
-            'Ce': 5.25,
-            'Nd': 4.33733,
-            'Sm': 1.41267,    
-            'Eu': 0.51067,
-            'Gd': 1.87533,    
-            'Tb': 0.34,    
-            'Dy': 2.32667,
-            'Ho': 0.49667,
-            'Er': 1.472,    
-            'Yb': 1.43333,
-            'Lu': 0.212
+        'DMORB': { # Gale et al., 2013
+            'La': 3.12,
+            'Ce': 10.01,
+            'Nd': 9.46,
+            'Sm': 3.32,    
+            'Eu': 1.21,
+            'Gd': 4.43,    
+            'Tb': 0.82,    
+            'Dy': 5.48,
+            'Ho': 1.19,
+            'Er': 3.46,    
+            'Yb': 3.31,
+            'Lu': 0.50
+            },
+        'EMORB': { # Gale et al., 2013
+            'La': 12.02,
+            'Ce': 25.52,
+            'Nd': 14.86,
+            'Sm': 3.72,    
+            'Eu': 1.29,
+            'Gd': 4.26,    
+            'Tb': 0.73,    
+            'Dy': 4.62,
+            'Ho': 0.96,
+            'Er': 2.75,    
+            'Yb': 2.59,
+            'Lu': 0.38
+            },
+        'KG1': { # Kogiso et al., 1998 (50:50 DMM:MORB)
+            'La': 2.701,
+            'Ce': 7.705,
+            'Nd': 6.3055,
+            'Sm': 2.0295,    
+            'Eu': 0.728,
+            'Gd': 2.674,    
+            'Tb': 0.485,    
+            'Dy': 3.2925,
+            'Ho': 0.6975,
+            'Er': 2.069,    
+            'Yb': 1.9975,
+            'Lu': 0.294
+            },
+        'KG2': { # Kogiso et al., 1998 (33:67 DMM:MORB)
+            'La': 1.86467,
+            'Ce': 5.32,
+            'Nd': 4.39733,
+            'Sm': 1.43267,    
+            'Eu': 0.51733,
+            'Gd': 1.902,    
+            'Tb': 0.34667,    
+            'Dy': 2.36333,
+            'Ho': 0.50333,
+            'Er': 1.49533,    
+            'Yb': 1.45333,
+            'Lu': 0.21533
+            },
+        'BIC': { # Stracke et al., 2003
+            'La': 3.83,
+            'Ce': 11.95,
+            'Nd': 9.55,
+            'Sm': 3.11,    
+            'Eu': 1.13,
+            'Gd': 4.24,    
+            'Tb': 0.00, # No vaLue given
+            'Dy': 5.19,
+            'Ho': 0.00, # No value given
+            'Er': 3.14,    
+            'Yb': 3.03,
+            'Lu': 0.45
+            },
+        'GLOSS': { # Plank and Langmuir, 1998
+            'La': 28.8,
+            'Ce': 57.3,
+            'Nd': 27.0,
+            'Sm': 5.78,    
+            'Eu': 1.31,
+            'Gd': 5.26,    
+            'Tb': 0.00, # No vaLue given
+            'Dy': 4.99,
+            'Ho': 0.00, # No value given
+            'Er': 2.92,    
+            'Yb': 2.76,
+            'Lu': 0.413
+            },
+        'GLOSSII': { # Plank, 2013
+            'La': 29.1,
+            'Ce': 57.6,
+            'Nd': 27.6,
+            'Sm': 6.00,    
+            'Eu': 1.37,
+            'Gd': 5.81,    
+            'Tb': 0.92, 
+            'Dy': 5.43,
+            'Ho': 1.10, 
+            'Er': 3.09,    
+            'Yb': 3.01,
+            'Lu': 0.459
             }
         }
 
@@ -2933,6 +3016,14 @@ class MeltingColumn_1D():
             [0.118, 0.150, 0.655, 0.000, 0.000, 0.067]], 
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
         
+        
+        # # Hirschmann and Stolper 1996 px gt field
+        # SourceMineralProportionsDataFrame2 = pd.DataFrame([
+        #     [0, 0.3, 0.5, 0.2, 0.000, 0.000], 
+        #     [0.110, 0.178, 0.641, 0.000, 0.071, 0.000], 
+        #     [0.118, 0.150, 0.655, 0.000, 0.000, 0.067]], 
+        #     columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
+        
         # McKenzie and O'Nions, 1991
         SourceMineralProportionsDataFrame3 = pd.DataFrame([
             [0.598, 0.221, 0.076, 0.115, 0.000, 0.000], 
@@ -2944,11 +3035,98 @@ class MeltingColumn_1D():
         
         SourceMineralNonModalFixed = [0.18, 0.70, 0.18]
         
-        GP96NonModalMeltingDataFrame = pd.DataFrame([
-            [2/78, -22/78, 68/78, 30/78, 0, 0],
-            [-16/84, 23/84, 68/84, 0, 9/84, 0],
-            [-7/93, 32/93, 27/93, 0, 0, 41/93]],
-            columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
+        
+        def sp_pl_transition(P, rho):
+            """
+            Calculate proportions contributing to sp pl transition as contribution
+            from the sp field mantle.
+
+            Parameters
+            ----------
+            P : float
+                pressure in GPa
+            rho : float
+                density in g/cm3
+
+            Returns
+            -------
+            _sp_pl_transition : float
+                contribution from sp mantle
+
+            """
+            _d = (P/(rho*10))*1000
+            if _d <= 25:
+                _sp_pl_transition = 0
+            elif _d >= 35:
+                _sp_pl_transition = 1
+            else:
+                _sp_pl_transition = (35-_d)/10
+            return _sp_pl_transition
+        
+        def gt_in(P):
+            """
+            Calculate the temperature of garnet-in at a given pressure
+
+            Parameters
+            ----------
+            P : float
+                pressure in GPa
+
+            Returns
+            -------
+            _T : float
+                temperature in degC
+
+            """
+            _T = 666.7*P-400
+            return _T
+        
+        def sp_out(P):
+            """
+            Calculate the temperature of spinel-out at a given temperature
+
+            Parameters
+            ----------
+            P : float
+                pressure in GPa
+
+            Returns
+            -------
+            _T : float
+                temperature in degC
+
+            """
+            _T = 666.7*P-533
+            return _T
+        
+        def gt_sp_transition(P,T):
+            """
+            Calculate proportions contributing to gt sp transition as contribution
+            from the gt field mantle.
+
+            Parameters
+            ----------
+            P : float
+                pressure in GPa
+            T : float
+                temperature in degC
+
+            Returns
+            -------
+            _gt_sp_transition : float
+                contribution from gt mantle
+
+            """
+            _gt_in = gt_in(P)
+            _sp_out = sp_out(P)
+            if T <= _sp_out:
+                _gt_sp_transition = 1
+            elif T >= _gt_in:
+                _gt_sp_transition = 0
+            else:
+                _gt_sp_transition = (T-_sp_out)/(_gt_in-_sp_out)
+            return _gt_sp_transition
+            
         
         def dcsdX(X, cs, Dbar, Pbar):
             """
@@ -3012,18 +3190,28 @@ class MeltingColumn_1D():
                 PointAverageCompositions = np.zeros((8, len(LithologyF)))
                 for i in range(len(LithologyF)):
                     SourceMineralProportionsDataFrame = SourceMineralProportionsTotal[l]
-                    if _depth[i] >= gtsp:
+                    GarnetSpinel = gt_sp_transition(_P[i], _T[i])
+                    SpinelPlagioclase = sp_pl_transition(_P[i], _rho)
+                    if GarnetSpinel == 1 and SpinelPlagioclase == 1:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]
-                        Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[0].tolist())])
-                        NonModalGP96Proportions = GP96NonModalMeltingDataFrame.iloc[0]
-                    elif _depth[i] <= sppl:
-                        SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[2]
-                        Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[2].tolist())])
-                        NonModalGP96Proportions = GP96NonModalMeltingDataFrame.iloc[2]
-                    else:
+                    elif GarnetSpinel == 0 and SpinelPlagioclase == 1:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[1]
-                        Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportionsDataFrame.iloc[1].tolist())])
-                        NonModalGP96Proportions = GP96NonModalMeltingDataFrame.iloc[1]
+                    elif GarnetSpinel == 0 and SpinelPlagioclase == 0:
+                        SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[2]    
+                    else:
+                        if SpinelPlagioclase == 1:
+                            GarnetField = SourceMineralProportionsDataFrame.iloc[0]
+                            SpinelField = SourceMineralProportionsDataFrame.iloc[1]
+                            SourceMineralProportions = [i*GarnetSpinel + j*(1-GarnetSpinel) for i,j in zip(GarnetField, SpinelField)]
+                            SourceMineralProportionsDataFrame = pd.DataFrame([SourceMineralProportions],columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
+                            SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]   
+                        elif GarnetSpinel == 0:
+                            SpinelField = SourceMineralProportionsDataFrame.iloc[1]
+                            PlagioclaseField = SourceMineralProportionsDataFrame.iloc[2]
+                            SourceMineralProportions = [i*SpinelPlagioclase + j*(1-SpinelPlagioclase) for i,j in zip(SpinelField, PlagioclaseField)]
+                            SourceMineralProportionsDataFrame = pd.DataFrame([SourceMineralProportions],columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
+                            SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]   
+                    Dbar = sum([i*j for i,j in zip(DistributionCoefficients, SourceMineralProportions)])
 
                     if modal == 'Modal':
                         p0 = SourceMineralProportions['olv']
@@ -3032,27 +3220,6 @@ class MeltingColumn_1D():
                         p3 = SourceMineralProportions['grt']
                         p4 = SourceMineralProportions['spn']
                         p5 = SourceMineralProportions['plg']
-                        
-                        if LithologyF[i]*p0 > SourceMineralProportions['olv']:
-                            p0 = 0
-                        if LithologyF[i]*p1 > SourceMineralProportions['opx']:
-                            p1 = 0
-                        if LithologyF[i]*p2 > SourceMineralProportions['cpx']:
-                            p2 = 0
-                        if LithologyF[i]*p3 > SourceMineralProportions['grt']:
-                            p3 = 0
-                        if LithologyF[i]*p4 > SourceMineralProportions['spn']:
-                            p4 = 0
-                        if LithologyF[i]*p5 > SourceMineralProportions['plg']:
-                            p5 = 0
-                        
-                    elif modal == 'NonModalGP96':
-                        p0 = NonModalGP96Proportions['olv']
-                        p1 = NonModalGP96Proportions['opx']
-                        p2 = NonModalGP96Proportions['cpx']
-                        p3 = NonModalGP96Proportions['grt']
-                        p4 = NonModalGP96Proportions['spn']
-                        p5 = NonModalGP96Proportions['plg']
                         
                         if LithologyF[i]*p0 > SourceMineralProportions['olv']:
                             p0 = 0
@@ -3112,7 +3279,7 @@ class MeltingColumn_1D():
                         k3 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k2*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
                         k4 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1]),PointAverageCompositions[0,i-1]+k3*(LithologyF[i]-LithologyF[i-1]), Dbar, Pbar)
                         PointAverageCompositions[0,i]=PointAverageCompositions[0,i-1]+(1/6)*(LithologyF[i]-LithologyF[i-1])*(k1+2*k2+2*k3+k4)
-                        if PointAverageCompositions[0,i]<1e-8:
+                        if PointAverageCompositions[0,i]<1e-7:
                             PointAverageCompositions[0,i]=0
                         PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)
                         PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-max(LithologyF)))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
