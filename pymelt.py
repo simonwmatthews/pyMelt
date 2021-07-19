@@ -2779,6 +2779,8 @@ class MeltingColumn_1D():
         _g=9.81
         _P = self.P.tolist()
         _T = self.Temperature.tolist()
+        _F_total = self.F_total
+        _F_max = max(_F_total)
         _depth = [1000*i/(_g*_rho) for i in _P]
         
         self.REEElementList = RareEarths
@@ -3016,14 +3018,6 @@ class MeltingColumn_1D():
             [0.118, 0.150, 0.655, 0.000, 0.000, 0.067]], 
             columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
         
-        
-        # # Hirschmann and Stolper 1996 px gt field
-        # SourceMineralProportionsDataFrame2 = pd.DataFrame([
-        #     [0, 0.3, 0.5, 0.2, 0.000, 0.000], 
-        #     [0.110, 0.178, 0.641, 0.000, 0.071, 0.000], 
-        #     [0.118, 0.150, 0.655, 0.000, 0.000, 0.067]], 
-        #     columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'])
-        
         # McKenzie and O'Nions, 1991
         SourceMineralProportionsDataFrame3 = pd.DataFrame([
             [0.598, 0.221, 0.076, 0.115, 0.000, 0.000], 
@@ -3036,7 +3030,7 @@ class MeltingColumn_1D():
         SourceMineralNonModalFixed = [0.18, 0.70, 0.18]
         
         
-        def sp_pl_transition(P, rho):
+        def SpinelPlagioclaseTransition(P, rho):
             """
             Calculate proportions contributing to sp pl transition as contribution
             from the sp field mantle.
@@ -3050,20 +3044,20 @@ class MeltingColumn_1D():
 
             Returns
             -------
-            _sp_pl_transition : float
+            _SpinelPlagioclaseTransition : float
                 contribution from sp mantle
 
             """
             _d = (P/(rho*10))*1000
             if _d <= 25:
-                _sp_pl_transition = 0
+                _SpinelPlagioclaseTransition = 0
             elif _d >= 35:
-                _sp_pl_transition = 1
+                _SpinelPlagioclaseTransition = 1
             else:
-                _sp_pl_transition = (35-_d)/10
-            return _sp_pl_transition
+                _SpinelPlagioclaseTransition = (35-_d)/10
+            return _SpinelPlagioclaseTransition
         
-        def gt_in(P):
+        def GarnetIn(P):
             """
             Calculate the temperature of garnet-in at a given pressure
 
@@ -3081,7 +3075,7 @@ class MeltingColumn_1D():
             _T = 666.7*P-400
             return _T
         
-        def sp_out(P):
+        def SpinelOut(P):
             """
             Calculate the temperature of spinel-out at a given temperature
 
@@ -3099,7 +3093,7 @@ class MeltingColumn_1D():
             _T = 666.7*P-533
             return _T
         
-        def gt_sp_transition(P,T):
+        def GarnetSpinelTransition(P,T):
             """
             Calculate proportions contributing to gt sp transition as contribution
             from the gt field mantle.
@@ -3113,21 +3107,20 @@ class MeltingColumn_1D():
 
             Returns
             -------
-            _gt_sp_transition : float
+            _GarnetSpinelTransition : float
                 contribution from gt mantle
 
             """
-            _gt_in = gt_in(P)
-            _sp_out = sp_out(P)
-            if T <= _sp_out:
-                _gt_sp_transition = 1
-            elif T >= _gt_in:
-                _gt_sp_transition = 0
+            _GarnetIn = GarnetIn(P)
+            _SpinelOut = SpinelOut(P)
+            if T <= _SpinelOut:
+                _GarnetSpinelTransition = 1
+            elif T >= _GarnetIn:
+                _GarnetSpinelTransition = 0
             else:
-                _gt_sp_transition = (T-_sp_out)/(_gt_in-_sp_out)
-            return _gt_sp_transition
+                _GarnetSpinelTransition = (T-_SpinelOut)/(_GarnetIn-_SpinelOut)
+            return _GarnetSpinelTransition
             
-        
         def dcsdX(X, cs, Dbar, Pbar):
             """
             Rate of change of rare-earth element concentration in point average solid.
@@ -3190,8 +3183,8 @@ class MeltingColumn_1D():
                 PointAverageCompositions = np.zeros((8, len(LithologyF)))
                 for i in range(len(LithologyF)):
                     SourceMineralProportionsDataFrame = SourceMineralProportionsTotal[l]
-                    GarnetSpinel = gt_sp_transition(_P[i], _T[i])
-                    SpinelPlagioclase = sp_pl_transition(_P[i], _rho)
+                    GarnetSpinel = GarnetSpinelTransition(_P[i], _T[i])
+                    SpinelPlagioclase = SpinelPlagioclaseTransition(_P[i], _rho)
                     if GarnetSpinel == 1 and SpinelPlagioclase == 1:
                         SourceMineralProportions = SourceMineralProportionsDataFrame.iloc[0]
                     elif GarnetSpinel == 0 and SpinelPlagioclase == 1:
@@ -3282,8 +3275,8 @@ class MeltingColumn_1D():
                         if PointAverageCompositions[0,i]<1e-7:
                             PointAverageCompositions[0,i]=0
                         PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)
-                        PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-max(LithologyF)))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
-                        PointAverageCompositions[3,i]=PointAverageCompositions[3,i-1]+(max(LithologyF)/(1-max(LithologyF)))*abs(_depth[i]-_depth[i-1])
+                        PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-_F_max))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
+                        PointAverageCompositions[3,i]=PointAverageCompositions[3,i-1]+(max(LithologyF)/(1-_F_max))*abs(_depth[i]-_depth[i-1])
                         PointAverageCompositions[4,i]=PointAverageCompositions[2,i]/PointAverageCompositions[3,i]
                         PointAverageCompositions[5,i]=PointAverageCompositions[5,i-1] + PointAverageCompositions[4,i]*(_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
                         PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + (_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
