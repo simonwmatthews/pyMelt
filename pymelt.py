@@ -2867,6 +2867,20 @@ class MeltingColumn_1D():
             'Yb': 0.161,
             'Lu': 0.0246
             },
+        'KLB1': { # Rapp et al., 1999
+            'La': 0.064,
+            'Ce': 0.41,
+            'Nd': 0.80,
+            'Sm': 0.38,    
+            'Eu': 0.152,
+            'Gd': 0.66,    
+            'Tb': 0.122,    
+            'Dy': 0.86,
+            'Ho': 0.19,
+            'Er': 0.62,    
+            'Yb': 0.62,
+            'Lu': 0.098
+            },
         'MORB': { # Gale et al., 2013
             'La': 5.21,
             'Ce': 14.86,
@@ -2923,7 +2937,7 @@ class MeltingColumn_1D():
             'Yb': 2.59,
             'Lu': 0.38
             },
-        'KG1': { # Kogiso et al., 1998 (50:50 DMM:MORB)
+        'KG1_DMM': { # Kogiso et al., 1998 (50:50 DMM:MORB)
             'La': 2.701,
             'Ce': 7.705,
             'Nd': 6.3055,
@@ -2937,7 +2951,7 @@ class MeltingColumn_1D():
             'Yb': 1.9975,
             'Lu': 0.294
             },
-        'KG2': { # Kogiso et al., 1998 (33:67 DMM:MORB)
+        'KG2_DMM': { # Kogiso et al., 1998 (67:33 DMM:MORB)
             'La': 1.86467,
             'Ce': 5.32,
             'Nd': 4.39733,
@@ -2951,6 +2965,34 @@ class MeltingColumn_1D():
             'Yb': 1.45333,
             'Lu': 0.21533
             },
+        'KG1': { # Kogiso et al., 1998 (50:50 KLB1:MORB)
+            'La': 2.127,
+            'Ce': 6.415,
+            'Nd': 5.73,
+            'Sm': 1.93,    
+            'Eu': 0.706,
+            'Gd': 2.605,    
+            'Tb': 0.471,    
+            'Dy': 3.18,
+            'Ho': 0.685,
+            'Er': 2.02,    
+            'Yb': 1.95,
+            'Lu': 0.289
+            },
+        'KG2': { # Kogiso et al., 1998 (67:33 KLB1:MORB)
+            'La': 1.43933,
+            'Ce': 4.41333,
+            'Nd': 4.08667,
+            'Sm': 1.41333,    
+            'Eu': 0.52133,
+            'Gd': 1.95667,    
+            'Tb': 0.35467,    
+            'Dy': 2.40667,
+            'Ho': 0.52,
+            'Er': 1.55333,    
+            'Yb': 1.50666,
+            'Lu': 0.22533
+            },        
         'BIC': { # Stracke et al., 2003
             'La': 3.83,
             'Ce': 11.95,
@@ -3173,7 +3215,13 @@ class MeltingColumn_1D():
         for l in range(len(SolidLithologyProportions)):
             if models[l] == None:
                 continue
-            StartingComposition = MantleSourceREEs[models[l]]
+            if type(models[l]) == str: 
+                StartingComposition = MantleSourceREEs[models[l]]
+            elif type(models[l]) == list and len(RareEarths) == len(models[l]):
+                StartingComposition = dict(zip(RareEarths, models[l]))
+            else:
+                print('No valid rare-earth array entered!')
+                
             LithologyF = self.F[SolidLithologyNames[l]]
             AveragedMeltCompositions = np.zeros((4,len(RareEarths)))
             
@@ -3254,25 +3302,34 @@ class MeltingColumn_1D():
                         if LithologyF[i] == 0:
                             PointAverageCompositions[0,i] = StartingComposition[k]
                             PointAverageCompositions[1,i] = 0
+                        elif LithologyF[i] == 1:
+                            PointAverageCompositions[0,1] = 0
+                            PointAverageCompositions[4,i] = StartingComposition[k]
+                            PointAverageCompositions[7,i] = StartingComposition[k]
                         else:
-                            PointAverageCompositions[0,i] = StartingComposition[k]*(1/(1-LithologyF[i]))*((1-Pbar*LithologyF[i])/Dbar)**((1/Pbar)-1)                     
+                            PointAverageCompositions[0,i] = StartingComposition[k]*(1/(1-LithologyF[i]))*((1-Pbar*LithologyF[i])/Dbar)**((1/Pbar)-1)       
                             PointAverageCompositions[1,i] = cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar) 
+                            PointAverageCompositions[4,i] = PointAverageCompositions[1,i]
                             
                     elif LithologyF[i] == 0:
-                        PointAverageCompositions[0,i] = StartingComposition[k]
+                        PointAverageCompositions[0,i] = PointAverageCompositions[0,i-1]
                         PointAverageCompositions[1,i] = 0
                     elif LithologyF[i] == 1:
                         PointAverageCompositions[0,i] = 0
                         PointAverageCompositions[1,i] = 0
-                        PointAverageCompositions[2,i] = PointAverageCompositions[2,i-1] + StartingComposition[k]*abs(_depth[i]-_depth[i-1])
-                        PointAverageCompositions[3,i] = abs(_depth[i]-_depth[i-1])
+                        PointAverageCompositions[4,i]=PointAverageCompositions[4,i-1]
+                        PointAverageCompositions[5,i]=PointAverageCompositions[5,i-1] + PointAverageCompositions[4,i]*(_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
+                        PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + (_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
+                        PointAverageCompositions[7,i]=PointAverageCompositions[5,i]/PointAverageCompositions[6,i]  
                     else:
                         k1 = dcsdX(LithologyF[i-1],PointAverageCompositions[0,i-1], Dbar, Pbar)
                         k2 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k1*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
                         k3 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k2*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
                         k4 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1]),PointAverageCompositions[0,i-1]+k3*(LithologyF[i]-LithologyF[i-1]), Dbar, Pbar)
                         PointAverageCompositions[0,i]=PointAverageCompositions[0,i-1]+(1/6)*(LithologyF[i]-LithologyF[i-1])*(k1+2*k2+2*k3+k4)
-                        if PointAverageCompositions[0,i]<1e-7:
+                        if PointAverageCompositions[0,i]<1e-8:
+                            PointAverageCompositions[0,i]=0
+                        elif PointAverageCompositions[0,i] > PointAverageCompositions[0,i-1] and PointAverageCompositions[0,i-1] < PointAverageCompositions[0,i-2]:
                             PointAverageCompositions[0,i]=0
                         PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)
                         PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-_F_max))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
