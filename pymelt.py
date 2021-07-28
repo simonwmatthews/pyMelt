@@ -739,10 +739,9 @@ class MeltingColumn_1D():
         self.tc = _tc_found*1e6
         self.P_base_of_crust = _P_basecrust
         self.tc_lithology_contributions_int = _tc_lith/_tc_lith.sum()
-        self.tc_lithology_contributions = _tc_lith_found/sum(_tc_lith_found)
+        self.tc_lithology_contributions = _tc_lith_found/sum(_tc_lith_found) # Runtime error here - invalid value in true_divide
 
         return _tc_found*1e6
-
     def MeltCrystallisationT(self,ShallowMeltP=False,MeltStorageP=False,liqdTdP=39.16):
         """
         Identifies the crystallisation temperature of the deepest and shallowest melts,
