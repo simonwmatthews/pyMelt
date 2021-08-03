@@ -27,6 +27,23 @@ class kg1(lithology):
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
     also be changed during class initialisation.
 
+    Parameters
+    ----------
+    CP :         float, default: pyMelt.default_properties['CP']
+        The heat capacity (J K-1 kg-1)
+    alphas :     float, default: pyMelt.default_properties['alphas']
+        The thermal expansivity of the solid (1e-6 K-1)
+    alphaf :     float, default: pyMelt.default_properties['alphaf']
+        The thermal expansivity of the melt (1e-6 K-1)
+    rhos :       float, default: pyMelt.default_properties['rhos']
+        The density of the solid (kg m-3)
+    rhof :       float, default: pyMelt.default_properties['rhof']
+        The density of the melt (kg m-3)
+    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+        The entropy of fusion J K-1 kg-1
+    parameters : dict, default: parameters from Matthews et al. (2021)
+        The model parameters described above
+
     """
 
     def __init__(self,

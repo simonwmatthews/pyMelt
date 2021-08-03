@@ -4,160 +4,147 @@ import numpy as np
 
 class kg1(lithology):
     """
-    Lithology formatted like the KG1 parameterisation by Shorttle et al. (2014).
-    Default values reproduce behaviour of KG1. Default thermodynamic constants
-    are those used by Katz et al. (2003). All the parameters listed below are
-    callable.
+    Implementation of the KG1 parameterisation by Shorttle et al. (2014).
+
+    To use the same format of parameterisation for another lithology, the parameter values
+    may be changed. They are provided as a dictionary during initialisation of the class, with
+    values:
+    A1:     Constant used in solidus expression.
+    A2:     Constant used in solidus expression.
+    A3:     Constant used in solidus expression.
+    B1:     Constant used in cpx-out expression.
+    B2:     Constant used in cpx-out expression.
+    B3:     Constant used in cpx-out expression.
+    C1:     Constant used in liquidus expression.
+    C2:     Constant used in liquidus expression.
+    C3:     Constant used in liquidus expression.
+    a:      Constant used in cpx-present melt fraction expression.
+    b:      Constant used in cpx-present melt fraction expression.
+    c:      Constant used in cpx-absent melt fraction expression.
+    d:      Constant used in cpx-absent melt fraction expression.
+    alpha:  Exponent used in the cpx-present melt fraction expression.
+    beta:   Exponent used in the cpx-absent melt fraction expression.
+
+    The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
+    also be changed during class initialisation.
 
     Parameters
     ----------
-    DeltaS:     float
-        Entropy of fusion. (J kg-1 K-1). Default is 300.0.
-    CP:     float
-        Heat capacity (J Kg-1 K-1). Default is 1000.0.
-    alphas:     float
-        Thermal expansivity of the solid (K-1). Default is 40.0.
-    alphaf:     float
-        Thermal expansivity of the melt (K-1). Default is 68.0.
-    rhos:   float
-        Density of the solid (g cm-3). Default is 3.3.
-    rhof:   float
-        Density of the melt (g cm-3). Default is 2.9.
-    A1:     float
-        Constant used in solidus expression.
-    A2:     float
-        Constant used in solidus expression.
-    A3:     float
-        Constant used in solidus expression.
-    B1:     float
-        Constant used in cpx-out expression.
-    B2:     float
-        Constant used in cpx-out expression.
-    B3:     float
-        Constant used in cpx-out expression.
-    C1:     float
-        Constant used in liquidus expression.
-    C2:     float
-        Constant used in liquidus expression.
-    C3:     float
-        Constant used in liquidus expression.
-    a:  float
-        Constant used in cpx-present melt fraction expression.
-    b:  float
-        Constant used in cpx-present melt fraction expression.
-    c:  float
-        Constant used in cpx-absent melt fraction expression.
-    d:  float
-        Constant used in cpx-absent melt fraction expression.
-    alpha:  float
-        Exponent used in the cpx-present melt fraction expression.
-    beta:   float
-        Exponent used in the cpx-absent melt fraction expression.
+    CP :         float, default: pyMelt.default_properties['CP']
+        The heat capacity (J K-1 kg-1)
+    alphas :     float, default: pyMelt.default_properties['alphas']
+        The thermal expansivity of the solid (1e-6 K-1)
+    alphaf :     float, default: pyMelt.default_properties['alphaf']
+        The thermal expansivity of the melt (1e-6 K-1)
+    rhos :       float, default: pyMelt.default_properties['rhos']
+        The density of the solid (kg m-3)
+    rhof :       float, default: pyMelt.default_properties['rhof']
+        The density of the melt (kg m-3)
+    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+        The entropy of fusion J K-1 kg-1
+    parameters : dict, default: parameters from Shorttle et al. (2014)
+        The model parameters described above
     """
-    def __init__(self,DeltaS=300.0,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9,
-                 A1=1095.4,A2=124.1,A3=-4.7,B1=1179.6,B2=157.2,B3=-11.1,C1=1780.0,C2=45.0,C3=-2.0,
-                 a=0.3187864,b=0.4154,c=0.7341864,d=0.2658136,alpha=2,beta=1.5):
+    def __init__(self,
+                 CP = default_properties['CP'],
+                 alphas = default_properties['alphas'],
+                 alphaf = default_properties['alphaf'],
+                 rhos = default_properties['rhos'],
+                 rhof = default_properties['rhof'],
+                 DeltaS = default_properties['DeltaS'],
+                 parameters = {'A1':    1095.4,
+                               'A2':     124.1,
+                               'A3':      -4.7,
+                               'B1':    1179.6,
+                               'B2':     157.2,
+                               'B3':     -11.1,
+                               'C1':    1780.0,
+                               'C2':      45.0,
+                               'C3':      -2.0,
+                               'a':        0.3187864,
+                               'b':        0.4154,
+                               'c':        0.7341864,
+                               'd':        0.2658136,
+                               'alpha':    2.0,
+                               'beta':     1.5
+                               }
+                 ):
+
          self.DeltaS = DeltaS
          self.CP = CP
          self.alphas = alphas
          self.alphaf = alphaf
          self.rhos = rhos
          self.rhof = rhof
-         self.A1 = A1
-         self.A2 = A2
-         self.A3 = A3
-         self.B1 = B1
-         self.B2 = B2
-         self.B3 = B3
-         self.C1 = C1
-         self.C2 = C2
-         self.C3 = C3
-         self.a = a
-         self.b = b
-         self.c = c
-         self.d = d
-         self.alpha = alpha
-         self.beta = beta
+         self.parameters = parameters
 
-    def TSolidus(self,P):
+
+    def TSolidus(self, P):
         """
         Returns solidus temperature at a given pressure. T = A1 + A2*P + A3*P**2.
 
         Parameters
         ----------
-        P:  float, or list of floats, or array of floats
+        P : float, or list like
             Pressure in GPa.
 
         Returns
         -------
-        T:  float, or list of floats, or array of floats
+        float, or list like
             Solidus Temperature in degC.
         """
-        _T = self.A1 + self.A2*P + self.A3*P**2
-        return _T
+        T = self.parameters['A1'] + self.parameters['A2']*P + self.parameters['A3']*P**2
+        return T
 
-    def TLiquidus(self,P):
+    def TLiquidus(self, P):
         """
         Returns liquidus temperature at a given pressure. T = C1 + C2*P + C3*P**2.
 
         Parameters
         ----------
-        P:  float, or list of floats, or array of floats
+        P :  float, or list like
             Pressure in GPa.
 
         Returns
         -------
-        T: float, or list of floats, or array of floats
+        float, or list like
             Liquidus temperature in degC.
         """
-        _T = self.C1 + self.C2*P + self.C3*P**2
-        return _T
+        T = self.parameters['C1'] + self.parameters['C2']*P + self.parameters['C3']*P**2
+        return T
 
-    def TCpxOut(self,P):
-        """
-        Returns the temperature of cpx-exhaustion at a given pressure. T = B1 + B2*P + B3*P**2.
-
-        Parameters
-        ----------
-        P: float, or list of floats, or array of floats
-            Pressure in GPa.
-
-        Returns
-        -------
-        T: float, or list of floats, or array of floats
-            Cpx-exhaustion temperature in degC.
-        """
-        _T = self.B1 + self.B2*P + self.B3*P**2
-        return _T
-
-    def dTdP(self,P,T):
+    def dTdP(self, P, T):
         """
         Returns dT/dP (constant F) at a given pressure and temperature.
 
         Parameters
         ----------
-        P:  float
+        P : float
             Pressure in GPa.
-        T:  float
+        T : float
             Temperature in degC.
 
         Returns
         -------
-        dTdP:   float
+        float
             dT/dP (constant F) in K GPa-1.
         """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _Tcpx = self.TCpxOut(P)
+        Tsol = self.TSolidus(P)
+        Tliq = self.TLiquidus(P)
+        Tcpx = self._TCpxOut(P)
 
-        if T < _Tcpx:
-            _dTdP = -(-(T-_Tsol)/(_Tcpx-_Tsol)*(self.B2+2*self.B3*P-self.A2-self.A3*2*P) -
-                    self.A2 - self.A3*2*P)
+        if T < Tcpx:
+            dTdP = (-(-(T - Tsol) / (Tcpx - Tsol) *
+                    (self.parameters['B2'] + 2*self.parameters['B3']*P -
+                     self.parameters['A2'] - self.parameters['A3']*2*P) -
+                    self.parameters['A2'] - self.parameters['A3']*2*P))
         else:
-            _dTdP = -(-(T-_Tcpx)/(_Tliq-_Tcpx)*(self.C2+self.C3*2*P-self.B2-self.B3*2*P) -
-                    self.B2 - 2*self.B3*P)
+            dTdP = (-(-(T - Tcpx) / (Tliq - Tcpx) *
+                    (self.parameters['C2'] + self.parameters['C3']*2*P -
+                     self.parameters['B2'] - self.parameters['B3']*2*P) -
+                    self.parameters['B2'] - 2*self.parameters['B3']*P))
 
-        return _dTdP
+        return dTdP
 
     def dTdF(self,P,T):
         """
@@ -166,32 +153,36 @@ class kg1(lithology):
 
         Parameters
         ----------
-        P:  float
+        P : float
             Pressure in GPa.
-        T:  float
+        T : float
             Temperature in degC.
 
         Returns
         -------
-        dTdF:   float
+        float
             dT/dF (constant P) in K.
         """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _Tcpx = self.TCpxOut(P)
+        Tsol = self.TSolidus(P)
+        Tliq = self.TLiquidus(P)
+        Tcpx = self._TCpxOut(P)
 
-        if T < _Tsol:
-            _dTdF = np.inf
+        if T < Tsol:
+            dTdF = np.inf
         elif T < _Tcpx:
-            _dTdF = (_Tcpx-_Tsol)/(self.b + self.a*self.alpha*((T-_Tsol)/(_Tcpx-_Tsol))**(self.alpha-1))
-        elif T < _Tliq:
-            _dTdF = (_Tliq - _Tcpx)/(self.d*self.beta*((T-_Tcpx)/(_Tliq-_Tcpx))**(self.beta-1))
+            dTdF = ((Tcpx-Tsol) /
+                    (self.parameters['b'] + self.parameters['a'] *
+                     self.parameters['alpha'] *
+                     ((T-Tsol)/(Tcpx-Tsol))**(self.parameters['alpha']-1)))
+        elif T < Tliq:
+            dTdF = ((Tliq - Tcpx)/(self.parameters['d'] * self.parameters['beta'] *
+                    ((T-Tcpx)/(Tliq-Tcpx))**(self.parameters['beta']-1)))
         else:
-            _dTdF = np.inf
+            dTdF = np.inf
 
-        return _dTdF
+        return dTdF
 
-    def F(self,P,T):
+    def F(self, P, T):
         """
         Returns melt fraction at a given pressure and temperature. If below the
         solidus, returns 0. If above the liquidus, returns 1.
@@ -206,28 +197,176 @@ class kg1(lithology):
 
         Parameters
         ----------
-        P:  float
+        P : float
             Pressure in GPa.
-        T:  float
+        T : float
             Temperature in degC.
 
         Returns
         -------
-        F:  float
+        float
             Melt fraction between 0 and 1.
         """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _Tcpx = self.TCpxOut(P)
+        Tsol = self.TSolidus(P)
+        Tliq = self.TLiquidus(P)
+        Tcpx = self._TCpxOut(P)
 
         if T < _Tsol:
-            _F = 0.0
-        elif T > _Tliq:
-            _F = 1.0
-        elif T < _Tcpx:
-            Tf = (T-_Tsol)/(_Tcpx-_Tsol)
-            _F = self.a*Tf**self.alpha + self.b*Tf
+            F = 0.0
+        elif T > Tliq:
+            F = 1.0
+        elif T < Tcpx:
+            Tf = (T-Tsol)/(Tcpx-Tsol)
+            F = self.parameters['a'] * Tf**self.parameters['alpha'] + self.parameters['b']*Tf
         else:
-            Tf = (T-_Tcpx)/(_Tliq-_Tcpx)
-            _F = self.d*Tf**self.beta + self.c
-        return _F
+            Tf = (T-Tcpx)/(Tliq-Tcpx)
+            F = self.parameters['d'] * Tf**self.parameters['beta'] + self.parameters['c']
+        return F
+
+
+    def _TCpxOut(self, P):
+        """
+        Returns the temperature of cpx-exhaustion at a given pressure. T = B1 + B2*P + B3*P**2.
+
+        Parameters
+        ----------
+        P :float, or list like
+            Pressure in GPa.
+
+        Returns
+        -------
+        float, or list like
+            Cpx-exhaustion temperature in degC.
+        """
+        T = self.parameters['B1'] + self.parameters['B2']*P + self.parameters['B3']*P**2
+        return T
+
+
+class harzburgite:
+    """
+    Material that does not melt, i.e. Harzburgite in Shorttle et al. (2014) and
+    Matthews et al. (2016). Default thermodynamic constants are those used by
+    Katz et al. (2003).
+
+    The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
+    be changed during class initialisation.
+
+    Parameters
+    ----------
+    CP :         float, default: pyMelt.default_properties['CP']
+        The heat capacity (J K-1 kg-1)
+    alphas :     float, default: pyMelt.default_properties['alphas']
+        The thermal expansivity of the solid (1e-6 K-1)
+    alphaf :     float, default: pyMelt.default_properties['alphaf']
+        Melt thermal expansivity, not used, here for consistency.
+    rhos :       float, default: pyMelt.default_properties['rhos']
+        The density of the solid (kg m-3)
+    rhof :       float, default: pyMelt.default_properties['rhof']
+        Melt density, not used, here for consistency.
+    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+        The entropy of fusion, not used, here for consistency.
+    parameters : dict, default: {}
+        This model does not use any parameters, here for consistency.
+    """
+    def __init__(self,
+                 CP = default_properties['CP'],
+                 alphas = default_properties['alphas'],
+                 alphaf = default_properties['alphaf'],
+                 rhos = default_properties['rhos'],
+                 rhof = default_properties['rhof'],
+                 DeltaS = default_properties['DeltaS'],
+                 parameters = {}
+                 ):
+         self.CP = CP
+         self.alphas = alphas
+         self.alphaf = alphaf
+         self.rhos = rhos
+         self.rhof = rhof
+         self.DeltaS = DeltaS
+         self.parameters = parameters
+
+    def F(self, P, T):
+        """
+        Melt Fraction. Returns 0.0.
+
+        Parameters
+        ----------
+        P : float
+            Pressure. There to maintain consistancy within lithology definitions.
+        T : float
+            Temperature. There to maintain consistancy within lithology definitions.
+
+        Returns
+        -------
+        float
+            Melt fraction will always be 0.0.
+        """
+        return 0.0
+
+    def dTdF(self, P, T):
+        """
+        dTdF(constP). Returns np.inf.
+
+        Parameters
+        ----------
+        P : float
+            Pressure. There to maintain consistancy within lithology definitions.
+        T : float
+            Temperature. There to maintain consistancy within lithology definitions.
+
+        Returns
+        -------
+        numpy.inf
+            The value will always be infinite.
+        """
+        return np.inf
+
+    def dTdP(self, P, T):
+        """
+        dTdP(constF). Returns 0.0.
+
+        Parameters
+        ----------
+        P : float
+            Pressure. There to maintain consistancy within lithology definitions.
+        T : float
+            Temperature. There to maintain consistancy within lithology definitions.
+
+        Returns
+        -------
+        float
+            The value will always be 0.0.
+        """
+        return 0.0
+
+    def TSolidus(self, P):
+        """
+        Solidus temperature. Returns np.inf.
+
+        Parameters
+        ----------
+        P : float
+            Pressure. There to maintain consistancy within lithology definitions.
+
+        Returns
+        -------
+        numpy.inf
+            The value will always be infinite.
+        """
+        return np.inf
+
+    def TLiquidus(self, P):
+        """
+        Liquidus temperature. Returns np.inf
+
+        Parameters
+        ----------
+        P : float
+            Pressure. There to maintain consistancy within lithology definitions.
+
+        Returns
+        -------
+        numpy.inf
+            The value will always be infinite.
+        """
+        return np.inf
