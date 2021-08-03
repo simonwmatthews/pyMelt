@@ -1,5 +1,3 @@
-from abc import abstractmethod
-import numpy as np
 from scipy.misc import derivative
 
 # Default constant values taken from Katz et al., 2003:
@@ -10,6 +8,7 @@ default_properties = {'CP':     1000.0,  # Heat capacity in J Kg-1 K-1
                       'rhof':      2.9,  # Density of the melt (g cm-3).
                       'DeltaS':  300.0,  # Entropy of fusion. (J kg-1 K-1).
                       }
+
 
 class lithology(object):
     """
@@ -34,12 +33,12 @@ class lithology(object):
     """
 
     def __init__(self,
-                 CP = default_properties['CP'],
-                 alphas = default_properties['alphas'],
-                 alphaf = default_properties['alphaf'],
-                 rhos = default_properties['rhos'],
-                 rhof = default_properties['rhof'],
-                 DeltaS = default_properties['DeltaS'],
+                 CP=default_properties['CP'],
+                 alphas=default_properties['alphas'],
+                 alphaf=default_properties['alphaf'],
+                 rhos=default_properties['rhos'],
+                 rhof=default_properties['rhof'],
+                 DeltaS=default_properties['DeltaS'],
                  parameters={}):
         self.CP = CP
         self.alphas = alphas
@@ -119,10 +118,10 @@ class lithology(object):
             dT/dF(const. P) (K).
         """
 
-        def _to_diff(T, P, **kwargs):
+        def _to_diff(T, P, kwargs={}):
             return self.F(P, T, **kwargs)
 
-        return 1.0/(derivative(_to_diff, T, dx=0.1, args=(P, **kwargs)))
+        return 1.0/(derivative(_to_diff, T, dx=0.1, args=(P, kwargs)))
 
     def dTdP(self, P, T, **kwargs):
         """
@@ -142,6 +141,10 @@ class lithology(object):
             dT/dP(const. F) (K GPa-1).
         """
         dTdF = self.dTdF(P, T, **kwargs)
-        dFdP = derivative(self.F, P, args=(T, **kwargs))
+
+        def _to_diff(P, T, kwargs={}):
+            return self.F(P, T, **kwargs)
+
+        dFdP = derivative(_to_diff, P, args=(T, kwargs))
 
         return dTdF*dFdP

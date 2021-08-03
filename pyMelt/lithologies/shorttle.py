@@ -1,6 +1,7 @@
-from pyMelt.lithology_class import lithology
+from pyMelt.lithology_class import lithology, default_properties
 
 import numpy as np
+
 
 class kg1(lithology):
     """
@@ -46,38 +47,37 @@ class kg1(lithology):
         The model parameters described above
     """
     def __init__(self,
-                 CP = default_properties['CP'],
-                 alphas = default_properties['alphas'],
-                 alphaf = default_properties['alphaf'],
-                 rhos = default_properties['rhos'],
-                 rhof = default_properties['rhof'],
-                 DeltaS = default_properties['DeltaS'],
-                 parameters = {'A1':    1095.4,
-                               'A2':     124.1,
-                               'A3':      -4.7,
-                               'B1':    1179.6,
-                               'B2':     157.2,
-                               'B3':     -11.1,
-                               'C1':    1780.0,
-                               'C2':      45.0,
-                               'C3':      -2.0,
-                               'a':        0.3187864,
-                               'b':        0.4154,
-                               'c':        0.7341864,
-                               'd':        0.2658136,
-                               'alpha':    2.0,
-                               'beta':     1.5
-                               }
+                 CP=default_properties['CP'],
+                 alphas=default_properties['alphas'],
+                 alphaf=default_properties['alphaf'],
+                 rhos=default_properties['rhos'],
+                 rhof=default_properties['rhof'],
+                 DeltaS=default_properties['DeltaS'],
+                 parameters={'A1':    1095.4,
+                             'A2':     124.1,
+                             'A3': - 4.7,
+                             'B1':    1179.6,
+                             'B2':     157.2,
+                             'B3': - 11.1,
+                             'C1':    1780.0,
+                             'C2':      45.0,
+                             'C3': - 2.0,
+                             'a':        0.3187864,
+                             'b':        0.4154,
+                             'c':        0.7341864,
+                             'd':        0.2658136,
+                             'alpha':    2.0,
+                             'beta':     1.5
+                             }
                  ):
 
-         self.DeltaS = DeltaS
-         self.CP = CP
-         self.alphas = alphas
-         self.alphaf = alphaf
-         self.rhos = rhos
-         self.rhof = rhof
-         self.parameters = parameters
-
+        self.DeltaS = DeltaS
+        self.CP = CP
+        self.alphas = alphas
+        self.alphaf = alphaf
+        self.rhos = rhos
+        self.rhof = rhof
+        self.parameters = parameters
 
     def TSolidus(self, P):
         """
@@ -146,7 +146,7 @@ class kg1(lithology):
 
         return dTdP
 
-    def dTdF(self,P,T):
+    def dTdF(self, P, T):
         """
         Returns dT/dF (constant P) at a given pressure and temperature. If below
         the solidus, or above the liquidus, np.inf is returned.
@@ -169,7 +169,7 @@ class kg1(lithology):
 
         if T < Tsol:
             dTdF = np.inf
-        elif T < _Tcpx:
+        elif T < Tcpx:
             dTdF = ((Tcpx-Tsol) /
                     (self.parameters['b'] + self.parameters['a'] *
                      self.parameters['alpha'] *
@@ -211,7 +211,7 @@ class kg1(lithology):
         Tliq = self.TLiquidus(P)
         Tcpx = self._TCpxOut(P)
 
-        if T < _Tsol:
+        if T < Tsol:
             F = 0.0
         elif T > Tliq:
             F = 1.0
@@ -222,7 +222,6 @@ class kg1(lithology):
             Tf = (T-Tcpx)/(Tliq-Tcpx)
             F = self.parameters['d'] * Tf**self.parameters['beta'] + self.parameters['c']
         return F
-
 
     def _TCpxOut(self, P):
         """
@@ -269,21 +268,21 @@ class harzburgite:
         This model does not use any parameters, here for consistency.
     """
     def __init__(self,
-                 CP = default_properties['CP'],
-                 alphas = default_properties['alphas'],
-                 alphaf = default_properties['alphaf'],
-                 rhos = default_properties['rhos'],
-                 rhof = default_properties['rhof'],
-                 DeltaS = default_properties['DeltaS'],
-                 parameters = {}
+                 CP=default_properties['CP'],
+                 alphas=default_properties['alphas'],
+                 alphaf=default_properties['alphaf'],
+                 rhos=default_properties['rhos'],
+                 rhof=default_properties['rhof'],
+                 DeltaS=default_properties['DeltaS'],
+                 parameters={}
                  ):
-         self.CP = CP
-         self.alphas = alphas
-         self.alphaf = alphaf
-         self.rhos = rhos
-         self.rhof = rhof
-         self.DeltaS = DeltaS
-         self.parameters = parameters
+        self.CP = CP
+        self.alphas = alphas
+        self.alphaf = alphaf
+        self.rhos = rhos
+        self.rhof = rhof
+        self.DeltaS = DeltaS
+        self.parameters = parameters
 
     def F(self, P, T):
         """

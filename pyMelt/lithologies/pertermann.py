@@ -1,6 +1,7 @@
-from pyMelt.lithology_class import lithology
+from pyMelt.lithology_class import lithology, default_properties
 
 import numpy as np
+
 
 class g2(lithology):
     """
@@ -36,29 +37,28 @@ class g2(lithology):
         The model parameters described above
     """
     def __init__(self,
-                 CP = default_properties['CP'],
-                 alphas = default_properties['alphas'],
-                 alphaf = default_properties['alphaf'],
-                 rhos = default_properties['rhos'],
-                 rhof = default_properties['rhof'],
-                 DeltaS = default_properties['DeltaS'],
-                 parameters = {'a':     0.7368,
-                               'b':     0.2632,
-                               'c':   1175.000,
-                               'd':    114.000,
-                               'e':    920.000,
-                               'f':    130.000
-                               }
+                 CP=default_properties['CP'],
+                 alphas=default_properties['alphas'],
+                 alphaf=default_properties['alphaf'],
+                 rhos=default_properties['rhos'],
+                 rhof=default_properties['rhof'],
+                 DeltaS=default_properties['DeltaS'],
+                 parameters={'a':     0.7368,
+                             'b':     0.2632,
+                             'c':   1175.000,
+                             'd':    114.000,
+                             'e':    920.000,
+                             'f':    130.000
+                             }
                  ):
 
-        self.DeltaS=DeltaS
-        self.CP=CP
-        self.alphas=alphas
-        self.alphaf=alphaf
-        self.rhos=rhos
-        self.rhof=rhof
+        self.DeltaS = DeltaS
+        self.CP = CP
+        self.alphas = alphas
+        self.alphaf = alphaf
+        self.rhos = rhos
+        self.rhof = rhof
         self.parameters = parameters
-
 
     def F(self, P, T):
         """
@@ -92,7 +92,6 @@ class g2(lithology):
             F = self.parameters['a']*Tr**2 + self.parameters['b']*Tr
         return F
 
-
     def TLiquidus(self, P):
         """
         Calculates the liquidus temperature, at a given pressure, using:
@@ -108,9 +107,8 @@ class g2(lithology):
         float
             Liquidus temperature (degC).
         """
-        Tliq = self.parameters['c'] +self.parameters['d']*P
+        Tliq = self.parameters['c'] + self.parameters['d']*P
         return Tliq
-
 
     def TSolidus(self, P):
         """
@@ -127,9 +125,8 @@ class g2(lithology):
         float
             Solidus temperature (degC).
         """
-        Tsol = self.parameters['e'] +self.parameters['f']*P
+        Tsol = self.parameters['e'] + self.parameters['f']*P
         return Tsol
-
 
     def dTdF(self, P, T):
         """
@@ -158,7 +155,6 @@ class g2(lithology):
                     (self.parameters['a'] * 2 * ((T - Tsol) / (Tliq - Tsol))+self.parameters['b']))
 
         return dTdF
-
 
     def dTdP(self, P, T):
         """

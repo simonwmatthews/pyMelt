@@ -1,7 +1,11 @@
 import numpy as np
 from warnings import warn
+import matplotlib.pyplot as plt
+import pandas as pd
+from scipy.optimize import fsolve
 
-from pyMelt.meltingcolumn_class import meltingColumn_1D
+from pyMelt.meltingcolumn_class import MeltingColumn_1D
+
 
 class mantle:
     """
@@ -117,7 +121,6 @@ class mantle:
                 intersect[i] = np.nan
         return intersect
 
-
     def solidus_intersection_isobaric(self, P):
         """
         Finds the pressure at which each lithology's solidus will be intersected,
@@ -138,7 +141,6 @@ class mantle:
             intersect[i] = self.lithologies[i].TSolidus(P)
         return intersect
 
-
     def adiabat(self, P, Tp):
         """
         Calculates the actual temperature of the solid mantle at a given pressure, given the
@@ -158,9 +160,8 @@ class mantle:
         """
         bulk_props = self.bulk_properties(P)
         T = ((Tp + 273.15) * np.exp(bulk_props['alpha'] /
-              (bulk_props['rho'] * bulk_props['CP']) * P) - 273.15)
+             (bulk_props['rho'] * bulk_props['CP']) * P) - 273.15)
         return T
-
 
     def F(self, P, T):
         """
@@ -183,7 +184,6 @@ class mantle:
         for i in range(self.number_lithologies):
             F[i] = self.lithologies[i].F(P, T)
         return F
-
 
     def dFdP(self, P, T):
         """
@@ -209,12 +209,11 @@ class mantle:
         F = np.zeros(self.number_lithologies)
 
         for i in range(self.number_lithologies):
-            dTdP[i] = self.lithologies[i].dTdP(P,T)
-            dTdF[i] = self.lithologies[i].dTdF(P,T)
-            F[i] = self.lithologies[i].F(P,T)
+            dTdP[i] = self.lithologies[i].dTdP(P, T)
+            dTdF[i] = self.lithologies[i].dTdF(P, T)
+            F[i] = self.lithologies[i].F(P, T)
 
-
-        lithologies_melting = np.where((F>0) & (F<1))[0]
+        lithologies_melting = np.where((F > 0) & (F < 1))[0]
 
         if np.shape(lithologies_melting)[0] > 0:
             for i in range(np.shape(lithologies_melting)[0]):
@@ -224,22 +223,20 @@ class mantle:
 
                 bulk_props = self.bulk_properties(P, T)
 
-
                 # Equation (26) from PM2001 to find dFdP of first lithology
                 top = (bulk_props['CP'] / (T+273.15) * dTdP[key] -
-                       bulk_props['alpha']/blk_props['rho'] +
+                       bulk_props['alpha']/bulk_props['rho'] +
                        sum(self.proportions[not_key] * self.DeltaS[not_key] *
-                            (dTdP[key] - dTdP[not_key]) / dTdF[not_key]))
+                           (dTdP[key] - dTdP[not_key]) / dTdF[not_key]))
 
                 bottom = (self.proportions[key] * self.DeltaS[key] +
                           sum(self.proportions[not_key] * self.DeltaS[not_key] *
                               dTdF[key] / dTdF[not_key]) +
-                          bulk_props['CP'] / (T+273.15) * dTdF[_key])
+                          bulk_props['CP'] / (T+273.15) * dTdF[key])
 
                 dFdP[key] = - top/bottom
 
         return dFdP
-
 
     def adiabatic_gradient(self, P, T):
         """
@@ -263,7 +260,6 @@ class mantle:
         dTdP = bulk_props['alpha'] * (T+273.15) / bulk_props['rho'] / bulk_props['CP']
 
         return dTdP
-
 
     def dTdP(self, P, T, dFdP=None):
         """
@@ -293,14 +289,13 @@ class mantle:
         melting_lithologies = np.where(dFdP < 0)[0]
 
         if np.shape(melting_lithologies)[0] > 0:
-            key = np.argmin(dFdP[dFdP<0])
+            key = np.argmin(dFdP[dFdP < 0])
             key = melting_lithologies[key]
             dTdP = self.lithologies[key].dTdP(P, T) + self.lithologies[key].dTdF(P, T) * dFdP[key]
         else:
             dTdP = self.adiabatic_gradient(P, T)
 
         return dTdP
-
 
     def IsobaricMelt_1D(self, Tstart, P, dT=0.1):
         """
@@ -329,11 +324,10 @@ class mantle:
 
         solidus_intersection = self.solidus_intersection_isobaric(P)
 
-        bulk_props = self.bulk_properties(P, T)
-
         # Calculate the entropy lost associated with cooling solid material to the
         # solidus temperature
         solT = np.nanmin(solidus_intersection)
+        bulk_props = self.bulk_properties(P, solT)
         DeltaS_cool = - bulk_props['CP'] * np.log((solT + 273.15) / (Tstart + 273.15))
 
         DeltaS_melt = 0
@@ -345,7 +339,6 @@ class mantle:
             T = T + dT
 
         return T
-
 
     def AdiabaticMelt_1D(self, Tp, Pstart=8.0, Pend=0.01, steps=101, ReportSSS=True):
         """
@@ -384,7 +377,7 @@ class mantle:
         F = np.zeros([steps, self.number_lithologies])
 
         if T[0] > np.nanmin(self.solidus_intersection_isobaric(Pstart)):
-            if ReportSSS == True:
+            if ReportSSS is True:
                 warn("Super solidus start")
             T[0] = self.IsobaricMelt_1D(T[0], Pstart)
 
@@ -426,3 +419,55 @@ class mantle:
         results['T'] = T
 
         return MeltingColumn_1D(results, self, Tp)
+
+    def PlotBoundaries(self, Pmax=8.0, Pmin=0.0, steps=101, T_F=1600.0):
+        """
+        Generates 2 plots, one showing the P-T relationship of the solidii and
+        liquidii of each of the lithologies, and one which shows the melt fraction
+        of each lithology at fixed temperature as a function of pressure.
+
+        Parameters
+        ----------
+        Pmax :  float, default: 8.0
+            The maximum pressure (GPa) to display.
+        Pmin :  float, default: 0.0
+            The minimum pressure (GPa) to display.
+        steps : float, default: 101
+            The discretization to use..
+        T_F :   float, default: 1600.0
+            The temperature (degC) at which to calculate melt fractions.
+
+        Returns
+        -------
+        (matplotlib.figure, matplotlib.axes)
+            A tuple of the figure and axes objects.
+        """
+        P = np.linspace(Pmin, Pmax, steps)
+
+        f, a = plt.subplots(1, 2, sharey='row')
+
+        for i in range(self.number_lithologies):
+            Tsol = self.lithologies[i].TSolidus(P)
+            Tliq = self.lithologies[i].TLiquidus(P)
+            F = list()
+            for j in range(steps):
+                F.append(self.lithologies[i].F(P[j], T_F))
+
+        a[0].plot(Tsol, P)
+        a[0].plot(Tliq, P)
+
+        a[1].plot(F, P)
+
+        a[0].legend()
+        a[1].legend()
+        a[0].set_xlabel('T (°C)')
+        a[1].set_xlabel('F')
+        a[0].set_ylabel('P (GPa)')
+        a[0].invert_yaxis()
+
+        a[0].tick_params('x', labeltop=True, labelbottom=False)
+        a[0].xaxis.set_label_position('top')
+        a[1].tick_params('x', labeltop=True, labelbottom=False)
+        a[1].xaxis.set_label_position('top')
+
+        return f, a

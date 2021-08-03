@@ -1,6 +1,7 @@
-from pyMelt.lithology_class import lithology
+from pyMelt.lithology_class import lithology, default_properties
 
 import numpy as np
+
 
 class kg1(lithology):
     """
@@ -47,26 +48,26 @@ class kg1(lithology):
     """
 
     def __init__(self,
-                 CP = default_properties['CP'],
-                 alphas = default_properties['alphas'],
-                 alphaf = default_properties['alphaf'],
-                 rhos = default_properties['rhos'],
-                 rhof = default_properties['rhof'],
-                 DeltaS = default_properties['DeltaS'],
-                 parameters = {'A1':    450.000,
-                               'A2':      2.098,
-                               'A3':     17.000,
-                               'A4':    623.828,
-                               'B1':    174.566,
-                               'B2':    336.833,
-                               'B3':     66.762,
-                               'B4':    503.101,
-                               'C':       0.506,
-                               'beta1':   1.382,
-                               'beta2':   1.800,
-                               'r1':      0.342,
-                               'r2':      0.191,
-                               }
+                 CP=default_properties['CP'],
+                 alphas=default_properties['alphas'],
+                 alphaf=default_properties['alphaf'],
+                 rhos=default_properties['rhos'],
+                 rhof=default_properties['rhof'],
+                 DeltaS=default_properties['DeltaS'],
+                 parameters={'A1':    450.000,
+                             'A2':      2.098,
+                             'A3':     17.000,
+                             'A4':    623.828,
+                             'B1':    174.566,
+                             'B2':    336.833,
+                             'B3':     66.762,
+                             'B4':    503.101,
+                             'C':       0.506,
+                             'beta1':   1.382,
+                             'beta2':   1.800,
+                             'r1':      0.342,
+                             'r2':      0.191,
+                             }
                  ):
         self.CP = CP
         self.alphas = alphas
@@ -173,7 +174,6 @@ class kg1(lithology):
             dTdF = np.inf
         return dTdF
 
-
     def dTdP(self, P, T):
         """
         Calculates dT/dP(const. F). First calculates F, then chooses the
@@ -208,7 +208,7 @@ class kg1(lithology):
             dTdP = (((F**(1/self.parameters['beta1'])) * (dTdPLherzLiquidus-dTdPSolidus)) +
                     dTdPSolidus)
         elif F < 1.0:
-            Trel = (T- TcpxOut)/(TLiquidus-TcpxOut)
+            Trel = (T - TcpxOut) / (TLiquidus - TcpxOut)
             dTdP = ((TLiquidus - TcpxOut)/(1-FcpxOut) *
                     (1/self.parameters['beta2'])*Trel**(1-self.parameters['beta2']) *
                     dFdPcpxOut * (Trel**self.parameters['beta2']-1)
@@ -406,7 +406,8 @@ class kg1(lithology):
         TSolidus = self.TSolidus(P)
         TLherzLiquidus = self._TLherzLiquidus(P)
         FcpxOut = self._FcpxOut(P)
-        TcpxOut= (((FcpxOut**(1/self.properties['beta1']))) * (TLherzLiquidus-TSolidus) + TSolidus)
+        TcpxOut = (((FcpxOut**(1/self.properties['beta1']))) * (TLherzLiquidus - TSolidus) +
+                   TSolidus)
         return TcpxOut
 
     def _dTdPcpxOut(self, P):
@@ -430,8 +431,8 @@ class kg1(lithology):
         dTdPSolidus = self._dTdPSolidus(P)
         dTdPLherzLiquidus = self._dTdPLherzLiquidus(P)
         dFdPcpxOut = self._dFdPcpxOut(P)
-        A = ((dFdPcpxOut*(1/self.parameters['beta1'])*
-             ((FcpxOut**((1/self.parameters['beta1'])-1))))*
+        A = ((dFdPcpxOut*(1/self.parameters['beta1']) *
+             ((FcpxOut**((1/self.parameters['beta1'])-1)))) *
              (TLherzLiquidus-TSolidus))
         B = ((FcpxOut**(1/self.parameters['beta1']))*(dTdPLherzLiquidus-dTdPSolidus))+dTdPSolidus
         dTdPcpxOut = A + B
@@ -475,8 +476,8 @@ class kg1(lithology):
             Melt fraction during cpx-absent melting.
         """
         FcpxOut = self._FcpxOut(P)
-        RescaledTopx = self._RescaledTopx(T,P)
-        FopxDry = FcpxOut + (1-FcpxOut)* RescaledTopx**self.parameters['beta2']
+        RescaledTopx = self._RescaledTopx(T, P)
+        FopxDry = FcpxOut + (1-FcpxOut) * RescaledTopx**self.parameters['beta2']
         return FopxDry
 
 
@@ -491,11 +492,11 @@ class klb1:
     A1:     Parameter used to define solidus.
     A2:     Parameter used to define solidus.
     A3:     Parameter used to define solidus.
-	A4:		Parameter used to define solidus.
+    A4:		Parameter used to define solidus.
     B1:     Parameter used to define liquidus.
     B2:     Parameter used to define liquidus.
     B3:     Parameter used to define liquidus.
-	B4:     Parameter used to define liquidus.
+    B4:     Parameter used to define liquidus.
     C:     	Parameter used to define lherzolite-liquidus.
     beta1:  Parameter used to calculate melt fraction during cpx-present melting.
     beta2:  Parameter used to calculate melt fraction during cpx-absent melting.
@@ -507,27 +508,27 @@ class klb1:
 
     """
     def __init__(self,
-                 CP = default_properties['CP'],
-                 alphas = default_properties['alphas'],
-                 alphaf = default_properties['alphaf'],
-                 rhos = default_properties['rhos'],
-                 rhof = default_properties['rhof'],
-                 DeltaS = default_properties['DeltaS'],
-                 parameters = {'Mcpx':     0.1500,
-                               'A1':    2445.7540,
-                               'A2':       9.5110,
-                               'A3':     -99.7820,
-                               'A4':   -4378.5810,
-                               'B1':     480.4030,
-                               'B2':     672.3910,
-                               'B3':      12.2750,
-                               'B4':   -1242.5360,
-                               'C':        0.6873,
-                               'beta1':    1.5000,
-                               'beta2':    1.5000,
-                               'r1':       0.5000,
-                               'r2':       0.0800
-                               }
+                 CP=default_properties['CP'],
+                 alphas=default_properties['alphas'],
+                 alphaf=default_properties['alphaf'],
+                 rhos=default_properties['rhos'],
+                 rhof=default_properties['rhof'],
+                 DeltaS=default_properties['DeltaS'],
+                 parameters={'Mcpx':     0.1500,
+                             'A1':    2445.7540,
+                             'A2':       9.5110,
+                             'A3': - 99.7820,
+                             'A4': - 4378.5810,
+                             'B1':     480.4030,
+                             'B2':     672.3910,
+                             'B3':      12.2750,
+                             'B4': - 1242.5360,
+                             'C':        0.6873,
+                             'beta1':    1.5000,
+                             'beta2':    1.5000,
+                             'r1':       0.5000,
+                             'r2':       0.0800
+                             }
                  ):
         self.CP = CP
         self.alphas = alphas
@@ -536,7 +537,6 @@ class klb1:
         self.rhof = rhof
         self.DeltaS = DeltaS
         self.parameters = parameters
-
 
     def TSolidus(self, P):
         """
@@ -636,7 +636,6 @@ class klb1:
             dTdF = np.inf
         return dTdF
 
-
     def dTdP(self, P, T):
         """
         Calculates dT/dP(const. F). First calculates F, then chooses the
@@ -671,15 +670,14 @@ class klb1:
             dTdP = (((F**(1/self.parameters['beta1'])) *
                     (dTdPLherzLiquidus-dTdPSolidus)) + dTdPSolidus)
         elif F < 1.0:
-            Trel = (T- TcpxOut)/(TLiquidus-TcpxOut)
-            dTdP = ((TLiquidus - TcpxOut)/(1-FcpxOut) *
+            Trel = (T - TcpxOut) / (TLiquidus - TcpxOut)
+            dTdP = ((TLiquidus - TcpxOut)/(1 - FcpxOut) *
                     (1/self.parameters['beta2'])*Trel**(1-self.parameters['beta2']) *
                     dFdPcpxOut * (Trel**self.parameters['beta2']-1) +
                     dTdPcpxOut + Trel*(dTdPLiquidus - dTdPcpxOut))
         else:
             dTdP = self.alphaf/self.rhof/self.CP
         return dTdP
-
 
     def _dTdPLiquidus(self, P):
         """
@@ -867,8 +865,8 @@ class klb1:
         TSolidus = self.TSolidus(P)
         TLherzLiquidus = self._TLherzLiquidus(P)
         FcpxOut = self._FcpxOut(P)
-        TcpxOut= (((FcpxOut**(1/self.parameters['beta1']))) *
-                  (TLherzLiquidus-TSolidus) + TSolidus)
+        TcpxOut = (((FcpxOut**(1/self.parameters['beta1']))) *
+                   (TLherzLiquidus-TSolidus) + TSolidus)
         return TcpxOut
 
     def _dTdPcpxOut(self, P):
@@ -893,7 +891,7 @@ class klb1:
         dTdPLherzLiquidus = self._dTdPLherzLiquidus(P)
         dFdPcpxOut = self._dFdPcpxOut(P)
 
-        A = ((dFdPcpxOut*(1/self.parameters['beta1'])*
+        A = ((dFdPcpxOut*(1/self.parameters['beta1']) *
               ((FcpxOut**((1/self.parameters['beta1'])-1)))) *
              (TLherzLiquidus-TSolidus))
         B = (((FcpxOut**(1/self.parameters['beta1'])) *
@@ -940,7 +938,7 @@ class klb1:
         """
         FcpxOut = self._FcpxOut(P)
         RescaledTopx = self._RescaledTopx(T, P)
-        FopxDry = FcpxOut + (1-FcpxOut)* RescaledTopx**self.parameters['beta2']
+        FopxDry = FcpxOut + (1-FcpxOut) * RescaledTopx**self.parameters['beta2']
         return FopxDry
 
 
@@ -966,22 +964,22 @@ class eclogite(lithology):
 
     """
     def __init__(self,
-                 CP = default_properties['CP'],
-                 alphas = default_properties['alphas'],
-                 alphaf = default_properties['alphaf'],
-                 rhos = default_properties['rhos'],
-                 rhof = default_properties['rhof'],
-                 DeltaS = default_properties['DeltaS'],
-                 parameters = {'C1':    533.842,
-                               'C2':      4.921,
-                               'C3':     20.148,
-                               'C4':     80.879,
-                               'D1':    994.149,
-                               'D2':      8.092,
-                               'D3':    -11.778,
-                               'D4':   -862.641,
-                               'beta':    2.134,
-                               }
+                 CP=default_properties['CP'],
+                 alphas=default_properties['alphas'],
+                 alphaf=default_properties['alphaf'],
+                 rhos=default_properties['rhos'],
+                 rhof=default_properties['rhof'],
+                 DeltaS=default_properties['DeltaS'],
+                 parameters={'C1':    533.842,
+                             'C2':      4.921,
+                             'C3':     20.148,
+                             'C4':     80.879,
+                             'D1':    994.149,
+                             'D2':      8.092,
+                             'D3': - 11.778,
+                             'D4': - 862.641,
+                             'beta':    2.134,
+                             }
                  ):
 
         self.DeltaS = DeltaS
@@ -1021,7 +1019,6 @@ class eclogite(lithology):
             F = Tr**self.parameters['beta']
         return F
 
-
     def TSolidus(self, P):
         """
         Calculates the solidus temperature at a given pressure.
@@ -1041,7 +1038,6 @@ class eclogite(lithology):
                 self.parameters['C3']*P + self.parameters['C4'])
         return Tsol
 
-
     def TLiquidus(self, P):
         """
         Calculates the liquidus temperature at a given pressure.
@@ -1059,7 +1055,6 @@ class eclogite(lithology):
         Tliq = (self.parameters['D1'] * np.log(P + self.parameters['D2']) +
                 self.parameters['D3']*P + self.parameters['D4'])
         return Tliq
-
 
     def dTdF(self, P, T):
         """
@@ -1079,16 +1074,15 @@ class eclogite(lithology):
         """
         Tsol = self.TSolidus(P)
         Tliq = self.TLiquidus(P)
-        F = self.F(P,T)
+        F = self.F(P, T)
         if T < Tsol:
             dTdF = np.inf
         elif T > Tliq:
             dTdF = np.inf
         else:
-            dTdF = ((1/self.parameters['beta']) * (Tliq-Tsol) *F**((1/self.parameters['beta'])-1))
+            dTdF = ((1/self.parameters['beta']) * (Tliq-Tsol) * F**((1/self.parameters['beta'])-1))
 
         return dTdF
-
 
     def dTdP(self, P, T):
         """
@@ -1111,13 +1105,11 @@ class eclogite(lithology):
         F = self.F(P, T)
         if F == 0:
             dTdP = self.alphas/self.rhos/self.CP
-        elif _F == 1:
+        elif F == 1:
             dTdP = self.alphaf/self.rhof/self.CP
         else:
             dTdP = (F**(1/self.parameters['beta'])) * (dTdPliq-dTdPsol) + dTdPsol
         return dTdP
-
-
 
     def _dTdPSolidus(self, P):
         """
@@ -1137,8 +1129,7 @@ class eclogite(lithology):
                        self.parameters['C3'])
         return dTdPSolidus
 
-
-    def _dTdPLiquidus(self,P):
+    def _dTdPLiquidus(self, P):
         """
         Returns the liquidus temperature gradient at any given pressure.
 
