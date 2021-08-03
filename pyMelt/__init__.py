@@ -9,4 +9,5 @@ provided for performing decompression melting calculations.
 """
 
 import pyMelt.lithology_class
-import pyMelt.lithologies.matthews
+import pyMelt.lithologies
+import pyMelt.mantle_class 

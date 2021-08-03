@@ -1,4 +1,5 @@
 import numpy as np
+from warnings import warn
 
 from pyMelt.meltingcolumn_class import meltingColumn_1D
 
@@ -160,142 +161,148 @@ class mantle:
               (bulk_props['rho'] * bulk_props['CP']) * P) - 273.15)
         return T
 
+
     def F(self, P, T):
         """
         Calculates the melt fraction of each lithology at a given pressure and
-        temperature. Acts as a lookup function.
+        temperature.
 
         Parameters
         ----------
-        P:  float
+        P : float
             Pressure in GPa
-        T:  float
+        T : float
             Temperature in degC
 
         Returns
         -------
-        F:  np.array
-            Array containing the melt fraction of each lithology, in the order
-            the lithologies were passed to the mantle class.
+        np.array
+            Array containing the melt fraction of each lithology.
         """
-        _F = np.zeros(self.number_lithologies)
+        F = np.zeros(self.number_lithologies)
         for i in range(self.number_lithologies):
-            _F[i] = self.lithologies[i].F(P,T)
-        return _F
+            F[i] = self.lithologies[i].F(P, T)
+        return F
 
-    def dFdP(self,P,T):
+
+    def dFdP(self, P, T):
         """
         Calculates the value of dFdP for each lithology at the given pressure
         and temperature, using Eq(26) of Phipps Morgan (2001).
 
         Parameters
         ----------
-        P:  float
+        P : float
             Pressure in GPa.
-        T:  float
+        T : float
             Temperature in degC.
 
         Returns
         -------
-        dFdP    np.array
-            Array of dFdP values for each lithology, in the order in which they
-            were passed to the mantle class.
+        np.array
+            Array of dFdP values for each lithology.
         """
-        _dFdP = np.zeros(self.number_lithologies)
+        dFdP = np.zeros(self.number_lithologies)
 
-        _dTdP = np.zeros(self.number_lithologies)
-        _dTdF = np.zeros(self.number_lithologies)
-        _F = np.zeros(self.number_lithologies)
+        dTdP = np.zeros(self.number_lithologies)
+        dTdF = np.zeros(self.number_lithologies)
+        F = np.zeros(self.number_lithologies)
 
         for i in range(self.number_lithologies):
-            _dTdP[i] = self.lithologies[i].dTdP(P,T)
-            _dTdF[i] = self.lithologies[i].dTdF(P,T)
-            _F[i] = self.lithologies[i].F(P,T)
+            dTdP[i] = self.lithologies[i].dTdP(P,T)
+            dTdF[i] = self.lithologies[i].dTdF(P,T)
+            F[i] = self.lithologies[i].F(P,T)
 
 
-        _lithologies_melting = np.where((_F>0)&(_F<1))[0]
+        lithologies_melting = np.where((F>0) & (F<1))[0]
 
-        if np.shape(_lithologies_melting)[0] > 0:
-            for i in range(np.shape(_lithologies_melting)[0]):
-                _not_key = [True]*self.number_lithologies
-                _key = _lithologies_melting[i]
-                _not_key[_key] = False
+        if np.shape(lithologies_melting)[0] > 0:
+            for i in range(np.shape(lithologies_melting)[0]):
+                not_key = [True]*self.number_lithologies
+                key = lithologies_melting[i]
+                not_key[key] = False
+
+                bulk_props = self.bulk_properties(P, T)
 
 
                 # Equation (26) from PM2001 to find dFdP of first lithology
-                _top = (self.bulk_properties(P,T).CP/(T+273.15)*_dTdP[_key] -
-                        self.bulk_properties(P,T).alpha/self.bulk_properties(P,T).rho +
-                        sum(self.proportions[_not_key]*self.DeltaS[_not_key]*
-                            (_dTdP[_key]-_dTdP[_not_key])/_dTdF[_not_key]))
+                top = (bulk_props['CP'] / (T+273.15) * dTdP[key] -
+                       bulk_props['alpha']/blk_props['rho'] +
+                       sum(self.proportions[not_key] * self.DeltaS[not_key] *
+                            (dTdP[key] - dTdP[not_key]) / dTdF[not_key]))
 
-                _bottom = (self.proportions[_key]*self.DeltaS[_key] +
-                            sum(self.proportions[_not_key]*self.DeltaS[_not_key]*_dTdF[_key]/_dTdF[_not_key]) +
-                            self.bulk_properties(P,T).CP/(T+273.15)*_dTdF[_key])
+                bottom = (self.proportions[key] * self.DeltaS[key] +
+                          sum(self.proportions[not_key] * self.DeltaS[not_key] *
+                              dTdF[key] / dTdF[not_key]) +
+                          bulk_props['CP'] / (T+273.15) * dTdF[_key])
 
-                _dFdP[_key] = - _top/_bottom
+                dFdP[key] = - top/bottom
 
-        return _dFdP
+        return dFdP
 
-    def adiabatic_gradient(self,P,T):
+
+    def adiabatic_gradient(self, P, T):
         """
-        Calculates dTdP if melting has gone to completion (or hasn't started) for
-        the bulk mantle.
+        Calculates dTdP if melting has gone to completion (or hasn't started) for the bulk mantle.
 
         Parameters
         ----------
-        P:  float
+        P : float
             Pressure in GPa.
-        T:  float
+        T : float
             Temperature in degC.
 
         Returns
         -------
-        dTdP:   float
-                The adiabatic gradient in C/GPa
+        float
+            The adiabatic gradient in C/GPa
         """
 
-        _bulk = self.bulk_properties(P,T)
+        bulk_props = self.bulk_properties(P, T)
 
-        _dTdP = _bulk['alpha']*(T+273.15)/_bulk['rho']/_bulk['CP']
+        dTdP = bulk_props['alpha'] * (T+273.15) / bulk_props['rho'] / bulk_props['CP']
 
-        return _dTdP
+        return dTdP
 
 
-    def dTdP(self,P,T,dFdP):
+    def dTdP(self, P, T, dFdP=None):
         """
-        Calculates dTdP using Eq(28) of Phipps Morgan (2001). Picks the lithology
-        to use by the one with the largest increase in melt fraction with decompression
-        (though this choice shouldn't matter). This is something that should be used to
-        check the behaviour of the code.
+        Calculates dTdP using Eq(28) of Phipps Morgan (2001). Picks the lithology to use by the
+        one with the largest increase in melt fraction with decompression (though this choice
+        shouldn't matter).
 
         Parameters
         ----------
-        P:  float
-            Pressure in GPa. Needed to find dTdP(const F), and dTdF(const P).
-        T:  float
-            Temperature in degC. Needed to find dTdP(const F), and dTdF(const P).
-        dFdP:   np.array
-            The return from the dFdP function. Array of the dFdP values of each
-            lithology and the same pressure and temperature as passed to the
-            function. This function doesn't recall the dFdP function in order
-            to save re-calculating the same numbers multiple times.
+        P :    float
+            Pressure in GPa.
+        T :    float
+            Temperature in degC.
+        dFdP : np.array or None, default: None
+            The value of dFdP at the same T and P. If None, the dFdP method will be called. In
+            most melting calculations the value will already have been calculated, so passing the
+            value will save computational time.
 
         Returns
         -------
-        dTdP:   float
-            The thermal gradient in the melting region at the P, and T of interest.
+        float
+            The thermal gradient in the melting region at the P and T of interest.
         """
-        _melting_lithologies = np.where(dFdP<0)[0]
-        if np.shape(_melting_lithologies)[0] > 0:
-            _key = np.argmin(dFdP[dFdP<0])
-            _key = _melting_lithologies[_key]
-            _dTdP = self.lithologies[_key].dTdP(P,T) + self.lithologies[_key].dTdF(P,T)*dFdP[_key]
+        if dFdP is None:
+            dFdP = self.dFdP(P, T)
+
+        melting_lithologies = np.where(dFdP < 0)[0]
+
+        if np.shape(melting_lithologies)[0] > 0:
+            key = np.argmin(dFdP[dFdP<0])
+            key = melting_lithologies[key]
+            dTdP = self.lithologies[key].dTdP(P, T) + self.lithologies[key].dTdF(P, T) * dFdP[key]
         else:
-            _dTdP = self.lithologies[0].dTdP(P,T)
+            dTdP = self.adiabatic_gradient(P, T)
 
-        return _dTdP
+        return dTdP
 
-    def IsobaricMelt_1D(self,Tstart,P,dT=0.1):
+
+    def IsobaricMelt_1D(self, Tstart, P, dT=0.1):
         """
         Calculates the amount of melt generated, and the mantle's temperature, after
         an interval of melting occuring due to mantle being instantaneously placed
@@ -303,177 +310,119 @@ class mantle:
 
         The intention of this function was to handle high Tp cases where the solidus
         is always exceeded, not to produce physically meaningful results, but to
-        allow the tails of Tp distributions when inverting to be reasonably approximated.
+        allow the tails of Tp distributions to be approximated reasonably when inverting.
 
         Parameters
         ----------
-        Tstart:     float
+        Tstart : float
             The temperature (degC) at which to place the solid mantle.
-        P:  float
+        P :      float
             The pressure at which to perform the calculation.
-        dT:     float
+        dT :     float
             The interval of discretisation of temperature increase from the solidus.
+
+        Returns
+        -------
+        float
+            Temperature of mantle following the melting step.
         """
 
-        _solidus_intersection = self.solidus_intersection_isobaric(P)
+        solidus_intersection = self.solidus_intersection_isobaric(P)
+
+        bulk_props = self.bulk_properties(P, T)
 
         # Calculate the entropy lost associated with cooling solid material to the
         # solidus temperature
-        _solT = np.nanmin(_solidus_intersection)
-        _DeltaS_cool = - self.bulk_properties()['CP']*np.log((_solT+273)/(Tstart+273))
+        solT = np.nanmin(solidus_intersection)
+        DeltaS_cool = - bulk_props['CP'] * np.log((solT + 273.15) / (Tstart + 273.15))
 
-        _DeltaS_melt = 0
-        _T = _solT + dT
-        while _DeltaS_melt < _DeltaS_cool and _T < Tstart:
-            _DeltaS_melt = (np.sum(self.F(P,_T)*self.proportions*self.DeltaS) +
-                            - self.bulk_properties(P,_T)['CP']*np.log((_solT+273)/(_T+273)))
-            _T = _T + dT
+        DeltaS_melt = 0
+        T = solT + dT
+        while DeltaS_melt < DeltaS_cool and T < Tstart:
+            bulk_props = self.bulk_properties(P, T)
+            DeltaS_melt = (np.sum(self.F(P, T) * self.proportions * self.DeltaS) +
+                           - bulk_props['CP'] * np.log((solT + 273.15) / (T + 273.15)))
+            T = T + dT
 
-        return _T
+        return T
 
 
-
-
-    def AdiabaticMelt_1D(self,Tp,Pstart=8.0,Pend=0.01,steps=1001,ReportSSS=True):
+    def AdiabaticMelt_1D(self, Tp, Pstart=8.0, Pend=0.01, steps=101, ReportSSS=True):
         """
-        Performs simultaneous integration of dFdP and dTdP in order to obtain
-        the thermal gradient through the melting region. F of each lithology is then
-        calculated using the P,T path. Integration is performed using a 4th order
-        Runge-Kutta algorithm.
+        Performs simultaneous integration of dFdP and dTdP to obtain the thermal gradient
+        through the melting region. F of each lithology is then calculated using the P,T path.
+        Integration is performed using a 4th order Runge-Kutta algorithm.
 
-        The T-P path is allowed to overstep the solidus on the step prior to the
-        start of melting.
+        The T-P path is allowed to overstep the solidus on the step prior to the start of melting.
 
         Parameters
         ----------
-        Tp:     float
+        Tp :        float
             The potential temperature (degC) at which to perform the calculation.
-        Pstart:     float
-            The pressure (in GPa) at which to begin upwelling. Default is 8 GPa.
-        Pend:   float
-            The pressure (in GPa) at which to stop upwelling. Default is 0 GPa.
-        steps:  int
-            The number of dP increments to split the melting region into. Default
-            is 1001.
-        ReportSSS:  bool
-            Print to the console if the start is above the solidus of one of the
-            lithologies. Either way the code will calculate the melt fraction at
-            this point by conserving entropy. Set to False if this is deliberate.
+        Pstart :    float, default: 8.0
+            The pressure (in GPa) at which to begin upwelling.
+        Pend :      float, default: 0.0
+            The pressure (in GPa) at which to stop upwelling.
+        steps :     int, default: 101
+            The number of dP increments to split the melting region into.
+        ReportSSS : bool, default: True
+            Print to the console if the start is above the solidus of one of the lithologies.
+            Either way the code will calculate the melt fraction at this point by conserving
+            entropy. Set to False if you don't want to be warned.
 
         Returns
         -------
-        MeltingColumn:  MeltingColumn_1D object
-            The results are returned in a 1D Melting Column object, further
-            calculations, e.g. crustal thickness may then be performed on this
-            object, if desired.
+        pyMelt.MeltingColumn_1D
+            The results are returned in a 1D Melting Column instance, further calculations, e.g.
+            crustal thickness may then be performed on this instance, if desired.
         """
-        _T = np.zeros(steps)
-        _T[0] = self.adiabat(Pstart,Tp)
-        _P = np.linspace(Pstart,Pend,steps)
-        _dP = (Pend-Pstart)/(steps-1)
-        _F = np.zeros([steps,self.number_lithologies])
 
-        if _T[0] > np.nanmin(self.solidus_intersection_isobaric(Pstart)):
+        T = np.zeros(steps)
+        T[0] = self.adiabat(Pstart, Tp)
+        P = np.linspace(Pstart, Pend, steps)
+        dP = (Pend - Pstart) / (steps - 1)
+        F = np.zeros([steps, self.number_lithologies])
+
+        if T[0] > np.nanmin(self.solidus_intersection_isobaric(Pstart)):
             if ReportSSS == True:
-                print('WARNING! SUPER SOLIDUS START')
-            _T[0] = self.IsobaricMelt_1D(_T[0],Pstart)
+                warn("Super solidus start")
+            T[0] = self.IsobaricMelt_1D(T[0], Pstart)
 
         for i in range(steps):
             if i == 0:
-                _F[i] = self.F(_P[0],_T[0])
+                F[i] = self.F(P[0], T[0])
             else:
-                if np.shape(np.where((_F[i-1]>0))[0])[0] == 0:
-                    _T[i] = self.adiabat(_P[i],Tp)
-                    _F[i] = self.F(_P[i],_T[i])
-                elif np.shape(np.where((_F[i-1]>0)&(_F[i-1]<1))[0])[0] == 0:
-                    _j1 = self.adiabatic_gradient(_P[i-1],_T[i-1])
-                    _j2 = self.adiabatic_gradient(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1)
-                    _j3 = self.adiabatic_gradient(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j2)
-                    _j4 = self.adiabatic_gradient(_P[i],_T[i-1]+_dP*_j3)
+                # If melting has not started
+                if np.shape(np.where((F[i-1] > 0))[0])[0] == 0:
+                    T[i] = self.adiabat(P[i], Tp)
+                    F[i] = self.F(P[i], T[i])
 
-                    _T[i] = _T[i-1] + _dP/6*(_j1+2*_j2+2*_j3+_j4)
-                    _F[i] = self.F(_P[i],_T[i])
+                # If melting has gone to completion
+                elif np.shape(np.where((F[i-1] > 0) & (F[i-1] < 1))[0])[0] == 0:
+                    j1 = self.adiabatic_gradient(P[i-1], T[i-1])
+                    j2 = self.adiabatic_gradient(P[i-1] + dP/2, T[i-1] + dP/2*j1)
+                    j3 = self.adiabatic_gradient(P[i-1] + dP/2, T[i-1] + dP/2*j2)
+                    j4 = self.adiabatic_gradient(P[i], T[i-1] + dP*j3)
+
+                    T[i] = T[i-1] + dP/6*(j1 + 2*j2 + 2*j3 + j4)
+                    F[i] = self.F(P[i], T[i])
+
+                # If melting is ongoing
                 else:
-                    _k1 = self.dFdP(_P[i-1],_T[i-1])
-                    _j1 = self.dTdP(_P[i-1],_T[i-1],_k1)
-                    _k2 = self.dFdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1)
-                    _j2 = self.dTdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1,_k2)
-                    _k3 = self.dFdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j2)
-                    _j3 = self.dTdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j2,_k3)
-                    _k4 = self.dFdP(_P[i],_T[i-1]+_dP*_j3)
-                    _j4 = self.dTdP(_P[i],_T[i-1]+_dP*_j3,_k4)
+                    k1 = self.dFdP(P[i-1], T[i-1])
+                    j1 = self.dTdP(P[i-1], T[i-1], k1)
+                    k2 = self.dFdP(P[i-1] + dP/2, T[i-1] + dP/2*j1)
+                    j2 = self.dTdP(P[i-1] + dP/2, T[i-1] + dP/2*j1, k2)
+                    k3 = self.dFdP(P[i-1] + dP/2, T[i-1] + dP/2*j2)
+                    j3 = self.dTdP(P[i-1] + dP/2, T[i-1] + dP/2*j2, k3)
+                    k4 = self.dFdP(P[i], T[i-1] + dP*j3)
+                    j4 = self.dTdP(P[i], T[i-1] + dP*j3, k4)
 
-                    _T[i] = _T[i-1] + _dP/6*(_j1+2*_j2+2*_j3+_j4)
-                    _F[i] = self.F(_P[i],_T[i])
+                    T[i] = T[i-1] + dP/6 * (j1 + 2*j2 + 2*j3 + j4)
+                    F[i] = self.F(P[i], T[i])
 
-        _results = pd.DataFrame(_F,columns=self.names)
-        _results['P'] = _P
-        _results['Temperature'] = _T
+        results = pd.DataFrame(F, columns=self.names)
+        results['P'] = P
+        results['T'] = T
 
-        return MeltingColumn_1D(_results,self,Tp)
-
-    def PlotBoundaries(self,Pmax=8.0,Pmin=0.0,steps=1000,T_F=1600,show=True):
-        """
-        Generates 2 plots, one showing the P-T relationship of the solidii and
-        liquidii of each of the lithologies, and one which shows the melt fraction
-        of each lithology at fixed temperature as a function of pressure.
-
-        Parameters
-        ----------
-        Pmax:   float
-            The maximum pressure (GPa) to display. Default is 8 GPa.
-        Pmin:   float
-            The minimum pressure (GPa) to display. Default is 0 GPa.
-        steps:  float
-            The discretization to use. Default is 1000.
-        T_F:    float
-            The temperature (degC) at which to calculate melt fractions.
-        show:   bool
-            Display the plot, or not.
-
-        Returns
-        -------
-        f:  matplotlib.figure
-            The figure object, for adjustments or saving.
-        """
-        _P = np.linspace(Pmin,Pmax,steps)
-
-        f,a = plt.subplots(1,2,sharey='row')
-
-        for i in range(self.number_lithologies):
-            _Tsol = self.lithologies[i].TSolidus(_P)
-            _Tliq = self.lithologies[i].TLiquidus(_P)
-            _F = list()
-            for j in range(steps):
-                _F.append(self.lithologies[i].F(_P[j],T_F))
-
-            if isinstance(self.lithologies[i],LithologyNonMelting) == False:
-                a[0].plot(_Tsol,_P,label=self.names[i]+' solidus')
-                a[0].plot(_Tliq,_P,label=self.names[i]+' liquidus')
-                a[1].plot(_F,_P,label=self.names[i]+' at '+str(T_F)+' C')
-
-            if (isinstance(self.lithologies[i],LithologyKatz) or
-                isinstance(self.lithologies[i],LithologyKLB1) or
-                isinstance(self.lithologies[i],LithologyKG1)):
-                _TLzLiq = self.lithologies[i].TLherzLiquidus(_P)
-                a[0].plot(_TLzLiq,_P,label=self.names[i]+' lz liquidus')
-            if isinstance(self.lithologies[i],LithologyShorttle):
-                _Tcpx = self.lithologies[i].TCpxOut(_P)
-                a[0].plot(_Tcpx,_P,label=self.names[i]+' cpx out')
-
-
-        a[0].legend()
-        a[1].legend()
-        a[0].set_xlabel('T ($^\circ$C)')
-        a[1].set_xlabel('F')
-        a[0].set_ylabel('P (GPa)')
-        a[0].invert_yaxis()
-
-        a[0].tick_params('x',labeltop=True,labelbottom=False)
-        a[0].xaxis.set_label_position('top')
-        a[1].tick_params('x',labeltop=True,labelbottom=False)
-        a[1].xaxis.set_label_position('top')
-
-        if show == True:
-            plt.show()
-        return f
+        return MeltingColumn_1D(results, self, Tp)
