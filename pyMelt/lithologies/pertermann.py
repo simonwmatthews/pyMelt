@@ -1,9 +1,10 @@
-from pyMelt.lithology_class import lithology, default_properties
+from pyMelt.lithology_class import lithology as _lithology
+from  pyMelt.lithology_class import default_properties as _default_properties
 
-import numpy as np
+import numpy as _np
 
 
-class g2(lithology):
+class g2(_lithology):
     """
     Implementation of the Pertermann and Hirschmann (2002) G2 melting model.
     To use the same format of parameterisation for another lithology, the parameter values
@@ -21,28 +22,28 @@ class g2(lithology):
 
     Parameters
     ----------
-    CP :         float, default: pyMelt.default_properties['CP']
+    CP :         float, default: pyMelt.lithology_class.default_properties['CP']
         The heat capacity (J K-1 kg-1)
-    alphas :     float, default: pyMelt.default_properties['alphas']
+    alphas :     float, default: pyMelt.lithology_class.default_properties['alphas']
         The thermal expansivity of the solid (1e-6 K-1)
-    alphaf :     float, default: pyMelt.default_properties['alphaf']
+    alphaf :     float, default: pyMelt.lithology_class.default_properties['alphaf']
         The thermal expansivity of the melt (1e-6 K-1)
-    rhos :       float, default: pyMelt.default_properties['rhos']
+    rhos :       float, default: pyMelt.lithology_class.default_properties['rhos']
         The density of the solid (kg m-3)
-    rhof :       float, default: pyMelt.default_properties['rhof']
+    rhof :       float, default: pyMelt.lithology_class.default_properties['rhof']
         The density of the melt (kg m-3)
-    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+    DeltaS :     float, default: pyMelt.lithology_class.default_properties['DeltaS']
         The entropy of fusion J K-1 kg-1
     parameters : dict, default: parameters from Matthews et al. (2021)
         The model parameters described above
     """
     def __init__(self,
-                 CP=default_properties['CP'],
-                 alphas=default_properties['alphas'],
-                 alphaf=default_properties['alphaf'],
-                 rhos=default_properties['rhos'],
-                 rhof=default_properties['rhof'],
-                 DeltaS=default_properties['DeltaS'],
+                 CP=_default_properties['CP'],
+                 alphas=_default_properties['alphas'],
+                 alphaf=_default_properties['alphaf'],
+                 rhos=_default_properties['rhos'],
+                 rhof=_default_properties['rhof'],
+                 DeltaS=_default_properties['DeltaS'],
                  parameters={'a':     0.7368,
                              'b':     0.2632,
                              'c':   1175.000,

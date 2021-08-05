@@ -1,9 +1,10 @@
-from pyMelt.lithology_class import lithology, default_properties
+from pyMelt.lithology_class import lithology as _lithology
+from  pyMelt.lithology_class import default_properties as _default_properties
 
-import numpy as np
+import numpy as _np
 
 
-class kg1(lithology):
+class kg1(_lithology):
     """
     Implementation of the KG1 parameterisation by Shorttle et al. (2014).
 
@@ -31,28 +32,28 @@ class kg1(lithology):
 
     Parameters
     ----------
-    CP :         float, default: pyMelt.default_properties['CP']
+    CP :         float, default: pyMelt.lithology_class.default_properties['CP']
         The heat capacity (J K-1 kg-1)
-    alphas :     float, default: pyMelt.default_properties['alphas']
+    alphas :     float, default: pyMelt.lithology_class.default_properties['alphas']
         The thermal expansivity of the solid (1e-6 K-1)
-    alphaf :     float, default: pyMelt.default_properties['alphaf']
+    alphaf :     float, default: pyMelt.lithology_class.default_properties['alphaf']
         The thermal expansivity of the melt (1e-6 K-1)
-    rhos :       float, default: pyMelt.default_properties['rhos']
+    rhos :       float, default: pyMelt.lithology_class.default_properties['rhos']
         The density of the solid (kg m-3)
-    rhof :       float, default: pyMelt.default_properties['rhof']
+    rhof :       float, default: pyMelt.lithology_class.default_properties['rhof']
         The density of the melt (kg m-3)
-    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+    DeltaS :     float, default: pyMelt.lithology_class.default_properties['DeltaS']
         The entropy of fusion J K-1 kg-1
     parameters : dict, default: parameters from Shorttle et al. (2014)
         The model parameters described above
     """
     def __init__(self,
-                 CP=default_properties['CP'],
-                 alphas=default_properties['alphas'],
-                 alphaf=default_properties['alphaf'],
-                 rhos=default_properties['rhos'],
-                 rhof=default_properties['rhof'],
-                 DeltaS=default_properties['DeltaS'],
+                 CP=_default_properties['CP'],
+                 alphas=_default_properties['alphas'],
+                 alphaf=_default_properties['alphaf'],
+                 rhos=_default_properties['rhos'],
+                 rhof=_default_properties['rhof'],
+                 DeltaS=_default_properties['DeltaS'],
                  parameters={'A1':    1095.4,
                              'A2':     124.1,
                              'A3': - 4.7,
@@ -149,7 +150,7 @@ class kg1(lithology):
     def dTdF(self, P, T):
         """
         Returns dT/dF (constant P) at a given pressure and temperature. If below
-        the solidus, or above the liquidus, np.inf is returned.
+        the solidus, or above the liquidus, _np.inf is returned.
 
         Parameters
         ----------
@@ -168,7 +169,7 @@ class kg1(lithology):
         Tcpx = self._TCpxOut(P)
 
         if T < Tsol:
-            dTdF = np.inf
+            dTdF = _np.inf
         elif T < Tcpx:
             dTdF = ((Tcpx-Tsol) /
                     (self.parameters['b'] + self.parameters['a'] *
@@ -178,7 +179,7 @@ class kg1(lithology):
             dTdF = ((Tliq - Tcpx)/(self.parameters['d'] * self.parameters['beta'] *
                     ((T-Tcpx)/(Tliq-Tcpx))**(self.parameters['beta']-1)))
         else:
-            dTdF = np.inf
+            dTdF = _np.inf
 
         return dTdF
 
@@ -241,7 +242,7 @@ class kg1(lithology):
         return T
 
 
-class harzburgite:
+class harzburgite(_lithology):
     """
     Material that does not melt, i.e. Harzburgite in Shorttle et al. (2014) and
     Matthews et al. (2016). Default thermodynamic constants are those used by
@@ -252,28 +253,28 @@ class harzburgite:
 
     Parameters
     ----------
-    CP :         float, default: pyMelt.default_properties['CP']
+    CP :         float, default: pyMelt._default_properties['CP']
         The heat capacity (J K-1 kg-1)
-    alphas :     float, default: pyMelt.default_properties['alphas']
+    alphas :     float, default: pyMelt._default_properties['alphas']
         The thermal expansivity of the solid (1e-6 K-1)
-    alphaf :     float, default: pyMelt.default_properties['alphaf']
+    alphaf :     float, default: pyMelt._default_properties['alphaf']
         Melt thermal expansivity, not used, here for consistency.
-    rhos :       float, default: pyMelt.default_properties['rhos']
+    rhos :       float, default: pyMelt._default_properties['rhos']
         The density of the solid (kg m-3)
-    rhof :       float, default: pyMelt.default_properties['rhof']
+    rhof :       float, default: pyMelt._default_properties['rhof']
         Melt density, not used, here for consistency.
-    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+    DeltaS :     float, default: pyMelt._default_properties['DeltaS']
         The entropy of fusion, not used, here for consistency.
     parameters : dict, default: {}
         This model does not use any parameters, here for consistency.
     """
     def __init__(self,
-                 CP=default_properties['CP'],
-                 alphas=default_properties['alphas'],
-                 alphaf=default_properties['alphaf'],
-                 rhos=default_properties['rhos'],
-                 rhof=default_properties['rhof'],
-                 DeltaS=default_properties['DeltaS'],
+                 CP=_default_properties['CP'],
+                 alphas=_default_properties['alphas'],
+                 alphaf=_default_properties['alphaf'],
+                 rhos=_default_properties['rhos'],
+                 rhof=_default_properties['rhof'],
+                 DeltaS=_default_properties['DeltaS'],
                  parameters={}
                  ):
         self.CP = CP
@@ -304,7 +305,7 @@ class harzburgite:
 
     def dTdF(self, P, T):
         """
-        dTdF(constP). Returns np.inf.
+        dTdF(constP). Returns _np.inf.
 
         Parameters
         ----------
@@ -318,7 +319,7 @@ class harzburgite:
         numpy.inf
             The value will always be infinite.
         """
-        return np.inf
+        return _np.inf
 
     def dTdP(self, P, T):
         """
@@ -340,7 +341,7 @@ class harzburgite:
 
     def TSolidus(self, P):
         """
-        Solidus temperature. Returns np.inf.
+        Solidus temperature. Returns _np.inf.
 
         Parameters
         ----------
@@ -352,11 +353,14 @@ class harzburgite:
         numpy.inf
             The value will always be infinite.
         """
-        return np.inf
+        if isinstance(P, list) or isinstance(P, _np.ndarray):
+            return _np.array([_np.inf]*len(P))
+        else:
+            return _np.inf
 
     def TLiquidus(self, P):
         """
-        Liquidus temperature. Returns np.inf
+        Liquidus temperature. Returns _np.inf
 
         Parameters
         ----------
@@ -368,4 +372,7 @@ class harzburgite:
         numpy.inf
             The value will always be infinite.
         """
-        return np.inf
+        if isinstance(P, list) or isinstance(P, _np.ndarray):
+            return _np.array([_np.inf]*len(P))
+        else:
+            return _np.inf

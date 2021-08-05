@@ -55,7 +55,7 @@ class MeltingColumn_1D():
     """
     def __init__(self, calculation_results, mantle, Tp=None):
         self.P = calculation_results.P
-        self.T = calculation_results.Temperature
+        self.T = calculation_results['T']
 
         cols = calculation_results.columns.tolist()
         cols.remove('P')
@@ -86,14 +86,14 @@ class MeltingColumn_1D():
         (matplotlib.figure, matplotlib.axes)
             The generated figure and axes objects.
         """
-        f, a = plt.subplots(1, 2, sharey='row')
+        f, a = plt.subplots(1, 2, sharey='row', dpi=100)
 
         lith = self.F.columns
 
         for i in range(np.shape(lith)[0]):
             a[1].plot(self.F.iloc[:, i], self.P, label=lith[i])
 
-        a[0].plot(self['T'], self.P, label='Thermal Gradient', c='k')
+        a[0].plot(self.T, self.P, label='Thermal Gradient', c='k')
         a[1].plot(self.F_total, self.P, label='Total', c='k', ls='--')
 
         P = np.linspace(np.min(self.P), np.max(self.P), 101)
@@ -146,7 +146,7 @@ class MeltingColumn_1D():
             pressure of melting.
 
         """
-        rho = self.mantle.bulk_properties['rho']
+        rho = self.mantle.bulk_properties()['rho']
         g = 9.81
         tc = 1.0 / (rho * g * 1e3) * self.F_total / (1.0 - self.F_total)
         tc_lith = (1.0 / (rho * g * 1e3) * self.F * self.mantle.proportions /

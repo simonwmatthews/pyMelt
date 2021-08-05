@@ -1,9 +1,11 @@
-from pyMelt.lithology_class import lithology, default_properties
+from pyMelt.lithology_class import lithology as _lithology
+from  pyMelt.lithology_class import default_properties as _default_properties
 
-import numpy as np
+
+import numpy as _np
 
 
-class kg1(lithology):
+class kg1(_lithology):
     """
     Implementation of the KG1 melting model from Matthews et al. (2021).
 
@@ -48,12 +50,12 @@ class kg1(lithology):
     """
 
     def __init__(self,
-                 CP=default_properties['CP'],
-                 alphas=default_properties['alphas'],
-                 alphaf=default_properties['alphaf'],
-                 rhos=default_properties['rhos'],
-                 rhof=default_properties['rhof'],
-                 DeltaS=default_properties['DeltaS'],
+                 CP=_default_properties['CP'],
+                 alphas=_default_properties['alphas'],
+                 alphaf=_default_properties['alphaf'],
+                 rhos=_default_properties['rhos'],
+                 rhof=_default_properties['rhof'],
+                 DeltaS=_default_properties['DeltaS'],
                  parameters={'A1':    450.000,
                              'A2':      2.098,
                              'A3':     17.000,
@@ -67,6 +69,7 @@ class kg1(lithology):
                              'beta2':   1.800,
                              'r1':      0.342,
                              'r2':      0.191,
+                             'Mcpx':    0.342
                              }
                  ):
         self.CP = CP
@@ -91,7 +94,7 @@ class kg1(lithology):
         float
             Solidus temperature (degC).
         """
-        TSolidus = (self.parameters['A1']*np.log(P + self.parameters['A2']) +
+        TSolidus = (self.parameters['A1']*_np.log(P + self.parameters['A2']) +
                     self.parameters['A3']*P +
                     self.parameters['A4'])
         return TSolidus
@@ -110,7 +113,7 @@ class kg1(lithology):
         float
             Liquidus temperature (degC).
         """
-        TLiquidus = (self.parameters['B1']*np.log(P + self.parameters['B2']) +
+        TLiquidus = (self.parameters['B1']*_np.log(P + self.parameters['B2']) +
                      self.parameters['B3']*P + self.parameters['B4'])
         return TLiquidus
 
@@ -136,17 +139,17 @@ class kg1(lithology):
             F = 1.0
         elif T < self.TSolidus(P):
             F = 0.0
-        elif T < self.TcpxOut(P):
-            F = self.Fcpx(T, P)
+        elif T < self._TcpxOut(P):
+            F = self._Fcpx(T, P)
         else:
-            F = self.Fopx(T, P)
+            F = self._Fopx(T, P)
 
         return F
 
     def dTdF(self, P, T):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is
-        zero, returns np.inf. If F is 1, returns np.inf. Otherwise uses the
+        zero, returns _np.inf. If F is 1, returns _np.inf. Otherwise uses the
         appropriate expressions for cpx present or absent melting.
 
         Parameters
@@ -163,15 +166,15 @@ class kg1(lithology):
         """
         F = self.F(P, T)
         if F == 0:
-            dTdF = np.inf  # If no melt fraction the derivative is zero. Prevents division by zero.
-        elif F < self.FcpxOut(P):
-            dTdF = (((1/self.parameters['beta1'])) * (self.TLherzLiquidus(P)-self.TSolidus(P)) *
+            dTdF = _np.inf  # If no melt fraction the derivative is zero. Prevents division by zero.
+        elif F < self._FcpxOut(P):
+            dTdF = (((1/self.parameters['beta1'])) * (self._TLherzLiquidus(P)-self.TSolidus(P)) *
                     (F**((1-self.parameters['beta1'])/self.parameters['beta1'])))
         elif F < 1.0:
-            dTdF = (((1/self.parameters['beta2'])) * (self.TLiquidus(P)-self.TcpxOut(P)) *
+            dTdF = (((1/self.parameters['beta2'])) * (self.TLiquidus(P)-self._TcpxOut(P)) *
                     (F**((1-self.parameters['beta2'])/self.parameters['beta2'])))
         else:
-            dTdF = np.inf
+            dTdF = _np.inf
         return dTdF
 
     def dTdP(self, P, T):
@@ -406,7 +409,7 @@ class kg1(lithology):
         TSolidus = self.TSolidus(P)
         TLherzLiquidus = self._TLherzLiquidus(P)
         FcpxOut = self._FcpxOut(P)
-        TcpxOut = (((FcpxOut**(1/self.properties['beta1']))) * (TLherzLiquidus - TSolidus) +
+        TcpxOut = (((FcpxOut**(1/self.parameters['beta1']))) * (TLherzLiquidus - TSolidus) +
                    TSolidus)
         return TcpxOut
 
@@ -506,14 +509,31 @@ class klb1:
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
     also be changed during class initialisation.
 
+    Parameters
+    ----------
+    CP :         float, default: pyMelt.default_properties['CP']
+        The heat capacity (J K-1 kg-1)
+    alphas :     float, default: pyMelt.default_properties['alphas']
+        The thermal expansivity of the solid (1e-6 K-1)
+    alphaf :     float, default: pyMelt.default_properties['alphaf']
+        The thermal expansivity of the melt (1e-6 K-1)
+    rhos :       float, default: pyMelt.default_properties['rhos']
+        The density of the solid (kg m-3)
+    rhof :       float, default: pyMelt.default_properties['rhof']
+        The density of the melt (kg m-3)
+    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+        The entropy of fusion J K-1 kg-1
+    parameters : dict, default: parameters from Matthews et al. (2021)
+        The model parameters described above
+
     """
     def __init__(self,
-                 CP=default_properties['CP'],
-                 alphas=default_properties['alphas'],
-                 alphaf=default_properties['alphaf'],
-                 rhos=default_properties['rhos'],
-                 rhof=default_properties['rhof'],
-                 DeltaS=default_properties['DeltaS'],
+                 CP=_default_properties['CP'],
+                 alphas=_default_properties['alphas'],
+                 alphaf=_default_properties['alphaf'],
+                 rhos=_default_properties['rhos'],
+                 rhof=_default_properties['rhof'],
+                 DeltaS=_default_properties['DeltaS'],
                  parameters={'Mcpx':     0.1500,
                              'A1':    2445.7540,
                              'A2':       9.5110,
@@ -552,7 +572,7 @@ class klb1:
         float
             Solidus temperature (degC).
         """
-        TSolidus = (self.parameters['A1']*np.log(P + self.parameters['A2']) +
+        TSolidus = (self.parameters['A1']*_np.log(P + self.parameters['A2']) +
                     self.parameters['A3']*P + self.parameters['A4'])
         return TSolidus
 
@@ -570,7 +590,7 @@ class klb1:
         float
             Liquidus temperature (degC).
         """
-        TLiquidus = (self.parameters['B1']*np.log(P + self.parameters['B2']) +
+        TLiquidus = (self.parameters['B1']*_np.log(P + self.parameters['B2']) +
                      self.parameters['B3']*P + self.parameters['B4'])
         return TLiquidus
 
@@ -606,7 +626,7 @@ class klb1:
     def dTdF(self, P, T):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is
-        zero, returns np.inf. If F is 1, returns np.inf. Otherwise uses the
+        zero, returns _np.inf. If F is 1, returns _np.inf. Otherwise uses the
         appropriate expressions for cpx present or absent melting.
 
         Parameters
@@ -623,7 +643,7 @@ class klb1:
         """
         F = self.F(P, T)
         if F == 0:
-            dTdF = np.inf  # If no melt fraction the derivative is zero. Prevents division by zero.
+            dTdF = _np.inf  # If no melt fraction the derivative is zero. Prevents division by zero.
         elif F < self._FcpxOut(P):
             dTdF = (((1/self.parameters['beta1'])) *
                     (self._TLherzLiquidus(P)-self.TSolidus(P)) *
@@ -633,7 +653,7 @@ class klb1:
                     (self.TLiquidus(P)-self._TcpxOut(P)) *
                     (F**((1-self.parameters['beta2'])/self.parameters['beta2'])))
         else:
-            dTdF = np.inf
+            dTdF = _np.inf
         return dTdF
 
     def dTdP(self, P, T):
@@ -942,7 +962,7 @@ class klb1:
         return FopxDry
 
 
-class eclogite(lithology):
+class eclogite(_lithology):
     """
     Implementation of the silica-saturated pyroxenite (or eclogite) melting model from
     Matthews et al. (2021).
@@ -962,14 +982,31 @@ class eclogite(lithology):
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
     also be changed during class initialisation.
 
+    Parameters
+    ----------
+    CP :         float, default: pyMelt.default_properties['CP']
+        The heat capacity (J K-1 kg-1)
+    alphas :     float, default: pyMelt.default_properties['alphas']
+        The thermal expansivity of the solid (1e-6 K-1)
+    alphaf :     float, default: pyMelt.default_properties['alphaf']
+        The thermal expansivity of the melt (1e-6 K-1)
+    rhos :       float, default: pyMelt.default_properties['rhos']
+        The density of the solid (kg m-3)
+    rhof :       float, default: pyMelt.default_properties['rhof']
+        The density of the melt (kg m-3)
+    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+        The entropy of fusion J K-1 kg-1
+    parameters : dict, default: parameters from Matthews et al. (2021)
+        The model parameters described above
+
     """
     def __init__(self,
-                 CP=default_properties['CP'],
-                 alphas=default_properties['alphas'],
-                 alphaf=default_properties['alphaf'],
-                 rhos=default_properties['rhos'],
-                 rhof=default_properties['rhof'],
-                 DeltaS=default_properties['DeltaS'],
+                 CP=_default_properties['CP'],
+                 alphas=_default_properties['alphas'],
+                 alphaf=_default_properties['alphaf'],
+                 rhos=_default_properties['rhos'],
+                 rhof=_default_properties['rhof'],
+                 DeltaS=_default_properties['DeltaS'],
                  parameters={'C1':    533.842,
                              'C2':      4.921,
                              'C3':     20.148,
@@ -1034,7 +1071,7 @@ class eclogite(lithology):
             Solidus temperature (degC).
         """
         Tsol = (self.parameters['C1'] *
-                np.log(P + self.parameters['C2']) +
+                _np.log(P + self.parameters['C2']) +
                 self.parameters['C3']*P + self.parameters['C4'])
         return Tsol
 
@@ -1052,7 +1089,7 @@ class eclogite(lithology):
         float
             Liquidus temperature (degC).
         """
-        Tliq = (self.parameters['D1'] * np.log(P + self.parameters['D2']) +
+        Tliq = (self.parameters['D1'] * _np.log(P + self.parameters['D2']) +
                 self.parameters['D3']*P + self.parameters['D4'])
         return Tliq
 
@@ -1076,9 +1113,9 @@ class eclogite(lithology):
         Tliq = self.TLiquidus(P)
         F = self.F(P, T)
         if T < Tsol:
-            dTdF = np.inf
+            dTdF = _np.inf
         elif T > Tliq:
-            dTdF = np.inf
+            dTdF = _np.inf
         else:
             dTdF = ((1/self.parameters['beta']) * (Tliq-Tsol) * F**((1/self.parameters['beta'])-1))
 

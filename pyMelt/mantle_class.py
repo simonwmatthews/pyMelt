@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.optimize import fsolve
 
-from pyMelt.meltingcolumn_class import MeltingColumn_1D
+from pyMelt.meltingcolumn_classes import MeltingColumn_1D
 
 
 class mantle:
@@ -419,55 +419,3 @@ class mantle:
         results['T'] = T
 
         return MeltingColumn_1D(results, self, Tp)
-
-    def PlotBoundaries(self, Pmax=8.0, Pmin=0.0, steps=101, T_F=1600.0):
-        """
-        Generates 2 plots, one showing the P-T relationship of the solidii and
-        liquidii of each of the lithologies, and one which shows the melt fraction
-        of each lithology at fixed temperature as a function of pressure.
-
-        Parameters
-        ----------
-        Pmax :  float, default: 8.0
-            The maximum pressure (GPa) to display.
-        Pmin :  float, default: 0.0
-            The minimum pressure (GPa) to display.
-        steps : float, default: 101
-            The discretization to use..
-        T_F :   float, default: 1600.0
-            The temperature (degC) at which to calculate melt fractions.
-
-        Returns
-        -------
-        (matplotlib.figure, matplotlib.axes)
-            A tuple of the figure and axes objects.
-        """
-        P = np.linspace(Pmin, Pmax, steps)
-
-        f, a = plt.subplots(1, 2, sharey='row')
-
-        for i in range(self.number_lithologies):
-            Tsol = self.lithologies[i].TSolidus(P)
-            Tliq = self.lithologies[i].TLiquidus(P)
-            F = list()
-            for j in range(steps):
-                F.append(self.lithologies[i].F(P[j], T_F))
-
-        a[0].plot(Tsol, P)
-        a[0].plot(Tliq, P)
-
-        a[1].plot(F, P)
-
-        a[0].legend()
-        a[1].legend()
-        a[0].set_xlabel('T (°C)')
-        a[1].set_xlabel('F')
-        a[0].set_ylabel('P (GPa)')
-        a[0].invert_yaxis()
-
-        a[0].tick_params('x', labeltop=True, labelbottom=False)
-        a[0].xaxis.set_label_position('top')
-        a[1].tick_params('x', labeltop=True, labelbottom=False)
-        a[1].xaxis.set_label_position('top')
-
-        return f, a

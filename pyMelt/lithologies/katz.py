@@ -1,9 +1,10 @@
-from pyMelt.lithology_class import lithology, default_properties
+from pyMelt.lithology_class import lithology as _lithology
+from  pyMelt.lithology_class import default_properties as _default_properties
 
-import numpy as np
+import numpy as _np
 
 
-class lherzolite(lithology):
+class lherzolite(_lithology):
     """
     Implementation of the Katz et al. (2003) anhydrous lherzolite melting model.
 
@@ -30,29 +31,29 @@ class lherzolite(lithology):
 
     Parameters
     ----------
-    CP :         float, default: pyMelt.default_properties['CP']
+    CP :         float, default: pyMelt.lithology_class.default_properties['CP']
         The heat capacity (J K-1 kg-1)
-    alphas :     float, default: pyMelt.default_properties['alphas']
+    alphas :     float, default: pyMelt.lithology_class.default_properties['alphas']
         The thermal expansivity of the solid (1e-6 K-1)
-    alphaf :     float, default: pyMelt.default_properties['alphaf']
+    alphaf :     float, default: pyMelt.lithology_class.default_properties['alphaf']
         The thermal expansivity of the melt (1e-6 K-1)
-    rhos :       float, default: pyMelt.default_properties['rhos']
+    rhos :       float, default: pyMelt.lithology_class.default_properties['rhos']
         The density of the solid (kg m-3)
-    rhof :       float, default: pyMelt.default_properties['rhof']
+    rhof :       float, default: pyMelt.lithology_class.default_properties['rhof']
         The density of the melt (kg m-3)
-    DeltaS :     float, default: pyMelt.default_properties['DeltaS']
+    DeltaS :     float, default: pyMelt.lithology_class.default_properties['DeltaS']
         The entropy of fusion J K-1 kg-1
     parameters : dict, default: parameters from Matthews et al. (2021)
         The model parameters described above
     """
 
     def __init__(self,
-                 CP=default_properties['CP'],
-                 alphas=default_properties['alphas'],
-                 alphaf=default_properties['alphaf'],
-                 rhos=default_properties['rhos'],
-                 rhof=default_properties['rhof'],
-                 DeltaS=default_properties['DeltaS'],
+                 CP=_default_properties['CP'],
+                 alphas=_default_properties['alphas'],
+                 alphaf=_default_properties['alphaf'],
+                 rhos=_default_properties['rhos'],
+                 rhof=_default_properties['rhof'],
+                 DeltaS=_default_properties['DeltaS'],
                  parameters={'Mcpx':  0.15,
                              'A1': 1085.70,
                              'A2':  132.9,
@@ -75,6 +76,7 @@ class lherzolite(lithology):
         self.alphaf = alphaf
         self.rhos = rhos
         self.rhof = rhof
+        self.parameters = parameters
 
     def TSolidus(self, P):
         """
@@ -142,7 +144,7 @@ class lherzolite(lithology):
     def dTdF(self, P, T):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is zero, returns
-        np.inf. If F is 1, returns np.inf. Otherwise uses the appropriate expressions for cpx
+        _np.inf. If F is 1, returns _np.inf. Otherwise uses the appropriate expressions for cpx
         present or absent melting.
 
         Parameters
@@ -160,7 +162,7 @@ class lherzolite(lithology):
         F = self.F(P, T)
         if F == 0:
             # If no melt fraction the derivative is zero. Prevents division by zero.
-            dTdF = np.inf
+            dTdF = _np.inf
         elif F < self._FcpxOut(P):
             dTdF = (((1/self.parameters['beta1'])) *
                     (self._TLherzLiquidus(P) - self.TSolidus(P)) *
@@ -170,7 +172,7 @@ class lherzolite(lithology):
                     (self.TLiquidus(P) - self._TcpxOut(P)) *
                     (F**((1-self.parameters['beta2'])/self.parameters['beta2'])))
         else:
-            dTdF = np.inf
+            dTdF = _np.inf
         return dTdF
 
     def dTdP(self, P, T):
