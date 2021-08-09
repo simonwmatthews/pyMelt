@@ -3223,7 +3223,7 @@ class MeltingColumn_1D():
                 print('No valid rare-earth array entered!')
                 
             LithologyF = self.F[SolidLithologyNames[l]]
-            AveragedMeltCompositions = np.zeros((4,len(RareEarths)))
+            AveragedMeltCompositions = np.zeros((2,len(RareEarths)))
             
             for j in range(len(RareEarths)):
                 k=RareEarths[j]
@@ -3306,10 +3306,10 @@ class MeltingColumn_1D():
                             PointAverageCompositions[0,1] = 0
                             PointAverageCompositions[4,i] = StartingComposition[k]
                             PointAverageCompositions[7,i] = StartingComposition[k]
-                        else:
-                            PointAverageCompositions[0,i] = StartingComposition[k]*(1/(1-LithologyF[i]))*((1-Pbar*LithologyF[i])/Dbar)**((1/Pbar)-1)       
-                            PointAverageCompositions[1,i] = cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar) 
-                            PointAverageCompositions[4,i] = PointAverageCompositions[1,i]
+                        else: # Use batch melting equations
+                            PointAverageCompositions[4,i] = StartingComposition[k]*(1/(Dbar+LithologyF[i]*(1-Pbar)))
+                            PointAverageCompositions[0,i] = PointAverageCompositions[4,i]*(Dbar-LithologyF[i]*Pbar)/(1-LithologyF[i])
+                            PointAverageCompositions[1,i] = cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)
                             
                     elif LithologyF[i] == 0:
                         PointAverageCompositions[0,i] = PointAverageCompositions[0,i-1]
@@ -3318,18 +3318,15 @@ class MeltingColumn_1D():
                         PointAverageCompositions[0,i] = 0
                         PointAverageCompositions[1,i] = 0
                         PointAverageCompositions[4,i]=PointAverageCompositions[4,i-1]
-                        PointAverageCompositions[5,i]=PointAverageCompositions[5,i-1] + PointAverageCompositions[4,i]*(_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
-                        PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + (_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
-                        PointAverageCompositions[7,i]=PointAverageCompositions[5,i]/PointAverageCompositions[6,i]  
+                        PointAverageCompositions[7,i]=PointAverageCompositions[7,i-1]
                     else:
                         k1 = dcsdX(LithologyF[i-1],PointAverageCompositions[0,i-1], Dbar, Pbar)
                         k2 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k1*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
                         k3 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1])/2,PointAverageCompositions[0,i-1]+k2*(LithologyF[i]-LithologyF[i-1])/2, Dbar, Pbar)
                         k4 = dcsdX(LithologyF[i-1]+(LithologyF[i]-LithologyF[i-1]),PointAverageCompositions[0,i-1]+k3*(LithologyF[i]-LithologyF[i-1]), Dbar, Pbar)
                         PointAverageCompositions[0,i]=PointAverageCompositions[0,i-1]+(1/6)*(LithologyF[i]-LithologyF[i-1])*(k1+2*k2+2*k3+k4)
-                        if PointAverageCompositions[0,i]<1e-8:
-                            PointAverageCompositions[0,i]=0
-                        elif PointAverageCompositions[0,i] > PointAverageCompositions[0,i-1] and PointAverageCompositions[0,i-1] < PointAverageCompositions[0,i-2]:
+
+                        if PointAverageCompositions[0,i-1]<1e-6:
                             PointAverageCompositions[0,i]=0
                         PointAverageCompositions[1,i]=cl(PointAverageCompositions[0,i], LithologyF[i], Dbar, Pbar)
                         PointAverageCompositions[2,i]=PointAverageCompositions[2,i-1]+(max(LithologyF)/(1-_F_max))*PointAverageCompositions[1,i]*abs(_depth[i]-_depth[i-1])
@@ -3339,19 +3336,16 @@ class MeltingColumn_1D():
                         PointAverageCompositions[6,i]=PointAverageCompositions[6,i-1] + (_depth[i]-_depth[-1])*(LithologyF[i]-LithologyF[i-1])
                         PointAverageCompositions[7,i]=PointAverageCompositions[5,i]/PointAverageCompositions[6,i]  
                 AveragedMeltCompositions[0,j] = PointAverageCompositions[4,-1]
-                AveragedMeltCompositions[1,j] = AveragedMeltCompositions[0,j]/MantleSourceREEs[normalise][k]
-                AveragedMeltCompositions[2,j] = PointAverageCompositions[7,-1]
-                AveragedMeltCompositions[3,j] = AveragedMeltCompositions[2,j]/MantleSourceREEs[normalise][k]
+                AveragedMeltCompositions[1,j] = PointAverageCompositions[7,-1]
+                if normalise != None:
+                    AveragedMeltCompositions[0,j] = AveragedMeltCompositions[0,j]/MantleSourceREEs[normalise][k]
+                    AveragedMeltCompositions[1,j] = AveragedMeltCompositions[1,j]/MantleSourceREEs[normalise][k]
+                    
             if Passive == False:
-                if normalise != None:
-                    MeltingREEResults[l]=AveragedMeltCompositions[1]*SolidLithologyProportions[l]
-                else:
-                    MeltingREEResults[l]=AveragedMeltCompositions[0]*SolidLithologyProportions[l]
+                MeltingREEResults[l]=AveragedMeltCompositions[0]*SolidLithologyProportions[l]
             else:
-                if normalise != None:
-                    MeltingREEResults[l]=AveragedMeltCompositions[3]*SolidLithologyProportions[l]
-                else:
-                    MeltingREEResults[l]=AveragedMeltCompositions[2]*SolidLithologyProportions[l]
+                MeltingREEResults[l]=AveragedMeltCompositions[1]*SolidLithologyProportions[l]
+                
         MeltingREEResults[-1] = MeltingREEResults.sum(axis=0)
         self.MeltingREEResults = pd.DataFrame(MeltingREEResults, columns=RareEarths)
         return self.MeltingREEResults
