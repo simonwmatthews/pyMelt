@@ -2784,11 +2784,15 @@ class MeltingColumn_1D():
         _depth = [1000*i/(_g*_rho) for i in _P]
         
         self.REEElementList = RareEarths
+        self.Normalisation = normalise
+        
         
         if 0 in SolidLithologyProportions:
             AbsentLithologies = np.where(SolidLithologyProportions==0)[0]
             for i in AbsentLithologies:
                 models[i]=None
+        
+        self.RareEarthModels = models
         
         if None in models:
             l = [i for i in range(len(models)) if models[i]==None]
@@ -3337,6 +3341,7 @@ class MeltingColumn_1D():
                         PointAverageCompositions[7,i]=PointAverageCompositions[5,i]/PointAverageCompositions[6,i]  
                 AveragedMeltCompositions[0,j] = PointAverageCompositions[4,-1]
                 AveragedMeltCompositions[1,j] = PointAverageCompositions[7,-1]
+                
                 if normalise != None:
                     AveragedMeltCompositions[0,j] = AveragedMeltCompositions[0,j]/MantleSourceREEs[normalise][k]
                     AveragedMeltCompositions[1,j] = AveragedMeltCompositions[1,j]/MantleSourceREEs[normalise][k]
@@ -3390,3 +3395,46 @@ class MeltingColumn_1D():
                 CrystallisationREEResults[0][i] = _cl
         self.CrystallisationREEResults = pd.DataFrame(CrystallisationREEResults, columns=Elements)
         return self.CrystallisationREEResults
+    
+    def PlotRareEarths(self,Fractionate=False,show=True):
+        """
+        Generates a plot of REE distributions from pyMelt results. 
+
+        Parameters
+        ----------
+        show:   bool
+            Display the plot, or not.
+
+        Returns
+        -------
+        f_1:  matplotlib.figure
+            The figure object, for adjustments or saving.
+        """
+
+        f_1,a_1 = plt.subplots()
+        Elements = self.REEElementList
+        MeltingResults = self.MeltingREEResults
+        normalise = self.Normalisation
+        
+        SolidLithologyNames = self.mantle.names
+        models = self.RareEarthModels
+        
+        a_1.plot(Elements, MeltingResults.iloc[-1], label='Primary mixed melt')
+        for i in range(len(SolidLithologyNames)):
+            if models[i]!=None:
+                a_1.plot(Elements, MeltingResults.iloc[i], label = SolidLithologyNames[i]+', '+models[i])
+        if Fractionate == True:
+            CrystallisationResults = self.CrystallisationREEResults
+            a_1.plot(Elements, CrystallisationResults.iloc[-1], label='Fractionated melt')
+        a_1.legend()
+        if normalise==None:
+            a_1.set_ylabel('Concentration (ppm)')
+        else:
+            a_1.set_ylabel('Concentration / '+normalise)
+        a_1.set_xlabel('Element')        
+        a_1.set_yscale('log')
+        a_1.set_ylim([0.03,300])
+
+        if show == True:
+            plt.show()
+        return f_1
