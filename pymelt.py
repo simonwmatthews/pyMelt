@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
-plt.style.use('seaborn-paper')
 
 class LithologyKG1:
     """
@@ -57,6 +56,12 @@ class LithologyKG1:
         Parameter used to define cpx reaction coefficient.
     r2:     float
         Parameter used to define cpx reaction coefficient.
+    K:     float
+        Parameter used in the Katz et al. (2003) hydrous melting parameterisation.
+    y:     float
+        Parameter used in the Katz et al. (2003) hydrous melting parameterisation.
+    D:     float
+        Default partition coefficient of H2O.
     """
 #    def __init__(self,Mcpx=0.342,DeltaS=300.0,A1=519.458,A2=2.098,A3=-11.365,A4=623.828,B1=174.566,
 #                 B2=336.833,B3=66.762,B4=503.101,C=0.506,beta1=1.382,beta2=1.371,
@@ -65,7 +70,7 @@ class LithologyKG1:
 
     def __init__(self,Mcpx=0.342,DeltaS=300.0,A1=450,A2=2.098,A3=17,A4=623.828,B1=174.566,
                  B2=336.833,B3=66.762,B4=503.101,C=0.506,beta1=1.382,beta2=1.8,
-                 r1=0.342,r2=0.191,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9):
+                 r1=0.342,r2=0.191,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9,K=43,y=0.75,D=0.01):
 
         self.Mcpx = Mcpx
         self.DeltaS = DeltaS
@@ -87,6 +92,9 @@ class LithologyKG1:
         self.alphaf = alphaf
         self.rhos = rhos
         self.rhof = rhof
+        self.K = K
+        self.y = y
+        self.D = D
 
     def TSolidus(self,P):
         """
@@ -104,6 +112,27 @@ class LithologyKG1:
         """
         _TSolidus = self.A1*np.log(P + self.A2) + self.A3*P + self.A4
         return _TSolidus
+    
+    def TSolidusH(self,P,H2O):
+        """
+        Returns the temperature of the hydrous solidus at any given pressure.
+
+        Parameters
+        ----------
+        P:  float
+            Pressure (GPa).
+            
+        H2O: float
+            Water content (wt%)
+
+        Returns
+        -------
+        Tsol:   float
+            Solidus temperature (degC).
+        """
+                
+        _TSolidusH = self.A1*np.log(P + self.A2) + self.A3*P + self.A4 -self.K*(H2O/(self.D+0.0001*(1-self.D)))**self.y
+        return _TSolidusH
 
     def dTdPSolidus(self,P):
         """
@@ -217,7 +246,7 @@ class LithologyKG1:
         _RescaledTemperaturecpx = ((T - _TSolidus)/(_TLherzLiquidus-_TSolidus))
         return _RescaledTemperaturecpx
 
-    def Fcpx(self,T,P):
+    def Fcpx(self,T,P,H2O=None,F2=None):
         """
         Melt fraction during cpx-present melting at the given P and T. Eq(2).
 
@@ -227,14 +256,26 @@ class LithologyKG1:
             Temperature (degC).
         P:  float
             Pressure (degC).
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         F:  float
             Melt fraction during cpx-present melting.
         """
-        _RescaledT = self.RescaledTcpx(T,P)
-        _Fcpx = _RescaledT**self.beta1
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+        
+        def func(F1):
+            return ((T-(self.TSolidus(P)-self.K*((H2O/(self.D+(F1-F2)/(1-F2)*(1-self.D)))**self.y)))/(self.TLherzLiquidus(P)-self.TSolidus(P)))**self.beta1-F1
+        _Fcpx=fsolve(func,F2)
+        
         return _Fcpx
 
     def RxnCoef(self,P):
@@ -380,7 +421,7 @@ class LithologyKG1:
         _FopxDry = _FcpxOut + (1-_FcpxOut)* _RescaledTopx**self.beta2
         return _FopxDry
 
-    def F(self,P,T):
+    def F(self,P,T,H2O=None,F2=None):
         """
         Wrapper for the melt fraction functions. If T and P are below the solidus,
         returns 0, if they are above the liquidus, returns 1. If below the temperature
@@ -392,24 +433,34 @@ class LithologyKG1:
             Pressure (GPa).
         T:  float
             Temperature (degC).
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         F:  float
             Melt fraction.
         """
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+            
         if T > self.TLiquidus(P):
             _F = 1.0
-        elif T < self.TSolidus(P):
+        elif T < self.TSolidus(P)-self.K*(H2O/(self.D+0.0001*(1-self.D)))**self.y:
             _F = 0.0
         elif T < self.TcpxOut(P):
-            _F = self.Fcpx(T,P)
+            _F = self.Fcpx(T,P,H2O,F2)
         else:
             _F = self.Fopx(T,P)
 
         return _F
 
-    def dTdF(self,P,T):
+    def dTdF(self,P,T,H2O=None,F2=None):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is
         zero, returns np.inf. If F is 1, returns np.inf. Otherwise uses the
@@ -421,13 +472,23 @@ class LithologyKG1:
             Pressure (GPa)
         T:  float
             Temperature (degC)
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         dTdF:   float
             dT/dF(const. P) (K).
         """
-        _F = self.F(P,T)
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+            
+        _F = self.F(P,T,H2O,F2)
         if _F == 0:
             dTdF = np.inf # If no melt fraction the derivative is zero. Prevents division by zero.
         elif _F < self.FcpxOut(P):
@@ -439,7 +500,7 @@ class LithologyKG1:
         return dTdF
 
 
-    def dTdP(self,P,T):
+    def dTdP(self,P,T,H2O=None,F2=None):
         """
         Calculates dT/dP(const. F). First calculates F, then chooses the
         appropriate expression for cpx present or absent melting.
@@ -450,13 +511,23 @@ class LithologyKG1:
             Pressure (GPa).
         T:  float
             Temperature (degC).
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         dTdP:   float
             dT/dP(const. F) (K GPa-1).
         """
-        _F = self.F(P,T)
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+            
+        _F = self.F(P,T,H2O,F2)
         _FcpxOut = self.FcpxOut(P)
         _dTdPSolidus = self.dTdPSolidus(P)
         _TLiquidus = self.TLiquidus(P)
@@ -533,10 +604,16 @@ class LithologyKLB1:
         Parameter used to define cpx reaction coefficient.
     r2:     float
         Parameter used to define cpx reaction coefficient.
+    K:     float
+        Parameter used in the Katz et al. (2003) hydrous melting parameterisation.
+    y:     float
+        Parameter used in the Katz et al. (2003) hydrous melting parameterisation.
+    D:     float
+        Default partition coefficient of H2O.
     """
     def __init__(self,Mcpx=0.15,DeltaS=300.0,A1=2445.754,A2=9.511,A3=-99.782,A4=-4378.581,B1=480.403,
                  B2=672.391,B3=12.275,B4=-1242.536,C=0.6873,beta1=1.5,beta2=1.5,
-                 r1=0.5,r2=0.08,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9):
+                 r1=0.5,r2=0.08,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9,K=43,y=0.75,D=0.01):
         self.Mcpx = Mcpx
         self.DeltaS = DeltaS
         self.A1 = A1
@@ -557,6 +634,9 @@ class LithologyKLB1:
         self.alphaf = alphaf
         self.rhos = rhos
         self.rhof = rhof
+        self.K = K
+        self.y = y
+        self.D = D
 
     def TSolidus(self,P):
         """
@@ -572,8 +652,30 @@ class LithologyKLB1:
         Tsol:   float
             Solidus temperature (degC).
         """
+                
         _TSolidus = self.A1*np.log(P + self.A2) + self.A3*P + self.A4
         return _TSolidus
+    
+    def TSolidusH(self,P,H2O):
+        """
+        Returns the temperature of the hydrous solidus at any given pressure.
+
+        Parameters
+        ----------
+        P:  float
+            Pressure (GPa).
+            
+        H2O: float
+            Water content (wt%)
+
+        Returns
+        -------
+        Tsol:   float
+            Solidus temperature (degC).
+        """
+                
+        _TSolidusH = self.A1*np.log(P + self.A2) + self.A3*P + self.A4 -self.K*(H2O/(self.D+0.00001*(1-self.D)))**self.y
+        return _TSolidusH
 
     def dTdPSolidus(self,P):
         """
@@ -606,6 +708,7 @@ class LithologyKLB1:
         Tliq:   float
             Liquidus temperature (degC).
         """
+            
         _TLiquidus = self.B1*np.log(P + self.B2) + self.B3*P + self.B4
         return _TLiquidus
 
@@ -642,6 +745,7 @@ class LithologyKLB1:
         Tlzliq:   float
             Lherzolite liquidus temperature (degC).
         """
+            
         _TSolidus = self.TSolidus(P)
         _TLiquidus = self.TLiquidus(P)
         _TLherzLiquidus = self.C*_TSolidus + (1 - self.C)*_TLiquidus
@@ -682,12 +786,13 @@ class LithologyKLB1:
         T':  float
             Rescaled Temperature (dimensionless).
         """
+            
         _TSolidus = self.TSolidus(P)
         _TLherzLiquidus = self.TLherzLiquidus(P)
         _RescaledTemperaturecpx = ((T - _TSolidus)/(_TLherzLiquidus-_TSolidus))
         return _RescaledTemperaturecpx
 
-    def Fcpx(self,T,P):
+    def Fcpx(self,T,P,H2O=None,F2=None):
         """
         Melt fraction during cpx-present melting at the given P and T. Eq(2).
 
@@ -697,14 +802,28 @@ class LithologyKLB1:
             Temperature (degC).
         P:  float
             Pressure (degC).
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         F:  float
             Melt fraction during cpx-present melting.
         """
-        _RescaledT = self.RescaledTcpx(T,P)
-        _Fcpx = _RescaledT**self.beta1
+        #_RescaledT = self.RescaledTcpx(T,P,H2O)
+        #_Fcpx = _RescaledT**self.beta1
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+        
+        def func(F1):
+            return ((T-(self.TSolidus(P)-self.K*((H2O/(self.D+(F1-F2)/(1-F2)*(1-self.D)))**self.y)))/(self.TLherzLiquidus(P)-self.TSolidus(P)))**self.beta1-F1
+        _Fcpx=fsolve(func,F2)
+            
         return _Fcpx
 
     def RxnCoef(self,P):
@@ -850,7 +969,7 @@ class LithologyKLB1:
         _FopxDry = _FcpxOut + (1-_FcpxOut)* _RescaledTopx**self.beta2
         return _FopxDry
 
-    def F(self,P,T):
+    def F(self,P,T,H2O=None,F2=None):
         """
         Wrapper for the melt fraction functions. If T and P are below the solidus,
         returns 0, if they are above the liquidus, returns 1. If below the temperature
@@ -862,24 +981,34 @@ class LithologyKLB1:
             Pressure (GPa).
         T:  float
             Temperature (degC).
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         F:  float
             Melt fraction.
         """
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+        
         if T > self.TLiquidus(P):
             _F = 1.0
-        elif T < self.TSolidus(P):
+        elif T < self.TSolidus(P)-self.K*(H2O/(self.D+0.00001*(1-self.D)))**self.y:
             _F = 0.0
         elif T < self.TcpxOut(P):
-            _F = self.Fcpx(T,P)
+            _F = self.Fcpx(T,P,H2O,F2)
         else:
             _F = self.Fopx(T,P)
 
         return _F
 
-    def dTdF(self,P,T):
+    def dTdF(self,P,T,H2O=None,F2=None):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is
         zero, returns np.inf. If F is 1, returns np.inf. Otherwise uses the
@@ -891,13 +1020,23 @@ class LithologyKLB1:
             Pressure (GPa)
         T:  float
             Temperature (degC)
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         dTdF:   float
             dT/dF(const. P) (K).
         """
-        _F = self.F(P,T)
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+            
+        _F = self.F(P,T,H2O,F2)
         if _F == 0:
             dTdF = np.inf # If no melt fraction the derivative is zero. Prevents division by zero.
         elif _F < self.FcpxOut(P):
@@ -909,7 +1048,7 @@ class LithologyKLB1:
         return dTdF
 
 
-    def dTdP(self,P,T):
+    def dTdP(self,P,T,H2O=None,F2=None):
         """
         Calculates dT/dP(const. F). First calculates F, then chooses the
         appropriate expression for cpx present or absent melting.
@@ -920,13 +1059,23 @@ class LithologyKLB1:
             Pressure (GPa).
         T:  float
             Temperature (degC).
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         dTdP:   float
             dT/dP(const. F) (K GPa-1).
         """
-        _F = self.F(P,T)
+        if H2O is None:
+            H2O=0
+        
+        if F2 is None:
+            F2=0
+            
+        _F = self.F(P,T,H2O,F2)
         _FcpxOut = self.FcpxOut(P)
         _dTdPSolidus = self.dTdPSolidus(P)
         _TLiquidus = self.TLiquidus(P)
@@ -948,998 +1097,6 @@ class LithologyKLB1:
         else:
             _dTdP = self.alphaf/self.rhof/self.CP
         return _dTdP
-
-class LithologyPx:
-    """
-    Lithology formatted like our silica-saturated pyroxenite melting model.
-    Default values reproduce the behaviour of silica-saturated pyroxenite. Default thermodynamic
-    constants are those used by Katz et al. (2003). All the parameters listed below
-    are callable.
-
-    Parameters
-    ----------
-    DeltaS:     float
-        Entropy of fusion. (J kg-1 K-1). Default is 300.0.
-    CP:     float
-        Heat capacity (J Kg-1 K-1). Default is 1000.0.
-    alphas:     float
-        Thermal expansivity of the solid (K-1). Default is 40.0.
-    alphaf:     float
-        Thermal expansivity of the melt (K-1). Default is 68.0.
-    rhos:   float
-        Density of the solid (g cm-3). Default is 3.3.
-    rhof:   float
-        Density of the melt (g cm-3). Default is 2.9.
-    C1:  float
-        Parameter used in solidus definition.
-    C2:  float
-        Parameter used in solidus definition.
-    C3:  float
-        Parameter used in solidus definition.
-    C4:  float
-        Parameter used in solidus definition.
-    D1:  float
-        Parameter used in liquidus definition.
-    D2:  float
-        Parameter used in liquidus definition.
-    D3:  float
-        Parameter used in liquidus definition.
-    D4:  float
-        Parameter used in liquidus definition.
-    beta:   float
-        Parameter used in melt fraction definition.
-
-    """
-    def __init__(self,C1=533.842,C2=4.921,C3=20.148,C4=80.879,D1=994.149,
-                 D2=8.092,D3=-11.778,D4=-862.641,DeltaS=300.0,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9,beta=2.134):
-        self.C1=C1
-        self.C2=C2
-        self.C3=C3
-        self.C4=C4
-        self.D1=D1
-        self.D2=D2
-        self.D3=D3
-        self.D4=D4
-        self.DeltaS=DeltaS
-        self.CP=CP
-        self.alphas=alphas
-        self.alphaf=alphaf
-        self.rhos=rhos
-        self.rhof=rhof
-        self.beta=beta
-
-    def F(self,P,T):
-        """
-        Calculates melt fraction at a given pressure and temperature using
-        T'**beta, where T is the
-        normalised temperature: (T-Tsolidus)/(T-Tliquidus). If P and T are
-        below the the solidus, 0 is returned, if they are above the liquidus,
-        1 is returned.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa)
-        T:  float
-            Temperature (degC)
-
-        Returns
-        -------
-        F:  float
-            Melt fraction.
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        if T < _Tsol:
-            _F = 0.0
-        elif T > _Tliq:
-            _F = 1.0
-        else:
-            _Tr = (T-_Tsol)/(_Tliq-_Tsol)
-            _F = _Tr**self.beta
-        return _F
-
-    def TSolidus(self,P):
-        """
-        Calculates the solidus temperature at a given pressure.
-
-        Parameters
-        ----------
-        P: float
-            Pressure (GPa).
-
-        Returns
-        -------
-        Tsol:   float
-            Solidus temperature (degC).
-        """
-        _Tsol = self.C1*np.log(P + self.C2) + self.C3*P + self.C4
-        return _Tsol
-
-    def dTdPSolidus(self,P):
-        """
-        Returns the solidus temperature gradient at any given pressure.
-
-        Parameters
-        ----------
-        P:	float
-            Pressure (GPa).
-
-        Returns
-        -------
-        dTdPsol:	float
-            Solidus temperaure gradient (degC/GPa)
-        """
-        _dTdPSolidus = (self.C1/(P + self.C2)) + self.C3
-        return _dTdPSolidus
-
-    def TLiquidus(self,P):
-        """
-        Calculates the liquidus temperature at a given pressure.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa)
-
-        Returns
-        -------
-        Tliq:   float
-            Liquidus temperature (degC).
-        """
-        _Tliq = self.D1*np.log(P + self.D2) + self.D3*P + self.D4
-        return(_Tliq)
-
-    def dTdPLiquidus(self,P):
-        """
-        Returns the liquidus temperature gradient at any given pressure.
-
-        Parameters
-        ----------
-        P:	float
-            Pressure (GPa).
-
-        Returns
-        -------
-        dTdPliq:	float
-            Liquidus temperaure gradient (degC/GPa)
-        """
-        _dTdPLiquidus = (self.D1/(P + self.D2)) + self.D3
-        return _dTdPLiquidus
-
-    def dTdF(self,P,T):
-        """
-        Calculates dT/dF(const. P) at a given pressure and temperature.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-        T:  float
-            Temperature (degC).
-
-        Returns
-        -------
-        dTdF:   float
-            dT/dF(const. P) (K)
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _F = self.F(P,T)
-        if T < _Tsol:
-            _dTdF = np.inf
-        elif T > _Tliq:
-            _dTdF = np.inf
-        else:
-            _dTdF = (1/self.beta)*(_Tliq-_Tsol)*_F**((1/self.beta)-1)
-
-        return _dTdF
-
-    def dTdP(self,P,T):
-        """
-        Calculates dT/dP(const. F) at a given pressure and temperature.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-        T:  float
-            Temperature (degC).
-
-        Returns
-        -------
-        dTdP:   float
-            dTdP(const. F) (K GPa-1)
-        """
-        _dTdPsol = self.dTdPSolidus(P)
-        _dTdPliq = self.dTdPLiquidus(P)
-        _F = self.F(P,T)
-        if _F == 0:
-            _dTdP = self.alphas/self.rhos/self.CP
-        elif _F == 1:
-            _dTdP = self.alphaf/self.rhof/self.CP
-        else:
-            _dTdP = (_F**(1/self.beta))*(_dTdPliq-_dTdPsol) + _dTdPsol
-        return _dTdP
-
-class LithologyKatz:
-    """
-    Lithology formatted like Katz et al. (2003) lherzolite melting model. Does
-    not incorporate their hydrous melting parameterisation. Default parameter
-    values taken from Katz et al. (2003) for dry lherzolite melting. All parameters
-    listed below can be called.
-
-    Parameters
-    ----------
-    DeltaS:     float
-        Entropy of fusion. (J kg-1 K-1). Default is 300.0.
-    CP:     float
-        Heat capacity (J Kg-1 K-1). Default is 1000.0.
-    alphas:     float
-        Thermal expansivity of the solid (K-1). Default is 40.0.
-    alphaf:     float
-        Thermal expansivity of the melt (K-1). Default is 68.0.
-    rhos:   float
-        Density of the solid (g cm-3). Default is 3.3.
-    rhof:   float
-        Density of the melt (g cm-3). Default is 2.9.
-    Mcpx:   float
-        Mass fraction of cpx in the source. Controls the transition to
-        low-productivity harzburgite-type melting.
-    A1:     float
-        Parameter used to define solidus.
-    A2:     float
-        Parameter used to define solidus.
-    A3:     float
-        Parameter used to define solidus.
-    B1:     float
-        Parameter used to define lherzolite-liquidus.
-    B2:     float
-        Parameter used to define lherzolite-liquidus.
-    B3:     float
-        Parameter used to define lherzolite-liquidus.
-    C1:     float
-        Parameter used to define liquidus.
-    C2:     float
-        Parameter used to define liquidus.
-    C3:     float
-        Parameter used to define liquidus.
-    beta1:  float
-        Parameter used to calculate melt fraction during cpx-present melting.
-    beta2:  float
-        Parameter used to calculate melt fraction during cpx-absent melting.
-    r1:     float
-        Parameter used to define cpx reaction coefficient.
-    r2:     float
-        Parameter used to define cpx reaction coefficient.
-    """
-    def __init__(self,Mcpx=0.15,DeltaS=300.0,A1=1085.7,A2=132.9,A3=-5.1,B1=1475.0,
-                 B2=80.0,B3=-3.2,C1=1780.0,C2=45.0,C3=-2.0,beta1=1.5,beta2=1.5,
-                 r1=0.5,r2=0.08,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9):
-        self.Mcpx = Mcpx
-        self.DeltaS = DeltaS
-        self.A1 = A1
-        self.A2 = A2
-        self.A3 = A3
-        self.B1 = B1
-        self.B2 = B2
-        self.B3 = B3
-        self.C1 = C1
-        self.C2 = C2
-        self.C3 = C3
-        self.beta1 = beta1
-        self.beta2 = beta2
-        self.r1 = r1
-        self.r2 = r2
-        self.CP = CP
-        self.alphas = alphas
-        self.alphaf = alphaf
-        self.rhos = rhos
-        self.rhof = rhof
-
-    def TSolidus(self,P):
-        """
-        Returns the temperature of the solidus at any given pressure. Eqn(4).
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-
-        Returns
-        -------
-        Tsol:   float
-            Solidus temperature (degC).
-        """
-        _TSolidus = self.A1 + self.A2*P + self.A3*(P**2)
-        return _TSolidus
-
-    def TLiquidus(self,P):
-        """
-        Returns the temperature of the liquidus at any given pressure. Eqn(10).
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-
-        Returns
-        -------
-        Tliq:   float
-            Liquidus temperature (degC).
-        """
-        _TLiquidus = self.C1 + self.C2*P + self.C3*(P**2)
-        return _TLiquidus
-
-    def TLherzLiquidus(self,P):
-        """
-        Returns the temperature of the lherzolite liquidus at any given pressure.
-        Eqn(5). This is the temperature at which the rock would be completely
-        molten if cpx was remained present for the entirety of melting.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-
-        Returns
-        -------
-        Tlzliq:   float
-            Lherzolite liquidus temperature (degC).
-        """
-        _TLherzLiquidus = self.B1 + self.B2*P + self.B3*(P**2)
-        return _TLherzLiquidus
-
-    def RescaledTcpx(self,T,P):
-        """
-        Calculates the rescaled temperature during cpx-present melting. (Eq 3).
-
-        Parameters
-        ----------
-        T:  float
-            Temperature (degC).
-        P:  float
-            Pressure (GPa).
-
-        Returns
-        -------
-        T':  float
-            Rescaled Temperature (dimensionless).
-        """
-        _TSolidus = self.TSolidus(P)
-        _TLherzLiquidus = self.TLherzLiquidus(P)
-        _RescaledTemperaturecpx = ((T - _TSolidus)/(_TLherzLiquidus-_TSolidus))
-        return _RescaledTemperaturecpx
-
-    def Fcpx(self,T,P):
-        """
-        Melt fraction during cpx-present melting at the given P and T. Eq(2).
-
-        Parameters
-        ----------
-        T:  float
-            Temperature (degC).
-        P:  float
-            Pressure (degC).
-
-        Returns
-        -------
-        F:  float
-            Melt fraction during cpx-present melting.
-        """
-        _RescaledT = self.RescaledTcpx(T,P)
-        _Fcpx = _RescaledT**self.beta1
-        return _Fcpx
-
-    def RxnCoef(self,P):
-        """
-        Reaction coefficient for cpx during melting at the specified pressure. Eq(7).
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-
-        Returns
-        -------
-        RxnCoef:    float
-            Reaction Coefficient.
-        """
-        _RxnCoef = self.r1 + self.r2*P
-        return _RxnCoef
-
-    def FcpxOut(self,P):
-        """
-        Calculates the melt fraction required to exhaust cpx from the residue
-        at the given pressure. Eq(6).
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa)
-
-        Returns
-        -------
-        Fcpx-out:   float
-            Melt fraction at which cpx is exhausted.
-        """
-        _FcpxOut = self.Mcpx / self.RxnCoef(P)
-        return _FcpxOut
-
-    def TcpxOut(self,P):
-        """
-        Calculates the temperature at which cpx will be exhausted during melting
-        at the given pressure. Eq(9).
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-
-        Returns
-        -------
-        Tcpx-out:   float
-            Temperature of cpx-exhaustion.
-        """
-        _TSolidus = self.TSolidus(P)
-        _TcpxOut= ((self.FcpxOut(P)**(1/self.beta1)))*(self.TLherzLiquidus(P)-_TSolidus)+_TSolidus
-        return _TcpxOut
-
-
-    def RescaledTopx(self,T,P):
-        """
-        Calculates the rescaled temperature during cpx-absent melting.
-
-        Parameters
-        ----------
-        T:  float
-            Temperature (degC).
-        P:  float
-            Pressure (GPa).
-
-        Returns
-        -------
-        T':  float
-            Rescaled Temperature (dimensionless).
-        """
-        _TcpxOut = self.TcpxOut(P)
-        _RescaledTopx = ((T-_TcpxOut)/(self.TLiquidus(P)-_TcpxOut))
-        return _RescaledTopx
-
-    def Fopx(self,T,P):
-        """
-        Melt fraction during cpx-absent melting at the given P and T. Eq(8).
-
-        Parameters
-        ----------
-        T:  float
-            Temperature (degC).
-        P:  float
-            Pressure (degC).
-
-        Returns
-        -------
-        F:  float
-            Melt fraction during cpx-absent melting.
-        """
-        _FcpxOut = self.FcpxOut(P)
-        _FopxDry = _FcpxOut + (1-_FcpxOut)* self.RescaledTopx(T,P)**self.beta2
-        return _FopxDry
-
-    def F(self,P,T):
-        """
-        Wrapper for the melt fraction functions. If T and P are below the solidus,
-        returns 0, if they are above the liquidus, returns 1. If below the temperature
-        of cpx-exhaustion, calls the Fcpx function, otherwise calls the Fopx function.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-        T:  float
-            Temperature (degC).
-
-        Returns
-        -------
-        F:  float
-            Melt fraction.
-        """
-        if T > self.TLiquidus(P):
-            _F = 1.0
-        elif T < self.TSolidus(P):
-            _F = 0.0
-        elif T < self.TcpxOut(P):
-            _F = self.Fcpx(T,P)
-        else:
-            _F = self.Fopx(T,P)
-
-        return _F
-
-    def dTdPSolidus(self,P):
-        return self.A2 + 2*self.A3*P
-
-    def dTdPLiquidus(self,P):
-        return self.C2 + 2*self.C3*P
-
-    def dTdPLherzLiquidus(self,P):
-        return self.B2 + 2*self.B3*P
-
-    def dTdPcpxOut(self,P):
-        term1 = (self.TLherzLiquidus(P)-self.TSolidus(P))/self.beta1 * self.FcpxOut(P)**(1/self.beta1 - 1)
-        term2 = self.FcpxOut(P)**(1/self.beta1)*(self.dTdPLherzLiquidus(P)-self.dTdPSolidus(P)) + self.dTdPSolidus(P)
-        return term1 * self.dFdPcpxOut(P) + term2
-
-    def dFdPcpxOut(self,P):
-        return - self.Mcpx / self.RxnCoef(P)**2 * self.r2
-
-
-    def dTdF(self,P,T):
-        """
-        Calculates dT/dF(const. P). First calculates the melt fraction. If F is
-        zero, returns np.inf. If F is 1, returns np.inf. Otherwise uses the
-        appropriate expressions for cpx present or absent melting.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa)
-        T:  float
-            Temperature (degC)
-
-        Returns
-        -------
-        dTdF:   float
-            dT/dF(const. P) (K).
-        """
-        _F = self.F(P,T)
-        if _F == 0:
-            dTdF = np.inf # If no melt fraction the derivative is zero. Prevents division by zero.
-        elif _F < self.FcpxOut(P):
-            dTdF = ((1/self.beta1))*(self.TLherzLiquidus(P)-self.TSolidus(P))*(_F**((1-self.beta1)/self.beta1))
-        elif _F < 1.0:
-            dTdF = ((1/self.beta2))*(self.TLiquidus(P)-self.TcpxOut(P))*(_F**((1-self.beta2)/self.beta2))
-        else:
-            dTdF = np.inf
-        return dTdF
-
-
-    def dTdP(self,P,T):
-        """
-        Calculates dT/dP(const. F). First calculates F, then chooses the
-        appropriate expression for cpx present or absent melting.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-        T:  float
-            Temperature (degC).
-
-        Returns
-        -------
-        dTdP:   float
-            dT/dP(const. F) (K GPa-1).
-        """
-
-        _F = self.F(P,T)
-        _FcpxOut = self.FcpxOut(P)
-        _dTdPSolidus = self.dTdPSolidus(P)
-        _TLiquidus = self.TLiquidus(P)
-        _dTdPLiquidus = self.dTdPLiquidus(P)
-        _dTdPLherzLiquidus = self.dTdPLherzLiquidus(P)
-        _TcpxOut = self.dTdPcpxOut(P)
-        _dTdPcpxOut = self.dTdPcpxOut(P)
-        _FcpxOut = self.FcpxOut(P)
-        _dFdPcpxOut = self.dFdPcpxOut(P)
-
-        if _F == 0:
-            _dTdP = self.alphas/self.rhos/self.CP
-        elif _F < self.FcpxOut(P):
-            _dTdP = ((_F**(1/self.beta1))*(_dTdPLherzLiquidus-_dTdPSolidus)) + _dTdPSolidus
-        elif _F < 1.0:
-            _Trel = (T- _TcpxOut)/(_TLiquidus-_TcpxOut)
-            _dTdP = (_TLiquidus - _TcpxOut)/(1-_FcpxOut) * (1/self.beta2)*_Trel**(1-self.beta2) * _dFdPcpxOut * (_Trel**self.beta2-1) \
-                    + _dTdPcpxOut + _Trel*(_dTdPLiquidus - _dTdPcpxOut)
-        else:
-            _dTdP = self.alphaf/self.rhof/self.CP
-        return _dTdP
-
-
-class LithologySimple:
-    """
-    Lithology formatted like Pertermann and Hirschmann (2002) G2 melting model.
-    Default values reproduce the behaviour of G2 pyroxenite. Default thermodynamic
-    constants are those used by Katz et al. (2003). All the parameters listed below
-    are callable.
-
-    Parameters
-    ----------
-    DeltaS:     float
-        Entropy of fusion. (J kg-1 K-1). Default is 300.0.
-    CP:     float
-        Heat capacity (J Kg-1 K-1). Default is 1000.0.
-    alphas:     float
-        Thermal expansivity of the solid (K-1). Default is 40.0.
-    alphaf:     float
-        Thermal expansivity of the melt (K-1). Default is 68.0.
-    rhos:   float
-        Density of the solid (g cm-3). Default is 3.3.
-    rhof:   float
-        Density of the melt (g cm-3). Default is 2.9.
-    a:  float
-        Parameter used in calculating melt fraction.
-    b:  float
-        Parameter used in calculating melt fraction.
-    c:  float
-        Parameter used in liquidus definition.
-    d:  float
-        Parameter used in liquidus definition.
-    e:  float
-        Parameter used in solidus definition.
-    f:  float
-        Parameter used in solidus definition.
-
-    """
-    def __init__(self,a=0.7368,b=0.2632,c=1175,d=114,e=920,f=130,DeltaS=300.0,
-                 CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9):
-        self.a=a
-        self.b=b
-        self.c=c
-        self.d=d
-        self.e=e
-        self.f=f
-        self.DeltaS=DeltaS
-        self.CP=CP
-        self.alphas=alphas
-        self.alphaf=alphaf
-        self.rhos=rhos
-        self.rhof=rhof
-
-    def F(self,P,T):
-        """
-        Calculates melt fraction at a given pressure and temperature using
-        a*T'**2 + b*T', where T is the
-        normalised temperature: (T-Tsolidus)/(T-Tliquidus). If P and T are
-        below the the solidus, 0 is returned, if they are above the liquidus,
-        1 is returned.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa)
-        T:  float
-            Temperature (degC)
-
-        Returns
-        -------
-        F:  float
-            Melt fraction.
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        if T < _Tsol:
-            _F = 0.0
-        elif T > _Tliq:
-            _F = 1.0
-        else:
-            _Tr = (T-_Tsol)/(_Tliq-_Tsol)
-            _F = self.a*_Tr**2 + self.b*_Tr
-        return _F
-
-    def TLiquidus(self,P):
-        """
-        Calculates the liquidus temperature, at a given pressure, using
-        c + d*P.
-
-        Parameters
-        ----------
-        P: float
-            Pressure (GPa).
-
-        Returns
-        -------
-        Tliq:   float
-            Liquidus temperature (degC).
-        """
-        _Tliq = self.c +self.d*P
-        return(_Tliq)
-
-    def TSolidus(self,P):
-        """
-        Calculates the solidus temperature, at a given pressure, using
-        e +f*P.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa)
-
-        Returns
-        -------
-        Tsol:   float
-            Solidus temperature (degC).
-        """
-        _Tsol = self.e +self.f*P
-        return(_Tsol)
-
-    def dTdF(self,P,T):
-        """
-        Calculates dT/dF(const. P) at a given pressure and temperature.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-        T:  float
-            Temperature (degC).
-
-        Returns
-        -------
-        dTdF:   float
-            dT/dF(const. P) (K)
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        if T < _Tsol:
-            _dTdF = np.inf
-        elif T > _Tliq:
-            _dTdF = np.inf
-        else:
-            _dTdF = (_Tliq-_Tsol)/(self.a*2*((T-_Tsol)/(_Tliq-_Tsol))+self.b)
-
-        return _dTdF
-
-    def dTdP(self,P,T):
-        """
-        Calculates dT/dP(const. F) at a given pressure and temperature.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure (GPa).
-        T:  float
-            Temperature (degC).
-
-        Returns
-        -------
-        dTdP:   float
-            dTdP(const. F) (K GPa-1)
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _dTdP = ((self.d-self.f)*(T-_Tsol)/(_Tliq-_Tsol)+self.f)
-
-        return _dTdP
-
-class LithologyShorttle:
-    """
-    Lithology formatted like the KG1 parameterisation by Shorttle et al. (2014).
-    Default values reproduce behaviour of KG1. Default thermodynamic constants
-    are those used by Katz et al. (2003). All the parameters listed below are
-    callable.
-
-    Parameters
-    ----------
-    DeltaS:     float
-        Entropy of fusion. (J kg-1 K-1). Default is 300.0.
-    CP:     float
-        Heat capacity (J Kg-1 K-1). Default is 1000.0.
-    alphas:     float
-        Thermal expansivity of the solid (K-1). Default is 40.0.
-    alphaf:     float
-        Thermal expansivity of the melt (K-1). Default is 68.0.
-    rhos:   float
-        Density of the solid (g cm-3). Default is 3.3.
-    rhof:   float
-        Density of the melt (g cm-3). Default is 2.9.
-    A1:     float
-        Constant used in solidus expression.
-    A2:     float
-        Constant used in solidus expression.
-    A3:     float
-        Constant used in solidus expression.
-    B1:     float
-        Constant used in cpx-out expression.
-    B2:     float
-        Constant used in cpx-out expression.
-    B3:     float
-        Constant used in cpx-out expression.
-    C1:     float
-        Constant used in liquidus expression.
-    C2:     float
-        Constant used in liquidus expression.
-    C3:     float
-        Constant used in liquidus expression.
-    a:  float
-        Constant used in cpx-present melt fraction expression.
-    b:  float
-        Constant used in cpx-present melt fraction expression.
-    c:  float
-        Constant used in cpx-absent melt fraction expression.
-    d:  float
-        Constant used in cpx-absent melt fraction expression.
-    alpha:  float
-        Exponent used in the cpx-present melt fraction expression.
-    beta:   float
-        Exponent used in the cpx-absent melt fraction expression.
-    """
-    def __init__(self,DeltaS=300.0,CP=1000.0,alphas=40.0,alphaf=68.0,rhos=3.3,rhof=2.9,
-                 A1=1095.4,A2=124.1,A3=-4.7,B1=1179.6,B2=157.2,B3=-11.1,C1=1780.0,C2=45.0,C3=-2.0,
-                 a=0.3187864,b=0.4154,c=0.7341864,d=0.2658136,alpha=2,beta=1.5):
-         self.DeltaS = DeltaS
-         self.CP = CP
-         self.alphas = alphas
-         self.alphaf = alphaf
-         self.rhos = rhos
-         self.rhof = rhof
-         self.A1 = A1
-         self.A2 = A2
-         self.A3 = A3
-         self.B1 = B1
-         self.B2 = B2
-         self.B3 = B3
-         self.C1 = C1
-         self.C2 = C2
-         self.C3 = C3
-         self.a = a
-         self.b = b
-         self.c = c
-         self.d = d
-         self.alpha = alpha
-         self.beta = beta
-
-    def TSolidus(self,P):
-        """
-        Returns solidus temperature at a given pressure. T = A1 + A2*P + A3*P**2.
-
-        Parameters
-        ----------
-        P:  float, or list of floats, or array of floats
-            Pressure in GPa.
-
-        Returns
-        -------
-        T:  float, or list of floats, or array of floats
-            Solidus Temperature in degC.
-        """
-        _T = self.A1 + self.A2*P + self.A3*P**2
-        return _T
-
-    def TLiquidus(self,P):
-        """
-        Returns liquidus temperature at a given pressure. T = C1 + C2*P + C3*P**2.
-
-        Parameters
-        ----------
-        P:  float, or list of floats, or array of floats
-            Pressure in GPa.
-
-        Returns
-        -------
-        T: float, or list of floats, or array of floats
-            Liquidus temperature in degC.
-        """
-        _T = self.C1 + self.C2*P + self.C3*P**2
-        return _T
-
-    def TCpxOut(self,P):
-        """
-        Returns the temperature of cpx-exhaustion at a given pressure. T = B1 + B2*P + B3*P**2.
-
-        Parameters
-        ----------
-        P: float, or list of floats, or array of floats
-            Pressure in GPa.
-
-        Returns
-        -------
-        T: float, or list of floats, or array of floats
-            Cpx-exhaustion temperature in degC.
-        """
-        _T = self.B1 + self.B2*P + self.B3*P**2
-        return _T
-
-    def dTdP(self,P,T):
-        """
-        Returns dT/dP (constant F) at a given pressure and temperature.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure in GPa.
-        T:  float
-            Temperature in degC.
-
-        Returns
-        -------
-        dTdP:   float
-            dT/dP (constant F) in K GPa-1.
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _Tcpx = self.TCpxOut(P)
-
-        if T < _Tcpx:
-            _dTdP = -(-(T-_Tsol)/(_Tcpx-_Tsol)*(self.B2+2*self.B3*P-self.A2-self.A3*2*P) -
-                    self.A2 - self.A3*2*P)
-        else:
-            _dTdP = -(-(T-_Tcpx)/(_Tliq-_Tcpx)*(self.C2+self.C3*2*P-self.B2-self.B3*2*P) -
-                    self.B2 - 2*self.B3*P)
-
-        return _dTdP
-
-    def dTdF(self,P,T):
-        """
-        Returns dT/dF (constant P) at a given pressure and temperature. If below
-        the solidus, or above the liquidus, np.inf is returned.
-
-        Parameters
-        ----------
-        P:  float
-            Pressure in GPa.
-        T:  float
-            Temperature in degC.
-
-        Returns
-        -------
-        dTdF:   float
-            dT/dF (constant P) in K.
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _Tcpx = self.TCpxOut(P)
-
-        if T < _Tsol:
-            _dTdF = np.inf
-        elif T < _Tcpx:
-            _dTdF = (_Tcpx-_Tsol)/(self.b + self.a*self.alpha*((T-_Tsol)/(_Tcpx-_Tsol))**(self.alpha-1))
-        elif T < _Tliq:
-            _dTdF = (_Tliq - _Tcpx)/(self.d*self.beta*((T-_Tcpx)/(_Tliq-_Tcpx))**(self.beta-1))
-        else:
-            _dTdF = np.inf
-
-        return _dTdF
-
-    def F(self,P,T):
-        """
-        Returns melt fraction at a given pressure and temperature. If below the
-        solidus, returns 0. If above the liquidus, returns 1.
-
-        Prior to cpx exhaustion:
-        F = a*(Tr)**alpha _ b*Tr
-        Tr = (T-Tsol)/(Tliq-Tsol)
-
-        After cpx exhaustion:
-        F = d*(Tr)**beta + c
-        Tr = (T-Tcpx)/(Tliq-Tcpx)
-
-        Parameters
-        ----------
-        P:  float
-            Pressure in GPa.
-        T:  float
-            Temperature in degC.
-
-        Returns
-        -------
-        F:  float
-            Melt fraction between 0 and 1.
-        """
-        _Tsol = self.TSolidus(P)
-        _Tliq = self.TLiquidus(P)
-        _Tcpx = self.TCpxOut(P)
-
-        if T < _Tsol:
-            _F = 0.0
-        elif T > _Tliq:
-            _F = 1.0
-        elif T < _Tcpx:
-            Tf = (T-_Tsol)/(_Tcpx-_Tsol)
-            _F = self.a*Tf**self.alpha + self.b*Tf
-        else:
-            Tf = (T-_Tcpx)/(_Tliq-_Tcpx)
-            _F = self.d*Tf**self.beta + self.c
-        return _F
 
 class LithologyNonMelting:
     """
@@ -1970,16 +1127,19 @@ class LithologyNonMelting:
         Thermal expansivity of the solid (K-1)
     rhos:   float
         Density of the solid (g cm-3)
+    D:     float
+        Default partition coefficient of H2O.
     """
-    def __init__(self,CP=1000.0,alphas=40.0,rhos=3.3):
+    def __init__(self,CP=1000.0,alphas=40.0,rhos=3.3,D=0.01):
          self.DeltaS = 0.0
          self.CP = CP
          self.alphas = alphas
          self.alphaf = 0.0
          self.rhos = rhos
          self.rhof = 0.0
+         self.D = D
 
-    def F(self,P,T):
+    def F(self,P,T,H2O=None,F2=None):
         """
         Melt Fraction. Returns 0.0.
 
@@ -1989,10 +1149,17 @@ class LithologyNonMelting:
             Pressure. There to maintain consistancy within lithology definitions.
         T:
             Temperature. There to maintain consistancy within lithology definitions.
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
         """
-        return 0.0
+        
+        _F=0.0
+            
+        return _F
 
-    def dTdF(self,P,T):
+    def dTdF(self,P,T,H2O=None,F2=None):
         """
         dTdF(constP). Returns np.inf.
 
@@ -2002,10 +1169,17 @@ class LithologyNonMelting:
             Pressure. There to maintain consistancy within lithology definitions.
         T:
             Temperature. There to maintain consistancy within lithology definitions.
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
         """
+        
+        _dTdF=100000000000000.00
+        
         return np.inf
 
-    def dTdP(self,P,T):
+    def dTdP(self,P,T,H2O=None,F2=None):
         """
         dTdP(constF). Returns 0.0.
 
@@ -2015,8 +1189,14 @@ class LithologyNonMelting:
             Pressure. There to maintain consistancy within lithology definitions.
         T:
             Temperature. There to maintain consistancy within lithology definitions.
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
         """
-        return 0.0
+        
+        _dTdP=0.0
+        return _dTdP
 
     def TSolidus(self,P):
         """
@@ -2121,9 +1301,11 @@ class mantle:
                 self.bulk_properties().alpha etc.
         """
         _F = np.zeros(self.number_lithologies)
+        H2O=np.zeros(self.number_lithologies)
+        F2=np.zeros(self.number_lithologies)
         if T != False:
             for i in range(self.number_lithologies):
-                _F[i] = self.lithologies[i].F(P,T)
+                _F[i] = self.lithologies[i].F(P,T,H2O[i],F2[i])
         _alpha = sum(self.proportions*self.alphaf*_F+self.proportions*self.alphas*(1-_F))
         _CP = sum(self.proportions*self.CP)
         _rho = sum(self.proportions*self.rhof*_F+self.proportions*self.rhos*(1-_F))
@@ -2197,7 +1379,7 @@ class mantle:
               (self.bulk_properties(P).rho*self.bulk_properties(P).CP)*P) - 273.15)
         return _T
 
-    def F(self,P,T):
+    def F(self,P,T,H2O=None,F2=None):
         """
         Calculates the melt fraction of each lithology at a given pressure and
         temperature. Acts as a lookup function.
@@ -2208,6 +1390,10 @@ class mantle:
             Pressure in GPa
         T:  float
             Temperature in degC
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
@@ -2215,12 +1401,18 @@ class mantle:
             Array containing the melt fraction of each lithology, in the order
             the lithologies were passed to the mantle class.
         """
+        if H2O is None:
+            H2O=np.zeros(self.number_lithologies)
+            
+        if F2 is None:
+            F2=np.zeros(self.number_lithologies)
+        
         _F = np.zeros(self.number_lithologies)
         for i in range(self.number_lithologies):
-            _F[i] = self.lithologies[i].F(P,T)
+            _F[i] = self.lithologies[i].F(P,T,H2O[i],F2[i])
         return _F
 
-    def dFdP(self,P,T):
+    def dFdP(self,P,T,H2O=None,F2=None):
         """
         Calculates the value of dFdP for each lithology at the given pressure
         and temperature, using Eq(26) of Phipps Morgan (2001).
@@ -2231,6 +1423,10 @@ class mantle:
             Pressure in GPa.
         T:  float
             Temperature in degC.
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
@@ -2238,6 +1434,13 @@ class mantle:
             Array of dFdP values for each lithology, in the order in which they
             were passed to the mantle class.
         """
+        
+        if H2O is None:
+            H2O=np.zeros(self.number_lithologies)
+            
+        if F2 is None:
+            F2=np.zeros(self.number_lithologies)
+            
         _dFdP = np.zeros(self.number_lithologies)
 
         _dTdP = np.zeros(self.number_lithologies)
@@ -2245,9 +1448,9 @@ class mantle:
         _F = np.zeros(self.number_lithologies)
 
         for i in range(self.number_lithologies):
-            _dTdP[i] = self.lithologies[i].dTdP(P,T)
-            _dTdF[i] = self.lithologies[i].dTdF(P,T)
-            _F[i] = self.lithologies[i].F(P,T)
+            _dTdP[i] = self.lithologies[i].dTdP(P,T,H2O[i],F2[i])
+            _dTdF[i] = self.lithologies[i].dTdF(P,T,H2O[i],F2[i])
+            _F[i] = self.lithologies[i].F(P,T,H2O[i],F2[i])
 
 
         _lithologies_melting = np.where((_F>0)&(_F<1))[0]
@@ -2298,7 +1501,7 @@ class mantle:
         return _dTdP
 
 
-    def dTdP(self,P,T,dFdP):
+    def dTdP(self,P,T,dFdP,H2O=None,F2=None):
         """
         Calculates dTdP using Eq(28) of Phipps Morgan (2001). Picks the lithology
         to use by the one with the largest increase in melt fraction with decompression
@@ -2316,19 +1519,30 @@ class mantle:
             lithology and the same pressure and temperature as passed to the
             function. This function doesn't recall the dFdP function in order
             to save re-calculating the same numbers multiple times.
+        H2O:  float
+            Water content (wt%).
+        F2:  float
+            Melt fraction at previous step.
 
         Returns
         -------
         dTdP:   float
             The thermal gradient in the melting region at the P, and T of interest.
         """
+        
+        if H2O is None:
+            H2O=np.zeros(self.number_lithologies)
+            
+        if F2 is None:
+            F2=np.zeros(self.number_lithologies)
+            
         _melting_lithologies = np.where(dFdP<0)[0]
         if np.shape(_melting_lithologies)[0] > 0:
             _key = np.argmin(dFdP[dFdP<0])
             _key = _melting_lithologies[_key]
-            _dTdP = self.lithologies[_key].dTdP(P,T) + self.lithologies[_key].dTdF(P,T)*dFdP[_key]
+            _dTdP = self.lithologies[_key].dTdP(P,T,H2O[_key],F2[_key]) + self.lithologies[_key].dTdF(P,T,H2O[_key],F2[_key])*dFdP[_key]
         else:
-            _dTdP = self.lithologies[0].dTdP(P,T)
+            _dTdP = self.lithologies[0].dTdP(P,T,H2O[0],F2[0])
 
         return _dTdP
 
@@ -2371,7 +1585,7 @@ class mantle:
 
 
 
-    def AdiabaticMelt_1D(self,Tp,Pstart=8.0,Pend=0.01,steps=1001,ReportSSS=True):
+    def AdiabaticMelt_1D(self,Tp,Pstart=8.0,Pend=0.01,steps=1001,H2O=None,ReportSSS=True):
         """
         Performs simultaneous integration of dFdP and dTdP in order to obtain
         the thermal gradient through the melting region. F of each lithology is then
@@ -2392,6 +1606,8 @@ class mantle:
         steps:  int
             The number of dP increments to split the melting region into. Default
             is 1001.
+        H2O:  float
+            Water content (wt%).
         ReportSSS:  bool
             Print to the console if the start is above the solidus of one of the
             lithologies. Either way the code will calculate the melt fraction at
@@ -2404,6 +1620,13 @@ class mantle:
             calculations, e.g. crustal thickness may then be performed on this
             object, if desired.
         """
+        if H2O is None:
+            H2O=np.zeros(self.number_lithologies)      
+                
+        D=np.zeros(self.number_lithologies)
+        for i in range(self.number_lithologies):
+            D[i] = self.lithologies[i].D
+            
         _T = np.zeros(steps)
         _T[0] = self.adiabat(Pstart,Tp)
         _P = np.linspace(Pstart,Pend,steps)
@@ -2413,15 +1636,16 @@ class mantle:
         if _T[0] > np.nanmin(self.solidus_intersection_isobaric(Pstart)):
             if ReportSSS == True:
                 print('WARNING! SUPER SOLIDUS START')
-            _T[0] = self.IsobaricMelt_1D(_T[0],Pstart)
+            _T[0] = self.IsobaricMelt_1D(_T[0],Pstart,dT=0.1)
 
         for i in range(steps):
             if i == 0:
-                _F[i] = self.F(_P[0],_T[0])
+                _F[i] = self.F(_P[0],_T[0],H2O,np.zeros(self.number_lithologies))
+                H2Od=H2O  
             else:
                 if np.shape(np.where((_F[i-1]>0))[0])[0] == 0:
                     _T[i] = self.adiabat(_P[i],Tp)
-                    _F[i] = self.F(_P[i],_T[i])
+                    _F[i] = self.F(_P[i],_T[i],H2O,_F[i-1])
                 elif np.shape(np.where((_F[i-1]>0)&(_F[i-1]<1))[0])[0] == 0:
                     _j1 = self.adiabatic_gradient(_P[i-1],_T[i-1])
                     _j2 = self.adiabatic_gradient(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1)
@@ -2429,19 +1653,22 @@ class mantle:
                     _j4 = self.adiabatic_gradient(_P[i],_T[i-1]+_dP*_j3)
 
                     _T[i] = _T[i-1] + _dP/6*(_j1+2*_j2+2*_j3+_j4)
-                    _F[i] = self.F(_P[i],_T[i])
+                    _F[i] = self.F(_P[i],_T[i],H2O,_F[i-1])
                 else:
-                    _k1 = self.dFdP(_P[i-1],_T[i-1])
-                    _j1 = self.dTdP(_P[i-1],_T[i-1],_k1)
-                    _k2 = self.dFdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1)
-                    _j2 = self.dTdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1,_k2)
-                    _k3 = self.dFdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j2)
-                    _j3 = self.dTdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j2,_k3)
-                    _k4 = self.dFdP(_P[i],_T[i-1]+_dP*_j3)
-                    _j4 = self.dTdP(_P[i],_T[i-1]+_dP*_j3,_k4)
+                    _k1 = self.dFdP(_P[i-1],_T[i-1],H2Od,_F[i-2])
+                    _j1 = self.dTdP(_P[i-1],_T[i-1],_k1,H2Od,_F[i-2])
+                    _k2 = self.dFdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1,H2Od,_F[i-2])
+                    _j2 = self.dTdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j1,_k2,H2Od,_F[i-2])
+                    _k3 = self.dFdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j2,H2Od,_F[i-2])
+                    _j3 = self.dTdP(_P[i-1]+_dP/2,_T[i-1]+_dP/2*_j2,_k3,H2Od,_F[i-2])
+                    _k4 = self.dFdP(_P[i],_T[i-1]+_dP*_j3,H2Od,_F[i-2])
+                    _j4 = self.dTdP(_P[i],_T[i-1]+_dP*_j3,_k4,H2Od,_F[i-2])
 
                     _T[i] = _T[i-1] + _dP/6*(_j1+2*_j2+2*_j3+_j4)
-                    _F[i] = self.F(_P[i],_T[i])
+                    _F[i] = self.F(_P[i],_T[i],H2O,_F[i-1])
+                
+                H2Od=H2O  
+                H2O=(1/(1-_F[i]))*(-(_F[i]-_F[i-1])*(H2O/(D+((_F[i]-_F[i-1])/(1-_F[i-1]))*(1-D)))+(1-_F[i-1])*H2O)
 
         _results = pd.DataFrame(_F,columns=self.names)
         _results['P'] = _P
