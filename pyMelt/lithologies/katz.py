@@ -1,5 +1,5 @@
 from pyMelt.lithology_class import lithology as _lithology
-from  pyMelt.lithology_class import default_properties as _default_properties
+from pyMelt.lithology_class import default_properties as _default_properties
 
 import numpy as _np
 
@@ -10,21 +10,22 @@ class lherzolite(_lithology):
 
     To use the same format of parameterisation for another lithology, the parameter values
     may be changed. They are provided as a dictionary during initialisation of the class.
-    Mcpx:   Mass fraction of cpx in the source. Controls the transition to low-productivity
-            harzburgite-type melting.
-    A1:     Parameter used to define solidus.
-    A2:     Parameter used to define solidus.
-    A3:     Parameter used to define solidus.
-    B1:     Parameter used to define lherzolite-liquidus.
-    B2:     Parameter used to define lherzolite-liquidus.
-    B3:     Parameter used to define lherzolite-liquidus.
-    C1:     Parameter used to define liquidus.
-    C2:     Parameter used to define liquidus.
-    C3:     Parameter used to define liquidus.
-    beta1:  Parameter used to calculate melt fraction during cpx-present melting.
-    beta2:  Parameter used to calculate melt fraction during cpx-absent melting.
-    r1:     Parameter used to define cpx reaction coefficient.
-    r2:     Parameter used to define cpx reaction coefficient.
+
+    - Mcpx:   Mass fraction of cpx in the source. Controls the transition to low-productivity
+      harzburgite-type melting.
+    - A1:     Parameter used to define solidus.
+    - A2:     Parameter used to define solidus.
+    - A3:     Parameter used to define solidus.
+    - B1:     Parameter used to define lherzolite-liquidus.
+    - B2:     Parameter used to define lherzolite-liquidus.
+    - B3:     Parameter used to define lherzolite-liquidus.
+    - C1:     Parameter used to define liquidus.
+    - C2:     Parameter used to define liquidus.
+    - C3:     Parameter used to define liquidus.
+    - beta1:  Parameter used to calculate melt fraction during cpx-present melting.
+    - beta2:  Parameter used to calculate melt fraction during cpx-absent melting.
+    - r1:     Parameter used to define cpx reaction coefficient.
+    - r2:     Parameter used to define cpx reaction coefficient.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
     also be changed during class initialisation.
@@ -164,13 +165,13 @@ class lherzolite(_lithology):
             # If no melt fraction the derivative is zero. Prevents division by zero.
             dTdF = _np.inf
         elif F < self._FcpxOut(P):
-            dTdF = (((1/self.parameters['beta1'])) *
-                    (self._TLherzLiquidus(P) - self.TSolidus(P)) *
-                    (F**((1-self.parameters['beta1'])/self.parameters['beta1'])))
+            dTdF = (((1/self.parameters['beta1']))
+                    * (self._TLherzLiquidus(P) - self.TSolidus(P))
+                    * (F**((1-self.parameters['beta1'])/self.parameters['beta1'])))
         elif F < 1.0:
-            dTdF = (((1/self.parameters['beta2'])) *
-                    (self.TLiquidus(P) - self._TcpxOut(P)) *
-                    (F**((1-self.parameters['beta2'])/self.parameters['beta2'])))
+            dTdF = (((1/self.parameters['beta2']))
+                    * (self.TLiquidus(P) - self._TcpxOut(P))
+                    * (F**((1-self.parameters['beta2'])/self.parameters['beta2'])))
         else:
             dTdF = _np.inf
         return dTdF
@@ -207,14 +208,14 @@ class lherzolite(_lithology):
         if F == 0:
             dTdP = self.alphas/self.rhos/self.CP
         elif F < self.FcpxOut(P):
-            dTdP = (((F**(1/self.parameters['beta1'])) *
-                    (dTdPLherzLiquidus-dTdPSolidus)) + dTdPSolidus)
+            dTdP = (((F**(1/self.parameters['beta1']))
+                    * (dTdPLherzLiquidus-dTdPSolidus)) + dTdPSolidus)
         elif F < 1.0:
             Trel = (T - TcpxOut)/(TLiquidus - TcpxOut)
-            dTdP = ((TLiquidus - TcpxOut)/(1 - FcpxOut) *
-                    (1/self.parameters['beta2'])*Trel**(1-self.paraeters['beta2']) *
-                    dFdPcpxOut * (Trel**self.parameters['beta2'] - 1) +
-                    dTdPcpxOut + Trel*(dTdPLiquidus - dTdPcpxOut))
+            dTdP = ((TLiquidus - TcpxOut)/(1 - FcpxOut)
+                    * (1/self.parameters['beta2'])*Trel**(1-self.paraeters['beta2'])
+                    * dFdPcpxOut * (Trel**self.parameters['beta2'] - 1)
+                    + dTdPcpxOut + Trel*(dTdPLiquidus - dTdPcpxOut))
         else:
             dTdP = self.alphaf/self.rhof/self.CP
         return dTdP
@@ -235,8 +236,8 @@ class lherzolite(_lithology):
         Tlzliq:   float
             Lherzolite liquidus temperature (degC).
         """
-        TLherzLiquidus = (self.parameters['B1'] + self.parameters['B2']*P +
-                          self.parameters['B3']*(P**2))
+        TLherzLiquidus = (self.parameters['B1'] + self.parameters['B2']*P
+                          + self.parameters['B3']*(P**2))
         return TLherzLiquidus
 
     def _RescaledTcpx(self, T, P):
@@ -331,8 +332,8 @@ class lherzolite(_lithology):
             Temperature of cpx-exhaustion.
         """
         TSolidus = self.TSolidus(P)
-        TcpxOut = (((self._FcpxOut(P)**(1/self.parameters['beta1']))) *
-                   (self._TLherzLiquidus(P) - TSolidus) + TSolidus)
+        TcpxOut = (((self._FcpxOut(P)**(1/self.parameters['beta1'])))
+                   * (self._TLherzLiquidus(P) - TSolidus) + TSolidus)
         return TcpxOut
 
     def _RescaledTopx(self, T, P):
@@ -385,10 +386,10 @@ class lherzolite(_lithology):
         return self.parameters['B2'] + 2*self.parameters['B3']*P
 
     def _dTdPcpxOut(self, P):
-        term1 = ((self._TLherzLiquidus(P) - self.TSolidus(P))/self.parameters['beta1'] *
-                 self._FcpxOut(P)**(1/self.parameters['beta1'] - 1))
-        term2 = (self._FcpxOut(P)**(1/self.parameters['beta1']) *
-                 (self._dTdPLherzLiquidus(P) - self._dTdPSolidus(P)) + self._dTdPSolidus(P))
+        term1 = ((self._TLherzLiquidus(P) - self.TSolidus(P))/self.parameters['beta1']
+                 * self._FcpxOut(P)**(1/self.parameters['beta1'] - 1))
+        term2 = (self._FcpxOut(P)**(1/self.parameters['beta1'])
+                 * (self._dTdPLherzLiquidus(P) - self._dTdPSolidus(P)) + self._dTdPSolidus(P))
         return term1 * self._dFdPcpxOut(P) + term2
 
     def _dFdPcpxOut(self, P):

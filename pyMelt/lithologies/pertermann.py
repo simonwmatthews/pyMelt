@@ -1,5 +1,5 @@
 from pyMelt.lithology_class import lithology as _lithology
-from  pyMelt.lithology_class import default_properties as _default_properties
+from pyMelt.lithology_class import default_properties as _default_properties
 
 import numpy as _np
 
@@ -10,12 +10,13 @@ class g2(_lithology):
     To use the same format of parameterisation for another lithology, the parameter values
     may be changed. They are provided as a dictionary during initialisation of the class, with
     values:
-    a:  Parameter used in calculating melt fraction.
-    b:  Parameter used in calculating melt fraction.
-    c:  Parameter used in liquidus definition.
-    d:  Parameter used in liquidus definition.
-    e:  Parameter used in solidus definition.
-    f:  Parameter used in solidus definition.
+
+    - a:  Parameter used in calculating melt fraction.
+    - b:  Parameter used in calculating melt fraction.
+    - c:  Parameter used in liquidus definition.
+    - d:  Parameter used in liquidus definition.
+    - e:  Parameter used in solidus definition.
+    - f:  Parameter used in solidus definition.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
     also be changed during class initialisation.
@@ -37,6 +38,7 @@ class g2(_lithology):
     parameters : dict, default: parameters from Matthews et al. (2021)
         The model parameters described above
     """
+
     def __init__(self,
                  CP=_default_properties['CP'],
                  alphas=_default_properties['alphas'],
@@ -152,8 +154,8 @@ class g2(_lithology):
         elif T > Tliq:
             dTdF = np.inf
         else:
-            dTdF = ((Tliq - Tsol) /
-                    (self.parameters['a'] * 2 * ((T - Tsol) / (Tliq - Tsol))+self.parameters['b']))
+            dTdF = ((Tliq - Tsol)
+                    / (self.parameters['a'] * 2 * ((T - Tsol) / (Tliq - Tsol))+self.parameters['b']))
 
         return dTdF
 
@@ -175,7 +177,7 @@ class g2(_lithology):
         """
         Tsol = self.TSolidus(P)
         Tliq = self.TLiquidus(P)
-        dTdP = ((self.parameters['d'] - self.parameters['f']) *
-                (T - Tsol)/(Tliq - Tsol) + self.parameters['f'])
+        dTdP = ((self.parameters['d'] - self.parameters['f'])
+                * (T - Tsol)/(Tliq - Tsol) + self.parameters['f'])
 
         return dTdP

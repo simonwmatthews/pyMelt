@@ -11,21 +11,22 @@ class kg1(_lithology):
     To use the same format of parameterisation for another lithology, the parameter values
     may be changed. They are provided as a dictionary during initialisation of the class, with
     values:
-    A1:     Constant used in solidus expression.
-    A2:     Constant used in solidus expression.
-    A3:     Constant used in solidus expression.
-    B1:     Constant used in cpx-out expression.
-    B2:     Constant used in cpx-out expression.
-    B3:     Constant used in cpx-out expression.
-    C1:     Constant used in liquidus expression.
-    C2:     Constant used in liquidus expression.
-    C3:     Constant used in liquidus expression.
-    a:      Constant used in cpx-present melt fraction expression.
-    b:      Constant used in cpx-present melt fraction expression.
-    c:      Constant used in cpx-absent melt fraction expression.
-    d:      Constant used in cpx-absent melt fraction expression.
-    alpha:  Exponent used in the cpx-present melt fraction expression.
-    beta:   Exponent used in the cpx-absent melt fraction expression.
+
+    - A1:     Constant used in solidus expression.
+    - A2:     Constant used in solidus expression.
+    - A3:     Constant used in solidus expression.
+    - B1:     Constant used in cpx-out expression.
+    - B2:     Constant used in cpx-out expression.
+    - B3:     Constant used in cpx-out expression.
+    - C1:     Constant used in liquidus expression.
+    - C2:     Constant used in liquidus expression.
+    - C3:     Constant used in liquidus expression.
+    - a:      Constant used in cpx-present melt fraction expression.
+    - b:      Constant used in cpx-present melt fraction expression.
+    - c:      Constant used in cpx-absent melt fraction expression.
+    - d:      Constant used in cpx-absent melt fraction expression.
+    - alpha:  Exponent used in the cpx-present melt fraction expression.
+    - beta:   Exponent used in the cpx-absent melt fraction expression.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
     also be changed during class initialisation.

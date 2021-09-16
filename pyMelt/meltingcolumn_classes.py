@@ -53,6 +53,7 @@ class MeltingColumn_1D():
         The integrated proportion of generated crust derived from each lithology at the pressure
         where P(calculation) = P(exerted by generated crust). Available following integration.
     """
+
     def __init__(self, calculation_results, mantle, Tp=None):
         self.P = calculation_results.P
         self.T = calculation_results['T']
@@ -149,8 +150,8 @@ class MeltingColumn_1D():
         rho = self.mantle.bulk_properties()['rho']
         g = 9.81
         tc = 1.0 / (rho * g * 1e3) * self.F_total / (1.0 - self.F_total)
-        tc_lith = (1.0 / (rho * g * 1e3) * self.F * self.mantle.proportions /
-                   (1.0 - np.tile(self.F_total, [np.shape(self.F)[1], 1]).T))
+        tc_lith = (1.0 / (rho * g * 1e3) * self.F * self.mantle.proportions
+                   / (1.0 - np.tile(self.F_total, [np.shape(self.F)[1], 1]).T))
         tc_int = np.zeros(np.shape(self.P)[0])
         tc_lith_int = np.zeros(np.shape(tc_lith))
         tc_intP = np.zeros(np.shape(self.P)[0])
@@ -161,17 +162,17 @@ class MeltingColumn_1D():
         for i in range(np.shape(self.P)[0]):
             if i != 0:
                 tc_int[i] = tc_int[i-1] + tc[i] * np.abs(self.P[i] - self.P[i-1])
-                tc_lith_int[i] = (tc_lith_int[i-1] +
-                                  tc_lith.iloc[i] * np.abs(self.P[i] - self.P[i-1]))
+                tc_lith_int[i] = (tc_lith_int[i-1]
+                                  + tc_lith.iloc[i] * np.abs(self.P[i] - self.P[i-1]))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
-                if(extract_melt is False and tc_intP[i] + P_base_existingLith > self.P[i] and
-                   tc_found is False):
+                if(extract_melt is False and tc_intP[i] + P_base_existingLith > self.P[i]
+                   and tc_found is False):
                     tc_found = tc_int[i]
                     P_basecrust = self.P[i]
                     tc_lith_found = tc_lith_int[i]
-                elif (extract_melt is True and
-                      (i == np.shape(self.P)[0] - 1 or P_base_existingLith > self.P[i]) and
-                      tc_found is False):
+                elif (extract_melt is True
+                      and (i == np.shape(self.P)[0] - 1 or P_base_existingLith > self.P[i])
+                      and tc_found is False):
                     tc_found = tc_int[i]
                     P_basecrust = self.P[i]
                     tc_lith_found = tc_lith_int[i]
@@ -221,7 +222,7 @@ class MeltingColumn_1D():
         if ShallowMeltP is None:
             ShallowMeltP = self.P_base_of_crust
 
-        self.T_crystallisation = self.Temperature - (self.P - MeltStorageP) * liqdTdP
+        self.T_crystallisation = self.T - (self.P - MeltStorageP) * liqdTdP
 
         self.DeepMeltTcrys = {}
         for l in self.mantle.names:

@@ -115,10 +115,14 @@ class mantle:
         for i in range(self.number_lithologies):
             def f_solve(P):
                 return self.lithologies[i].TSolidus(P) - self.adiabat(P, Tp)
-            try:
-                intersect[i] = fsolve(f_solve, 3.0)[0]
-            except Exception:
+            # Check that the lithology actually melts:
+            if self.lithologies[i].TSolidus(3.0) is np.inf:
                 intersect[i] = np.nan
+            else:
+                try:
+                    intersect[i] = fsolve(f_solve, 3.0)[0]
+                except Exception:
+                    intersect[i] = np.nan
         return intersect
 
     def solidus_intersection_isobaric(self, P):
