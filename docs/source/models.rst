@@ -9,7 +9,7 @@ Matthews et al. (2021)
 ----------------------
 `Manuscript <https://doi.org/10.1029/2020GC009157>`_
 
-KLB1
+KLB-1
 ^^^^
 A typical lherzolite. Accessed by ``pyMelt.lithologies.matthews.klb1()``
 
@@ -46,7 +46,7 @@ Lherzolite
 Combines experimental constraints from a range of peridotite bulk compositions.
 Accessed by ``pyMelt.lithologies.katz.lherzolite()``
 
-Pertermann & Hirschmann
+Pertermann & Hirschmann (2003)
 -----------------------
 `Manuscript <https://doi.org/10.1093/petrology/egg074>`_
 
