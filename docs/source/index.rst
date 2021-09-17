@@ -42,3 +42,6 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg
+   :target: https://doi.org/10.5281/zenodo.5513675

@@ -15,6 +15,9 @@ stable release is:
 
    Simon Matthews, Oliver Shorttle, & Kevin Wong. (2020). simonwmatthews/pyMelt: First Release (v1.0). Zenodo. https://doi.org/10.5281/zenodo.4011814
 
+   .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg
+      :target: https://doi.org/10.5281/zenodo.5513675
+
 You should also cite the individual pure-lithology melting models used in the calculation. See the
 models page for more information.
 
