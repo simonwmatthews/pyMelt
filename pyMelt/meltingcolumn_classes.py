@@ -1,3 +1,13 @@
+"""
+===============
+Melting Columns
+===============
+
+the meltingcolumn_classes module provides the melting column classes. At the moment it consists of
+a single melting column- a simple 1D melting column.
+
+"""
+
 import numpy as np
 from pyMelt.core import InputError
 import matplotlib.pyplot as plt

@@ -1,4 +1,9 @@
-"""pyMelt - a python package for performing mantle melting calculations.
+"""
+======
+pyMelt
+======
+
+A python package for performing mantle melting calculations.
 
 Developed and maintained by Simon Matthews (simonm@hi.is) and Kev Wong.
 

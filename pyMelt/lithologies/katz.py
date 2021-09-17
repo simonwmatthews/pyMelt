@@ -1,3 +1,12 @@
+"""
+==================
+Katz et al. (2003)
+==================
+
+Implementation of the anhydrous melting model presented by Katz et al. (2003).
+
+"""
+
 from pyMelt.lithology_class import lithology as _lithology
 from pyMelt.lithology_class import default_properties as _default_properties
 

@@ -1,6 +1,5 @@
 import numpy as np
 from warnings import warn
-import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.optimize import fsolve
 

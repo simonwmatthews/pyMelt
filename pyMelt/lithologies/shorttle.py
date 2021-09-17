@@ -1,5 +1,14 @@
+"""
+======================
+Shorttle et al. (2014)
+======================
+
+Implementation of the new lithologies in Shorttle et al. (2014).
+
+"""
+
 from pyMelt.lithology_class import lithology as _lithology
-from  pyMelt.lithology_class import default_properties as _default_properties
+from pyMelt.lithology_class import default_properties as _default_properties
 
 import numpy as _np
 

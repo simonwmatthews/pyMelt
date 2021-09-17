@@ -7,68 +7,24 @@ pyMelt Code Documentation
 Modules
 *******
 
-pyMelt
-======
 
-Mantle()
---------
-.. autoclass:: pyMelt.Mantle
+.. automodule:: pyMelt
   :members:
 
-meltingcolumn_classes
-=====================
-
-MeltingColumn_1D()
-------------------
-.. autoclass:: pyMelt.meltingcolumn_classes.MeltingColumn_1D
+.. automodule:: pyMelt.meltingcolumn_classes
   :members:
 
-lithologies
-===========
-
-katz
-----
-
-lherzolite
-^^^^^^^^^^
-.. autoclass:: pyMelt.lithologies.katz.lherzolite
+.. automodule:: pyMelt.lithologies
   :members:
 
-matthews
---------
+  .. automodule:: pyMelt.lithologies.matthews
+    :members:
 
-kg1
-^^^
-.. autoclass:: pyMelt.lithologies.matthews.kg1
-  :members:
+  .. automodule:: pyMelt.lithologies.shorttle
+    :members:
 
-klb1
-^^^^
-.. autoclass:: pyMelt.lithologies.matthews.klb1
-  :members:
+  .. automodule:: pyMelt.lithologies.katz
+    :members:
 
-eclogite
-^^^^^^^^
-.. autoclass:: pyMelt.lithologies.matthews.eclogite
-  :members:
-
-pertermann
-----------
-
-g2
-^^
-.. autoclass:: pyMelt.lithologies.pertermann.g2
-  :members:
-
-shorttle
---------
-
-kg1
-^^^
-.. autoclass:: pyMelt.lithologies.shorttle.kg1
-  :members:
-
-harzburgite
-^^^^^^^^^^^
-.. autoclass:: pyMelt.lithologies.shorttle.harzburgite
-  :members:
+  .. automodule:: pyMelt.lithologies.pertermann
+    :members:

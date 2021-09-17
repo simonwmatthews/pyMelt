@@ -1,3 +1,11 @@
+"""
+======================
+Matthews et al. (2021)
+======================
+
+Implentation of the melting models developed by Matthews et al. (2021).
+"""
+
 from pyMelt.lithology_class import lithology as _lithology
 from pyMelt.lithology_class import default_properties as _default_properties
 
@@ -11,7 +19,7 @@ class kg1(_lithology):
 
     To use the same format of parameterisation for another lithology, the parameter values
     may be changed. They are provided as a dictionary during initialisation of the class.
-    
+
     - Mcpx:   Mass fraction of cpx in the source. Controls the transition to
       low-productivity harzburgite-type melting.
     - A1:     Parameter used to define solidus.

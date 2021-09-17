@@ -1,3 +1,12 @@
+"""
+================================
+Pertermann and Hirschmann (2002)
+================================
+
+The pertermann module implements the G2 model.
+
+"""
+
 from pyMelt.lithology_class import lithology as _lithology
 from pyMelt.lithology_class import default_properties as _default_properties
 
@@ -150,12 +159,12 @@ class g2(_lithology):
         Tsol = self.TSolidus(P)
         Tliq = self.TLiquidus(P)
         if T < Tsol:
-            dTdF = np.inf
+            dTdF = _np.inf
         elif T > Tliq:
-            dTdF = np.inf
+            dTdF = _np.inf
         else:
-            dTdF = ((Tliq - Tsol)
-                    / (self.parameters['a'] * 2 * ((T - Tsol) / (Tliq - Tsol))+self.parameters['b']))
+            dTdF = ((Tliq - Tsol) / (self.parameters['a'] * 2
+                    * ((T - Tsol) / (Tliq - Tsol))+self.parameters['b']))
 
         return dTdF
 
