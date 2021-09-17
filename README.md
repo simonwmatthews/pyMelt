@@ -20,10 +20,10 @@ Parameters that can be calculated:
 
 ## Documentation
 Full documentation, further information about the package, and a tutorial for getting started are
-provided at [pymelt.readthedocs.io](pymelt.readthedocs.io).
+provided at [pymelt.readthedocs.io](http://pymelt.readthedocs.io).
 
 ## Installation
-pyMelt will soon be available on pip, and can be installed by running `pip install pyMelt` in a terminal.
+pyMelt is available on pip, and can be installed by running `pip install pyMelt` in a terminal.
 
 ## pyMelt_MultiNest
 pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al., 2021.

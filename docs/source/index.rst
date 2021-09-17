@@ -22,7 +22,7 @@ pyMelt Quickstart
 
 Installation
 ^^^^^^^^^^^^
-Soon it will be possible to install pyMelt using pip:
+It is possible to install pyMelt using pip:
 
 .. code-block:: python
 
