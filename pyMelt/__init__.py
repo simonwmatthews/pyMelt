@@ -19,6 +19,7 @@ __author__ = "Simon Matthews and Kevin Wong"
 import pyMelt.lithologies
 # import pyMelt.meltingcolumn_classes
 import pyMelt.mantle_class
+from pyMelt.lithology_classes import hydrous_lithology
 
 
 class Mantle(pyMelt.mantle_class.mantle):

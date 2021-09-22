@@ -14,7 +14,7 @@ pyMelt Quickstart
    changelog
    about
    models
-   tutorial
+   tutorials
    codedoc
    support
    license

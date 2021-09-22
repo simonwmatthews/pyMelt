@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'pyMelt'
-copyright = '2021, Simon Matthews, Kevin Wong'
-author = 'Simon Matthews, Kevin Wong'
+copyright = '2021, Simon Matthews, Kevin Wong, Matthew Gleeson'
+author = 'Simon Matthews, Kevin Wong, Matthew Gleeson'
 
 # The full version, including alpha/beta/rc tags
 release = 'v2.0'
