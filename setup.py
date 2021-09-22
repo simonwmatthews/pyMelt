@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyMelt",
-    version="1.915",
-    author="Simon Matthews, Kevin Wong",
+    version="1.92",
+    author="Simon Matthews, Kevin Wong, Matthew Gleeson",
     author_email="simonwmatthews@gmail.com",
     description=("A python library for calculating the melting behaviour of Earth's mantle."),
     long_description=long_description,
