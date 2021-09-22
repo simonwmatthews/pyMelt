@@ -7,8 +7,8 @@ Implementation of the new lithologies in Shorttle et al. (2014).
 
 """
 
-from pyMelt.lithology_class import lithology as _lithology
-from pyMelt.lithology_class import default_properties as _default_properties
+from pyMelt.lithology_classes import lithology as _lithology
+from pyMelt.lithology_classes import default_properties as _default_properties
 
 import numpy as _np
 
@@ -90,7 +90,7 @@ class kg1(_lithology):
         self.rhof = rhof
         self.parameters = parameters
 
-    def TSolidus(self, P):
+    def TSolidus(self, P, **kwargs):
         """
         Returns solidus temperature at a given pressure. T = A1 + A2*P + A3*P**2.
 
@@ -107,7 +107,7 @@ class kg1(_lithology):
         T = self.parameters['A1'] + self.parameters['A2']*P + self.parameters['A3']*P**2
         return T
 
-    def TLiquidus(self, P):
+    def TLiquidus(self, P, **kwargs):
         """
         Returns liquidus temperature at a given pressure. T = C1 + C2*P + C3*P**2.
 
@@ -124,7 +124,7 @@ class kg1(_lithology):
         T = self.parameters['C1'] + self.parameters['C2']*P + self.parameters['C3']*P**2
         return T
 
-    def dTdP(self, P, T):
+    def dTdP(self, P, T, **kwargs):
         """
         Returns dT/dP (constant F) at a given pressure and temperature.
 
@@ -140,9 +140,9 @@ class kg1(_lithology):
         float
             dT/dP (constant F) in K GPa-1.
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
-        Tcpx = self._TCpxOut(P)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
+        Tcpx = self._TCpxOut(P, **kwargs)
 
         if T < Tcpx:
             dTdP = (-(-(T - Tsol) / (Tcpx - Tsol) *
@@ -157,7 +157,7 @@ class kg1(_lithology):
 
         return dTdP
 
-    def dTdF(self, P, T):
+    def dTdF(self, P, T, **kwargs):
         """
         Returns dT/dF (constant P) at a given pressure and temperature. If below
         the solidus, or above the liquidus, _np.inf is returned.
@@ -174,9 +174,9 @@ class kg1(_lithology):
         float
             dT/dF (constant P) in K.
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
-        Tcpx = self._TCpxOut(P)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
+        Tcpx = self._TCpxOut(P, **kwargs)
 
         if T < Tsol:
             dTdF = _np.inf
@@ -193,7 +193,7 @@ class kg1(_lithology):
 
         return dTdF
 
-    def F(self, P, T):
+    def F(self, P, T, **kwargs):
         """
         Returns melt fraction at a given pressure and temperature. If below the
         solidus, returns 0. If above the liquidus, returns 1.
@@ -218,9 +218,9 @@ class kg1(_lithology):
         float
             Melt fraction between 0 and 1.
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
-        Tcpx = self._TCpxOut(P)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
+        Tcpx = self._TCpxOut(P, **kwargs)
 
         if T < Tsol:
             F = 0.0
@@ -234,7 +234,7 @@ class kg1(_lithology):
             F = self.parameters['d'] * Tf**self.parameters['beta'] + self.parameters['c']
         return F
 
-    def _TCpxOut(self, P):
+    def _TCpxOut(self, P, **kwargs):
         """
         Returns the temperature of cpx-exhaustion at a given pressure. T = B1 + B2*P + B3*P**2.
 
@@ -295,7 +295,7 @@ class harzburgite(_lithology):
         self.DeltaS = DeltaS
         self.parameters = parameters
 
-    def F(self, P, T):
+    def F(self, P, T, **kwargs):
         """
         Melt Fraction. Returns 0.0.
 
@@ -313,7 +313,7 @@ class harzburgite(_lithology):
         """
         return 0.0
 
-    def dTdF(self, P, T):
+    def dTdF(self, P, T, **kwargs):
         """
         dTdF(constP). Returns _np.inf.
 
@@ -331,7 +331,7 @@ class harzburgite(_lithology):
         """
         return _np.inf
 
-    def dTdP(self, P, T):
+    def dTdP(self, P, T, **kwargs):
         """
         dTdP(constF). Returns 0.0.
 
@@ -349,7 +349,7 @@ class harzburgite(_lithology):
         """
         return 0.0
 
-    def TSolidus(self, P):
+    def TSolidus(self, P, **kwargs):
         """
         Solidus temperature. Returns _np.inf.
 
@@ -368,7 +368,7 @@ class harzburgite(_lithology):
         else:
             return _np.inf
 
-    def TLiquidus(self, P):
+    def TLiquidus(self, P, **kwargs):
         """
         Liquidus temperature. Returns _np.inf
 

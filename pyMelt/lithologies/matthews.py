@@ -6,8 +6,8 @@ Matthews et al. (2021)
 Implentation of the melting models developed by Matthews et al. (2021).
 """
 
-from pyMelt.lithology_class import lithology as _lithology
-from pyMelt.lithology_class import default_properties as _default_properties
+from pyMelt.lithology_classes import lithology as _lithology
+from pyMelt.lithology_classes import default_properties as _default_properties
 
 
 import numpy as _np
@@ -89,7 +89,7 @@ class kg1(_lithology):
         self.DeltaS = DeltaS
         self.parameters = parameters
 
-    def TSolidus(self, P):
+    def TSolidus(self, P, **kwargs):
         """
         Returns the temperature of the solidus at any given pressure.
 
@@ -108,7 +108,7 @@ class kg1(_lithology):
                     + self.parameters['A4'])
         return TSolidus
 
-    def TLiquidus(self, P):
+    def TLiquidus(self, P, **kwargs):
         """
         Returns the temperature of the liquidus at any given pressure.
 
@@ -126,7 +126,7 @@ class kg1(_lithology):
                      + self.parameters['B3']*P + self.parameters['B4'])
         return TLiquidus
 
-    def F(self, P, T):
+    def F(self, P, T, **kwargs):
         """
         Wrapper for the melt fraction functions. If T and P are below the solidus,
         returns 0, if they are above the liquidus, returns 1. If below the temperature
@@ -144,18 +144,18 @@ class kg1(_lithology):
         float
             Melt fraction.
         """
-        if T > self.TLiquidus(P):
+        if T > self.TLiquidus(P, **kwargs):
             F = 1.0
-        elif T < self.TSolidus(P):
+        elif T < self.TSolidus(P, **kwargs):
             F = 0.0
-        elif T < self._TcpxOut(P):
-            F = self._Fcpx(T, P)
+        elif T < self._TcpxOut(P, **kwargs):
+            F = self._Fcpx(T, P, **kwargs)
         else:
-            F = self._Fopx(T, P)
+            F = self._Fopx(T, P, **kwargs)
 
         return F
 
-    def dTdF(self, P, T):
+    def dTdF(self, P, T, **kwargs):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is
         zero, returns _np.inf. If F is 1, returns _np.inf. Otherwise uses the
@@ -173,21 +173,23 @@ class kg1(_lithology):
         float
             dT/dF(const. P) (K).
         """
-        F = self.F(P, T)
+        F = self.F(P, T, **kwargs)
         if F == 0:
             # If no melt fraction the derivative is zero. Prevents division by zero.
             dTdF = _np.inf
-        elif F < self._FcpxOut(P):
-            dTdF = (((1/self.parameters['beta1'])) * (self._TLherzLiquidus(P)-self.TSolidus(P))
+        elif F < self._FcpxOut(P, **kwargs):
+            dTdF = (((1/self.parameters['beta1']))
+                    * (self._TLherzLiquidus(P, **kwargs) - self.TSolidus(P, **kwargs))
                     * (F**((1-self.parameters['beta1'])/self.parameters['beta1'])))
         elif F < 1.0:
-            dTdF = (((1/self.parameters['beta2'])) * (self.TLiquidus(P)-self._TcpxOut(P))
+            dTdF = (((1/self.parameters['beta2']))
+                    * (self.TLiquidus(P, **kwargs) - self._TcpxOut(P, **kwargs))
                     * (F**((1-self.parameters['beta2'])/self.parameters['beta2'])))
         else:
             dTdF = _np.inf
         return dTdF
 
-    def dTdP(self, P, T):
+    def dTdP(self, P, T, **kwargs):
         """
         Calculates dT/dP(const. F). First calculates F, then chooses the
         appropriate expression for cpx present or absent melting.
@@ -204,20 +206,20 @@ class kg1(_lithology):
         float
             dT/dP(const. F) (K GPa-1).
         """
-        F = self.F(P, T)
-        FcpxOut = self._FcpxOut(P)
-        dTdPSolidus = self._dTdPSolidus(P)
-        TLiquidus = self.TLiquidus(P)
-        dTdPLiquidus = self._dTdPLiquidus(P)
-        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P)
-        TcpxOut = self._dTdPcpxOut(P)
-        dTdPcpxOut = self._dTdPcpxOut(P)
-        FcpxOut = self._FcpxOut(P)
-        dFdPcpxOut = self._dFdPcpxOut(P)
+        F = self.F(P, T, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dTdPSolidus = self._dTdPSolidus(P, **kwargs)
+        TLiquidus = self.TLiquidus(P, **kwargs)
+        dTdPLiquidus = self._dTdPLiquidus(P, **kwargs)
+        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P, **kwargs)
+        TcpxOut = self._dTdPcpxOut(P, **kwargs)
+        dTdPcpxOut = self._dTdPcpxOut(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dFdPcpxOut = self._dFdPcpxOut(P, **kwargs)
 
         if F == 0:
             dTdP = self.alphas/self.rhos/self.CP
-        elif F < self._FcpxOut(P):
+        elif F < self._FcpxOut(P, **kwargs):
             dTdP = (((F**(1/self.parameters['beta1'])) * (dTdPLherzLiquidus-dTdPSolidus))
                     + dTdPSolidus)
         elif F < 1.0:
@@ -230,7 +232,7 @@ class kg1(_lithology):
             dTdP = self.alphaf/self.rhof/self.CP
         return dTdP
 
-    def _dTdPSolidus(self, P):
+    def _dTdPSolidus(self, P, **kwargs):
         """
         Returns the solidus temperature gradient at any given pressure.
 
@@ -247,7 +249,7 @@ class kg1(_lithology):
         dTdPSolidus = (self.parameters['A1']/(P + self.parameters['A2'])) + self.parameters['A3']
         return dTdPSolidus
 
-    def _dTdPLiquidus(self, P):
+    def _dTdPLiquidus(self, P, **kwargs):
         """
         Returns the liquidus temperature gradient at any given pressure.
 
@@ -265,7 +267,7 @@ class kg1(_lithology):
                         + self.parameters['B3'])
         return dTdPLiquidus
 
-    def _TLherzLiquidus(self, P):
+    def _TLherzLiquidus(self, P, **kwargs):
         """
         Returns the temperature of the lherzolite liquidus at any given pressure.
         This is the temperature at which the rock would be completely
@@ -281,12 +283,12 @@ class kg1(_lithology):
         float
             Lherzolite liquidus temperature (degC).
         """
-        TSolidus = self.TSolidus(P)
-        TLiquidus = self.TLiquidus(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLiquidus = self.TLiquidus(P, **kwargs)
         TLherzLiquidus = self.parameters['C']*TSolidus + (1 - self.parameters['C'])*TLiquidus
         return TLherzLiquidus
 
-    def _dTdPLherzLiquidus(self, P):
+    def _dTdPLherzLiquidus(self, P, **kwargs):
         """
         Returns the lherzolite liquidus temperature gradient at any given pressure.
 
@@ -300,13 +302,13 @@ class kg1(_lithology):
         float
             Lherzolite liquidus temperaure gradient (degC/GPa)
         """
-        dTdPSolidus = self._dTdPSolidus(P)
-        dTdPLiquidus = self._dTdPLiquidus(P)
+        dTdPSolidus = self._dTdPSolidus(P, **kwargs)
+        dTdPLiquidus = self._dTdPLiquidus(P, **kwargs)
         dTdPLherzoliteLiquidus = (self.parameters['C']*dTdPSolidus
                                   + (1 - self.parameters['C'])*dTdPLiquidus)
         return dTdPLherzoliteLiquidus
 
-    def _RescaledTcpx(self, T, P):
+    def _RescaledTcpx(self, T, P, **kwargs):
         """
         Calculates the rescaled temperature during cpx-present melting. (Eq 3).
 
@@ -322,12 +324,12 @@ class kg1(_lithology):
         float
             Rescaled Temperature (dimensionless).
         """
-        TSolidus = self.TSolidus(P)
-        TLherzLiquidus = self._TLherzLiquidus(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLherzLiquidus = self._TLherzLiquidus(P, **kwargs)
         RescaledTemperaturecpx = ((T - TSolidus)/(TLherzLiquidus-TSolidus))
         return RescaledTemperaturecpx
 
-    def _Fcpx(self, T, P):
+    def _Fcpx(self, T, P, **kwargs):
         """
         Melt fraction during cpx-present melting at the given P and T. Eq(2).
 
@@ -343,11 +345,11 @@ class kg1(_lithology):
         float
             Melt fraction during cpx-present melting.
         """
-        RescaledT = self._RescaledTcpx(T, P)
+        RescaledT = self._RescaledTcpx(T, P, **kwargs)
         Fcpx = RescaledT**self.parameters['beta1']
         return Fcpx
 
-    def _RxnCoef(self, P):
+    def _RxnCoef(self, P, **kwargs):
         """
         Reaction coefficient for cpx during melting at the specified pressure. Eq(7).
 
@@ -364,7 +366,7 @@ class kg1(_lithology):
         RxnCoef = self.parameters['r1'] + self.parameters['r2']*P
         return RxnCoef
 
-    def _FcpxOut(self, P):
+    def _FcpxOut(self, P, **kwargs):
         """
         Calculates the melt fraction required to exhaust cpx from the residue
         at the given pressure. Eq(6).
@@ -379,10 +381,10 @@ class kg1(_lithology):
         float
             Melt fraction at which cpx is exhausted.
         """
-        FcpxOut = self.parameters['Mcpx'] / self._RxnCoef(P)
+        FcpxOut = self.parameters['Mcpx'] / self._RxnCoef(P, **kwargs)
         return FcpxOut
 
-    def _dFdPcpxOut(self, P):
+    def _dFdPcpxOut(self, P, **kwargs):
         """
         Calculates the first derivative of FcpxOut.
 
@@ -396,12 +398,12 @@ class kg1(_lithology):
         float
             First derivative of FcpxOut.
         """
-        RxnCoef = self._RxnCoef(P)
-        FcpxOut = self._FcpxOut(P)
+        RxnCoef = self._RxnCoef(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
         dFdPcpxOut = ((-1)*FcpxOut*self.parameters['r2'])/RxnCoef
         return dFdPcpxOut
 
-    def _TcpxOut(self, P):
+    def _TcpxOut(self, P, **kwargs):
         """
         Calculates the temperature at which cpx will be exhausted during melting
         at the given pressure. Eq(9).
@@ -416,14 +418,14 @@ class kg1(_lithology):
         float
             Temperature of cpx-exhaustion.
         """
-        TSolidus = self.TSolidus(P)
-        TLherzLiquidus = self._TLherzLiquidus(P)
-        FcpxOut = self._FcpxOut(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLherzLiquidus = self._TLherzLiquidus(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
         TcpxOut = (((FcpxOut**(1/self.parameters['beta1']))) * (TLherzLiquidus - TSolidus)
                    + TSolidus)
         return TcpxOut
 
-    def _dTdPcpxOut(self, P):
+    def _dTdPcpxOut(self, P, **kwargs):
         """
         Calculates the temperature gradient of the cpx-exhaustion surface.
 
@@ -438,12 +440,12 @@ class kg1(_lithology):
         float
             Temperature gradient of cpx-exhaustion.
         """
-        TSolidus = self.TSolidus(P)
-        TLherzLiquidus = self._TLherzLiquidus(P)
-        FcpxOut = self._FcpxOut(P)
-        dTdPSolidus = self._dTdPSolidus(P)
-        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P)
-        dFdPcpxOut = self._dFdPcpxOut(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLherzLiquidus = self._TLherzLiquidus(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dTdPSolidus = self._dTdPSolidus(P, **kwargs)
+        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P, **kwargs)
+        dFdPcpxOut = self._dFdPcpxOut(P, **kwargs)
         A = ((dFdPcpxOut*(1/self.parameters['beta1'])
              * ((FcpxOut**((1/self.parameters['beta1'])-1)))) *
              (TLherzLiquidus-TSolidus))
@@ -451,7 +453,7 @@ class kg1(_lithology):
         dTdPcpxOut = A + B
         return dTdPcpxOut
 
-    def _RescaledTopx(self, T, P):
+    def _RescaledTopx(self, T, P, **kwargs):
         """
         Calculates the rescaled temperature during cpx-absent melting.
 
@@ -467,12 +469,12 @@ class kg1(_lithology):
         float
             Rescaled Temperature (dimensionless).
         """
-        TcpxOut = self._TcpxOut(P)
-        TLiquidus = self.TLiquidus(P)
+        TcpxOut = self._TcpxOut(P, **kwargs)
+        TLiquidus = self.TLiquidus(P, **kwargs)
         RescaledTopx = ((T-TcpxOut)/(TLiquidus-TcpxOut))
         return RescaledTopx
 
-    def _Fopx(self, T, P):
+    def _Fopx(self, T, P, **kwargs):
         """
         Melt fraction during cpx-absent melting at the given P and T. Eq(8).
 
@@ -488,8 +490,8 @@ class kg1(_lithology):
         float
             Melt fraction during cpx-absent melting.
         """
-        FcpxOut = self._FcpxOut(P)
-        RescaledTopx = self._RescaledTopx(T, P)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        RescaledTopx = self._RescaledTopx(T, P, **kwargs)
         FopxDry = FcpxOut + (1-FcpxOut) * RescaledTopx**self.parameters['beta2']
         return FopxDry
 
@@ -570,7 +572,7 @@ class klb1:
         self.DeltaS = DeltaS
         self.parameters = parameters
 
-    def TSolidus(self, P):
+    def TSolidus(self, P, **kwargs):
         """
         Returns the temperature of the solidus at any given pressure.
 
@@ -588,7 +590,7 @@ class klb1:
                     + self.parameters['A3']*P + self.parameters['A4'])
         return TSolidus
 
-    def TLiquidus(self, P):
+    def TLiquidus(self, P, **kwargs):
         """
         Returns the temperature of the liquidus at any given pressure.
 
@@ -606,7 +608,7 @@ class klb1:
                      + self.parameters['B3']*P + self.parameters['B4'])
         return TLiquidus
 
-    def F(self, P, T):
+    def F(self, P, T, **kwargs):
         """
         Wrapper for the melt fraction functions. If T and P are below the solidus,
         returns 0, if they are above the liquidus, returns 1. If below the temperature
@@ -624,18 +626,18 @@ class klb1:
         float
             Melt fraction.
         """
-        if T > self.TLiquidus(P):
+        if T > self.TLiquidus(P, **kwargs):
             F = 1.0
-        elif T < self.TSolidus(P):
+        elif T < self.TSolidus(P, **kwargs):
             F = 0.0
-        elif T < self._TcpxOut(P):
-            F = self._Fcpx(T, P)
+        elif T < self._TcpxOut(P, **kwargs):
+            F = self._Fcpx(T, P, **kwargs)
         else:
-            F = self._Fopx(T, P)
+            F = self._Fopx(T, P, **kwargs)
 
         return F
 
-    def dTdF(self, P, T):
+    def dTdF(self, P, T, **kwargs):
         """
         Calculates dT/dF(const. P). First calculates the melt fraction. If F is
         zero, returns _np.inf. If F is 1, returns _np.inf. Otherwise uses the
@@ -653,23 +655,23 @@ class klb1:
         float
             dT/dF(const. P) (K).
         """
-        F = self.F(P, T)
+        F = self.F(P, T, **kwargs)
         if F == 0:
             # If no melt fraction the derivative is zero. Prevents division by zero.
             dTdF = _np.inf
-        elif F < self._FcpxOut(P):
+        elif F < self._FcpxOut(P, **kwargs):
             dTdF = (((1/self.parameters['beta1']))
-                    * (self._TLherzLiquidus(P)-self.TSolidus(P))
+                    * (self._TLherzLiquidus(P, **kwargs)-self.TSolidus(P, **kwargs))
                     * (F**((1-self.parameters['beta1'])/self.parameters['beta1'])))
         elif F < 1.0:
             dTdF = (((1/self.parameters['beta2']))
-                    * (self.TLiquidus(P)-self._TcpxOut(P))
+                    * (self.TLiquidus(P, **kwargs)-self._TcpxOut(P, **kwargs))
                     * (F**((1-self.parameters['beta2'])/self.parameters['beta2'])))
         else:
             dTdF = _np.inf
         return dTdF
 
-    def dTdP(self, P, T):
+    def dTdP(self, P, T, **kwargs):
         """
         Calculates dT/dP(const. F). First calculates F, then chooses the
         appropriate expression for cpx present or absent melting.
@@ -686,20 +688,20 @@ class klb1:
         float
             dT/dP(const. F) (K GPa-1).
         """
-        F = self.F(P, T)
-        FcpxOut = self._FcpxOut(P)
-        dTdPSolidus = self._dTdPSolidus(P)
-        TLiquidus = self.TLiquidus(P)
-        dTdPLiquidus = self._dTdPLiquidus(P)
-        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P)
-        TcpxOut = self._dTdPcpxOut(P)
-        dTdPcpxOut = self._dTdPcpxOut(P)
-        FcpxOut = self._FcpxOut(P)
-        dFdPcpxOut = self._dFdPcpxOut(P)
+        F = self.F(P, T, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dTdPSolidus = self._dTdPSolidus(P, **kwargs)
+        TLiquidus = self.TLiquidus(P, **kwargs)
+        dTdPLiquidus = self._dTdPLiquidus(P, **kwargs)
+        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P, **kwargs)
+        TcpxOut = self._dTdPcpxOut(P, **kwargs)
+        dTdPcpxOut = self._dTdPcpxOut(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dFdPcpxOut = self._dFdPcpxOut(P, **kwargs)
 
         if F == 0:
             dTdP = self.alphas/self.rhos/self.CP
-        elif F < self._FcpxOut(P):
+        elif F < self._FcpxOut(P, **kwargs):
             dTdP = (((F**(1/self.parameters['beta1']))
                     * (dTdPLherzLiquidus-dTdPSolidus)) + dTdPSolidus)
         elif F < 1.0:
@@ -712,7 +714,7 @@ class klb1:
             dTdP = self.alphaf/self.rhof/self.CP
         return dTdP
 
-    def _dTdPLiquidus(self, P):
+    def _dTdPLiquidus(self, P, **kwargs):
         """
         Returns the liquidus temperature gradient at any given pressure.
 
@@ -729,7 +731,7 @@ class klb1:
         dTdPLiquidus = (self.parameters['B1']/(P + self.parameters['B2'])) + self.parameters['B3']
         return dTdPLiquidus
 
-    def _TLherzLiquidus(self, P):
+    def _TLherzLiquidus(self, P, **kwargs):
         """
         Returns the temperature of the lherzolite liquidus at any given pressure.
         This is the temperature at which the rock would be completely
@@ -745,12 +747,12 @@ class klb1:
         float
             Lherzolite liquidus temperature (degC).
         """
-        TSolidus = self.TSolidus(P)
-        TLiquidus = self.TLiquidus(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLiquidus = self.TLiquidus(P, **kwargs)
         TLherzLiquidus = self.parameters['C']*TSolidus + (1 - self.parameters['C'])*TLiquidus
         return TLherzLiquidus
 
-    def _dTdPSolidus(self, P):
+    def _dTdPSolidus(self, P, **kwargs):
         """
         Returns the solidus temperature gradient at any given pressure.
 
@@ -767,7 +769,7 @@ class klb1:
         dTdPSolidus = (self.parameters['A1']/(P + self.parameters['A2'])) + self.parameters['A3']
         return dTdPSolidus
 
-    def _dTdPLherzLiquidus(self, P):
+    def _dTdPLherzLiquidus(self, P, **kwargs):
         """
         Returns the lherzolite liquidus temperature gradient at any given pressure.
 
@@ -781,13 +783,13 @@ class klb1:
         float
             Lherzolite liquidus temperaure gradient (degC/GPa)
         """
-        dTdPSolidus = self._dTdPSolidus(P)
-        dTdPLiquidus = self._dTdPLiquidus(P)
+        dTdPSolidus = self._dTdPSolidus(P, **kwargs)
+        dTdPLiquidus = self._dTdPLiquidus(P, **kwargs)
         dTdPLherzoliteLiquidus = (self.parameters['C']*dTdPSolidus
                                   + (1 - self.parameters['C'])*dTdPLiquidus)
         return dTdPLherzoliteLiquidus
 
-    def _RescaledTcpx(self, T, P):
+    def _RescaledTcpx(self, T, P, **kwargs):
         """
         Calculates the rescaled temperature during cpx-present melting.
 
@@ -803,12 +805,12 @@ class klb1:
         float
             Rescaled Temperature (dimensionless).
         """
-        TSolidus = self.TSolidus(P)
-        TLherzLiquidus = self._TLherzLiquidus(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLherzLiquidus = self._TLherzLiquidus(P, **kwargs)
         RescaledTemperaturecpx = ((T - TSolidus)/(TLherzLiquidus-TSolidus))
         return RescaledTemperaturecpx
 
-    def _Fcpx(self, T, P):
+    def _Fcpx(self, T, P, **kwargs):
         """
         Melt fraction during cpx-present melting at the given P and T. Eq(2).
 
@@ -824,10 +826,10 @@ class klb1:
         float
             Melt fraction during cpx-present melting.
         """
-        Fcpx = self._RescaledTcpx(T, P)**self.parameters['beta1']
+        Fcpx = self._RescaledTcpx(T, P, **kwargs)**self.parameters['beta1']
         return Fcpx
 
-    def _RxnCoef(self, P):
+    def _RxnCoef(self, P, **kwargs):
         """
         Reaction coefficient for cpx during melting at the specified pressure. Eq(7).
 
@@ -844,7 +846,7 @@ class klb1:
         RxnCoef = self.parameters['r1'] + self.parameters['r2']*P
         return RxnCoef
 
-    def _FcpxOut(self, P):
+    def _FcpxOut(self, P, **kwargs):
         """
         Calculates the melt fraction required to exhaust cpx from the residue
         at the given pressure.
@@ -859,10 +861,10 @@ class klb1:
         float
             Melt fraction at which cpx is exhausted.
         """
-        FcpxOut = self.parameters['Mcpx'] / self._RxnCoef(P)
+        FcpxOut = self.parameters['Mcpx'] / self._RxnCoef(P, **kwargs)
         return FcpxOut
 
-    def _dFdPcpxOut(self, P):
+    def _dFdPcpxOut(self, P, **kwargs):
         """
         Calculates the first derivative of FcpxOut.
 
@@ -876,11 +878,11 @@ class klb1:
         float
             First derivative of FcpxOut.
         """
-        RxnCoef = self._RxnCoef(P)
-        FcpxOut = self._FcpxOut(P)
+        RxnCoef = self._RxnCoef(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
         return ((-1)*FcpxOut*self.parameters['r2'])/RxnCoef
 
-    def _TcpxOut(self, P):
+    def _TcpxOut(self, P, **kwargs):
         """
         Calculates the temperature at which cpx will be exhausted during melting
         at the given pressure. Eq(9).
@@ -895,14 +897,14 @@ class klb1:
         float
             Temperature of cpx-exhaustion.
         """
-        TSolidus = self.TSolidus(P)
-        TLherzLiquidus = self._TLherzLiquidus(P)
-        FcpxOut = self._FcpxOut(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLherzLiquidus = self._TLherzLiquidus(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
         TcpxOut = (((FcpxOut**(1/self.parameters['beta1'])))
                    * (TLherzLiquidus-TSolidus) + TSolidus)
         return TcpxOut
 
-    def _dTdPcpxOut(self, P):
+    def _dTdPcpxOut(self, P, **kwargs):
         """
         Calculates the temperature gradient of the cpx-exhaustion surface.
 
@@ -917,12 +919,12 @@ class klb1:
         float
             Temperature gradient of cpx-exhaustion.
         """
-        TSolidus = self.TSolidus(P)
-        TLherzLiquidus = self._TLherzLiquidus(P)
-        FcpxOut = self._FcpxOut(P)
-        dTdPSolidus = self._dTdPSolidus(P)
-        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P)
-        dFdPcpxOut = self._dFdPcpxOut(P)
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLherzLiquidus = self._TLherzLiquidus(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dTdPSolidus = self._dTdPSolidus(P, **kwargs)
+        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P, **kwargs)
+        dFdPcpxOut = self._dFdPcpxOut(P, **kwargs)
 
         A = ((dFdPcpxOut*(1/self.parameters['beta1'])
               * ((FcpxOut**((1/self.parameters['beta1'])-1))))
@@ -932,7 +934,7 @@ class klb1:
         dTdPcpxOut = A + B
         return dTdPcpxOut
 
-    def _RescaledTopx(self, T, P):
+    def _RescaledTopx(self, T, P, **kwargs):
         """
         Calculates the rescaled temperature during cpx-absent melting.
 
@@ -948,12 +950,12 @@ class klb1:
         float
             Rescaled Temperature (dimensionless).
         """
-        TcpxOut = self._TcpxOut(P)
-        TLiquidus = self.TLiquidus(P)
+        TcpxOut = self._TcpxOut(P, **kwargs)
+        TLiquidus = self.TLiquidus(P, **kwargs)
         RescaledTopx = ((T-TcpxOut)/(TLiquidus-TcpxOut))
         return RescaledTopx
 
-    def _Fopx(self, T, P):
+    def _Fopx(self, T, P, **kwargs):
         """
         Melt fraction during cpx-absent melting at the given P and T.
 
@@ -969,8 +971,8 @@ class klb1:
         float
             Melt fraction during cpx-absent melting.
         """
-        FcpxOut = self._FcpxOut(P)
-        RescaledTopx = self._RescaledTopx(T, P)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        RescaledTopx = self._RescaledTopx(T, P, **kwargs)
         FopxDry = FcpxOut + (1-FcpxOut) * RescaledTopx**self.parameters['beta2']
         return FopxDry
 
@@ -1042,7 +1044,7 @@ class eclogite(_lithology):
         self.rhof = rhof
         self.parameters = parameters
 
-    def F(self, P, T):
+    def F(self, P, T, **kwargs):
         """
         Calculates melt fraction at a given pressure and temperature using T'**beta, where T is the
         normalised temperature: (T-Tsolidus)/(T-Tliquidus). If P and T are below the the solidus,
@@ -1060,8 +1062,8 @@ class eclogite(_lithology):
         float
             Melt fraction.
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
         if T < Tsol:
             F = 0.0
         elif T > Tliq:
@@ -1071,7 +1073,7 @@ class eclogite(_lithology):
             F = Tr**self.parameters['beta']
         return F
 
-    def TSolidus(self, P):
+    def TSolidus(self, P, **kwargs):
         """
         Calculates the solidus temperature at a given pressure.
 
@@ -1090,7 +1092,7 @@ class eclogite(_lithology):
                 + self.parameters['C3']*P + self.parameters['C4'])
         return Tsol
 
-    def TLiquidus(self, P):
+    def TLiquidus(self, P, **kwargs):
         """
         Calculates the liquidus temperature at a given pressure.
 
@@ -1108,7 +1110,7 @@ class eclogite(_lithology):
                 + self.parameters['D3']*P + self.parameters['D4'])
         return Tliq
 
-    def dTdF(self, P, T):
+    def dTdF(self, P, T, **kwargs):
         """
         Calculates dT/dF(const. P) at a given pressure and temperature.
 
@@ -1124,9 +1126,9 @@ class eclogite(_lithology):
         float
             dT/dF(const. P) (K)
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
-        F = self.F(P, T)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
+        F = self.F(P, T, **kwargs)
         if T < Tsol:
             dTdF = _np.inf
         elif T > Tliq:
@@ -1136,7 +1138,7 @@ class eclogite(_lithology):
 
         return dTdF
 
-    def dTdP(self, P, T):
+    def dTdP(self, P, T, **kwargs):
         """
         Calculates dT/dP(const. F) at a given pressure and temperature.
 
@@ -1152,9 +1154,9 @@ class eclogite(_lithology):
         float
             dTdP(const. F) (K GPa-1)
         """
-        dTdPsol = self._dTdPSolidus(P)
-        dTdPliq = self._dTdPLiquidus(P)
-        F = self.F(P, T)
+        dTdPsol = self._dTdPSolidus(P, **kwargs)
+        dTdPliq = self._dTdPLiquidus(P, **kwargs)
+        F = self.F(P, T, **kwargs)
         if F == 0:
             dTdP = self.alphas/self.rhos/self.CP
         elif F == 1:
@@ -1163,7 +1165,7 @@ class eclogite(_lithology):
             dTdP = (F**(1/self.parameters['beta'])) * (dTdPliq-dTdPsol) + dTdPsol
         return dTdP
 
-    def _dTdPSolidus(self, P):
+    def _dTdPSolidus(self, P, **kwargs):
         """
         Returns the solidus temperature gradient at any given pressure.
 
@@ -1181,7 +1183,7 @@ class eclogite(_lithology):
                        + self.parameters['C3'])
         return dTdPSolidus
 
-    def _dTdPLiquidus(self, P):
+    def _dTdPLiquidus(self, P, **kwargs):
         """
         Returns the liquidus temperature gradient at any given pressure.
 

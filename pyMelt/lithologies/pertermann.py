@@ -7,8 +7,8 @@ The pertermann module implements the G2 model.
 
 """
 
-from pyMelt.lithology_class import lithology as _lithology
-from pyMelt.lithology_class import default_properties as _default_properties
+from pyMelt.lithology_classes import lithology as _lithology
+from pyMelt.lithology_classes import default_properties as _default_properties
 
 import numpy as _np
 
@@ -72,7 +72,7 @@ class g2(_lithology):
         self.rhof = rhof
         self.parameters = parameters
 
-    def F(self, P, T):
+    def F(self, P, T, **kwargs):
         """
         Calculates melt fraction at a given pressure and temperature using:
             a*T'**2 + b*T',
@@ -93,8 +93,8 @@ class g2(_lithology):
         float
             Melt fraction.
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
         if T < Tsol:
             F = 0.0
         elif T > Tliq:
@@ -104,7 +104,7 @@ class g2(_lithology):
             F = self.parameters['a']*Tr**2 + self.parameters['b']*Tr
         return F
 
-    def TLiquidus(self, P):
+    def TLiquidus(self, P, **kwargs):
         """
         Calculates the liquidus temperature, at a given pressure, using:
             c + d*P.
@@ -122,7 +122,7 @@ class g2(_lithology):
         Tliq = self.parameters['c'] + self.parameters['d']*P
         return Tliq
 
-    def TSolidus(self, P):
+    def TSolidus(self, P, **kwargs):
         """
         Calculates the solidus temperature, at a given pressure, using:
             e + f*P.
@@ -140,7 +140,7 @@ class g2(_lithology):
         Tsol = self.parameters['e'] + self.parameters['f']*P
         return Tsol
 
-    def dTdF(self, P, T):
+    def dTdF(self, P, T, **kwargs):
         """
         Calculates dT/dF(const. P) at a given pressure and temperature.
 
@@ -156,8 +156,8 @@ class g2(_lithology):
         float
             dT/dF(const. P) (K)
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
         if T < Tsol:
             dTdF = _np.inf
         elif T > Tliq:
@@ -168,7 +168,7 @@ class g2(_lithology):
 
         return dTdF
 
-    def dTdP(self, P, T):
+    def dTdP(self, P, T, **kwargs):
         """
         Calculates dT/dP(const. F) at a given pressure and temperature.
 
@@ -184,8 +184,8 @@ class g2(_lithology):
         float
             dTdP(const. F) (K GPa-1)
         """
-        Tsol = self.TSolidus(P)
-        Tliq = self.TLiquidus(P)
+        Tsol = self.TSolidus(P, **kwargs)
+        Tliq = self.TLiquidus(P, **kwargs)
         dTdP = ((self.parameters['d'] - self.parameters['f'])
                 * (T - Tsol)/(Tliq - Tsol) + self.parameters['f'])
 
