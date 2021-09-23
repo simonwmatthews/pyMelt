@@ -25,10 +25,8 @@ class lithology(object):
     Lithology base class. This class contains all the parameters and methods required to calculate
     the melting behaviour of a single mantle component.
 
-    Attributes
+    Parameters
     ----------
-    DeltaS:     float
-        Entropy of fusion. (J kg-1 K-1). Default is 300.0.
     CP:     float
         Heat capacity (J Kg-1 K-1). Default is 1000.0.
     alphas:     float
@@ -39,6 +37,10 @@ class lithology(object):
         Density of the solid (g cm-3). Default is 3.3.
     rhof:   float
         Density of the melt (g cm-3). Default is 2.9.
+    DeltaS:     float
+        Entropy of fusion. (J kg-1 K-1). Default is 300.0.
+    parameters: dict
+        A dictionary of the parameters required by the lithology.
 
     """
 
