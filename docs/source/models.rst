@@ -62,4 +62,4 @@ McKenzie and Bickle (1988)
 Garnet peridotite
 ^^
 Combines experimental constraints from a range of peridotite bulk compositions.
-Accessed by ``pyMelt.lithologies.mckenzie.garnet_peridotite``
+Accessed by ``pyMelt.lithologies.mckenzie.garnet_peridotite()``
