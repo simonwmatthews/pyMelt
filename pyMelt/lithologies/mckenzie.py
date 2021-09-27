@@ -78,7 +78,7 @@ class garnet_peridotite(_lithology):
         self.rhof = rhof
         self.parameters = parameters
 
-    def _TSolidus(self, P):
+    def TSolidus(self, P):
         """
         Calculates the solidus temperature, at a given pressure, using Equation 18 of
         McKenzie and Bickle (1988). Requires scipy.optimize.fsolve to solve for pressure.
@@ -97,7 +97,7 @@ class garnet_peridotite(_lithology):
         TSolidus_solution = fsolve(func, TSolidus_initial_guess)
         return TSolidus_solution
     
-    def _TLiquidus(self, P):
+    def TLiquidus(self, P):
         """
         Calculates the liquidus temperature, at a given pressure, using Equation 19 of
         McKenzie and Bickle (1988). 
@@ -165,8 +165,8 @@ class garnet_peridotite(_lithology):
         float
             Rescaled Temperature (dimensionless).
         """
-        TSolidus = self._TSolidus(P,)
-        TLiquidus = self._TLiquidus(P,)
+        TSolidus = self.TSolidus(P,)
+        TLiquidus = self.TLiquidus(P,)
         RescaledT = (T-(TSolidus+TLiquidus)/2)/(TLiquidus-TSolidus)
         return RescaledT
     
@@ -187,8 +187,8 @@ class garnet_peridotite(_lithology):
         float
             Melt fraction.
         """
-        TSolidus = self._TSolidus(P)
-        TLiquidus = self._TLiquidus(P)
+        TSolidus = self.TSolidus(P)
+        TLiquidus = self.TLiquidus(P)
         RescaledT = self._RescaledT(T, P)
         if T>TLiquidus:
             F = 1.0
@@ -215,8 +215,8 @@ class garnet_peridotite(_lithology):
         float
             dT/dF(const. P) (K).
         """
-        TSolidus = self._TSolidus(P)
-        TLiquidus = self._TLiquidus(P)
+        TSolidus = self.TSolidus(P)
+        TLiquidus = self.TLiquidus(P)
         RescaledT = self._RescaledT(T, P)
         if T < TSolidus:
             dTdF = np.inf
