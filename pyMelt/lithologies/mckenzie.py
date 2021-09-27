@@ -223,8 +223,7 @@ class garnet_peridotite(_lithology):
         elif T > TLiquidus:
             dTdF = np.inf
         else:
-            dRescaledTdT = 1/(TLiquidus-TSolidus)
-            dFdT = (1-0.25*self.parameters['a1'])*dRescaledTdT + 3*self.parameters['a0']*dRescaledTdT*RescaledT + 3*self.parameters['a1']*dRescaledTdT*RescaledT**2
+            dFdT = ((1-0.25*self.parameters['a1']) + 3*self.parameters['a0']*RescaledT + 3*self.parameters['a1']*RescaledT**2)/(TLiquidus-TSolidus)
             dTdF = 1/dFdT
         return dTdF
     
