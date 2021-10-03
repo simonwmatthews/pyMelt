@@ -17,6 +17,9 @@ Modules
 .. automodule:: pyMelt.meltingcolumn_classes
   :members:
 
+.. automodule:: pyMelt.geosettings
+  :members:
+
 .. automodule:: pyMelt.lithologies
   :members:
 

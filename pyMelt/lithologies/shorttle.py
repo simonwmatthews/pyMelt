@@ -64,21 +64,21 @@ class kg1(_lithology):
                  rhos=_default_properties['rhos'],
                  rhof=_default_properties['rhof'],
                  DeltaS=_default_properties['DeltaS'],
-                 parameters={'A1':    1095.4,
-                             'A2':     124.1,
+                 parameters={'A1': 1095.4,
+                             'A2': 124.1,
                              'A3': - 4.7,
-                             'B1':    1179.6,
-                             'B2':     157.2,
+                             'B1': 1179.6,
+                             'B2': 157.2,
                              'B3': - 11.1,
-                             'C1':    1780.0,
-                             'C2':      45.0,
+                             'C1': 1780.0,
+                             'C2': 45.0,
                              'C3': - 2.0,
-                             'a':        0.3187864,
-                             'b':        0.4154,
-                             'c':        0.7341864,
-                             'd':        0.2658136,
-                             'alpha':    2.0,
-                             'beta':     1.5
+                             'a': 0.3187864,
+                             'b': 0.4154,
+                             'c': 0.7341864,
+                             'd': 0.2658136,
+                             'alpha': 2.0,
+                             'beta': 1.5
                              }
                  ):
 
@@ -104,7 +104,7 @@ class kg1(_lithology):
         float, or list like
             Solidus Temperature in degC.
         """
-        T = self.parameters['A1'] + self.parameters['A2']*P + self.parameters['A3']*P**2
+        T = self.parameters['A1'] + self.parameters['A2'] * P + self.parameters['A3'] * P**2
         return T
 
     def TLiquidus(self, P, **kwargs):
@@ -121,7 +121,7 @@ class kg1(_lithology):
         float, or list like
             Liquidus temperature in degC.
         """
-        T = self.parameters['C1'] + self.parameters['C2']*P + self.parameters['C3']*P**2
+        T = self.parameters['C1'] + self.parameters['C2'] * P + self.parameters['C3'] * P**2
         return T
 
     def dTdP(self, P, T, **kwargs):
@@ -145,15 +145,15 @@ class kg1(_lithology):
         Tcpx = self._TCpxOut(P, **kwargs)
 
         if T < Tcpx:
-            dTdP = (-(-(T - Tsol) / (Tcpx - Tsol) *
-                    (self.parameters['B2'] + 2*self.parameters['B3']*P -
-                     self.parameters['A2'] - self.parameters['A3']*2*P) -
-                    self.parameters['A2'] - self.parameters['A3']*2*P))
+            dTdP = (-(-(T - Tsol) / (Tcpx - Tsol)
+                    * (self.parameters['B2'] + 2 * self.parameters['B3'] * P
+                       - self.parameters['A2'] - self.parameters['A3'] * 2 * P)
+                    - self.parameters['A2'] - self.parameters['A3'] * 2 * P))
         else:
-            dTdP = (-(-(T - Tcpx) / (Tliq - Tcpx) *
-                    (self.parameters['C2'] + self.parameters['C3']*2*P -
-                     self.parameters['B2'] - self.parameters['B3']*2*P) -
-                    self.parameters['B2'] - 2*self.parameters['B3']*P))
+            dTdP = (-(-(T - Tcpx) / (Tliq - Tcpx)
+                    * (self.parameters['C2'] + self.parameters['C3'] * 2 * P
+                       - self.parameters['B2'] - self.parameters['B3'] * 2 * P)
+                    - self.parameters['B2'] - 2 * self.parameters['B3'] * P))
 
         return dTdP
 
@@ -181,13 +181,13 @@ class kg1(_lithology):
         if T < Tsol:
             dTdF = _np.inf
         elif T < Tcpx:
-            dTdF = ((Tcpx-Tsol) /
-                    (self.parameters['b'] + self.parameters['a'] *
-                     self.parameters['alpha'] *
-                     ((T-Tsol)/(Tcpx-Tsol))**(self.parameters['alpha']-1)))
+            dTdF = ((Tcpx - Tsol)
+                    / (self.parameters['b'] + self.parameters['a']
+                       * self.parameters['alpha']
+                       * ((T - Tsol) / (Tcpx - Tsol))**(self.parameters['alpha'] - 1)))
         elif T < Tliq:
-            dTdF = ((Tliq - Tcpx)/(self.parameters['d'] * self.parameters['beta'] *
-                    ((T-Tcpx)/(Tliq-Tcpx))**(self.parameters['beta']-1)))
+            dTdF = ((Tliq - Tcpx) / (self.parameters['d'] * self.parameters['beta']
+                    * ((T - Tcpx) / (Tliq - Tcpx))**(self.parameters['beta'] - 1)))
         else:
             dTdF = _np.inf
 
@@ -227,10 +227,10 @@ class kg1(_lithology):
         elif T > Tliq:
             F = 1.0
         elif T < Tcpx:
-            Tf = (T-Tsol)/(Tcpx-Tsol)
-            F = self.parameters['a'] * Tf**self.parameters['alpha'] + self.parameters['b']*Tf
+            Tf = (T - Tsol) / (Tcpx - Tsol)
+            F = self.parameters['a'] * Tf**self.parameters['alpha'] + self.parameters['b'] * Tf
         else:
-            Tf = (T-Tcpx)/(Tliq-Tcpx)
+            Tf = (T - Tcpx) / (Tliq - Tcpx)
             F = self.parameters['d'] * Tf**self.parameters['beta'] + self.parameters['c']
         return F
 
@@ -248,7 +248,7 @@ class kg1(_lithology):
         float, or list like
             Cpx-exhaustion temperature in degC.
         """
-        T = self.parameters['B1'] + self.parameters['B2']*P + self.parameters['B3']*P**2
+        T = self.parameters['B1'] + self.parameters['B2'] * P + self.parameters['B3'] * P**2
         return T
 
 
@@ -364,7 +364,7 @@ class harzburgite(_lithology):
             The value will always be infinite.
         """
         if isinstance(P, list) or isinstance(P, _np.ndarray):
-            return _np.array([_np.inf]*len(P))
+            return _np.array([_np.inf] * len(P))
         else:
             return _np.inf
 
@@ -383,6 +383,6 @@ class harzburgite(_lithology):
             The value will always be infinite.
         """
         if isinstance(P, list) or isinstance(P, _np.ndarray):
-            return _np.array([_np.inf]*len(P))
+            return _np.array([_np.inf] * len(P))
         else:
             return _np.inf

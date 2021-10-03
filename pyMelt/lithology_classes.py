@@ -8,15 +8,16 @@ the `hydrous_lithology` class for converting an anhydrous lithology to a hydrous
 """
 from scipy.misc import derivative
 from scipy.optimize import root_scalar
-from copy import deepcopy
+import numpy as np
+from pyMelt.core import ConvergenceError
 
 # Default constant values taken from Katz et al., 2003:
-default_properties = {'CP':     1000.0,  # Heat capacity in J Kg-1 K-1
-                      'alphas':   40.0,  # Thermal expansivity of the solid (K-1).
-                      'alphaf':   68.0,  # Thermal expansivity of the melt (K-1).
-                      'rhos':      3.3,  # Density of the solid (g cm-3).
-                      'rhof':      2.9,  # Density of the melt (g cm-3).
-                      'DeltaS':  300.0,  # Entropy of fusion. (J kg-1 K-1).
+default_properties = {'CP': 1000.0,  # Heat capacity in J Kg-1 K-1
+                      'alphas': 40.0,  # Thermal expansivity of the solid (K-1).
+                      'alphaf': 68.0,  # Thermal expansivity of the melt (K-1).
+                      'rhos': 3.3,  # Density of the solid (g cm-3).
+                      'rhof': 2.9,  # Density of the melt (g cm-3).
+                      'DeltaS': 300.0,  # Entropy of fusion. (J kg-1 K-1).
                       }
 
 
@@ -133,7 +134,7 @@ class lithology(object):
         def _to_diff(T, P, kwargs={}):
             return self.F(P, T, **kwargs)
 
-        return 1.0/(derivative(_to_diff, T, dx=0.1, args=(P, kwargs)))
+        return 1.0 / (derivative(_to_diff, T, dx=0.1, args=(P, kwargs)))
 
     def dTdP(self, P, T, **kwargs):
         """
@@ -159,11 +160,11 @@ class lithology(object):
 
         dFdP = derivative(_to_diff, P, args=(T, kwargs))
 
-        return dTdF*dFdP
+        return dTdF * dFdP
 
 
 class hydrous_lithology(object):
-    """
+    r"""
     The hydrous lithology class modifies the melting expressions in a given lithology class so
     that water-present melting can be modelled.
 
@@ -275,10 +276,10 @@ class hydrous_lithology(object):
         """
 
         if self.continuous is False:
-            Cl = self.H2O/((1.0 - F)*self.D + F)
+            Cl = self.H2O / ((1.0 - F) * self.D + F)
         else:
-            Cl = (self.H2O / ((1-self.phi)*self.D + self.phi)
-                  * (1-F)**((1-self.phi)*(1-self.D)/((1-self.phi)*self.D)))
+            Cl = (self.H2O / ((1 - self.phi) * self.D + self.phi)
+                  * (1 - F)**((1 - self.phi) * (1 - self.D) / ((1 - self.phi) * self.D)))
 
         # Test for H2O saturation:
         if P is not None:
@@ -353,8 +354,8 @@ class hydrous_lithology(object):
         F = root_scalar(self._f_to_solve, bracket=[0, 1], args=(P, T))
 
         if F.flag != 'converged':
-            raise pyMelt.core.convergenceError('The melt fraction calculation did not converge.')
-            return _np.nan
+            raise ConvergenceError('The melt fraction calculation did not converge.')
+            return np.nan
         else:
             return F.root
 
@@ -374,8 +375,9 @@ class hydrous_lithology(object):
         float
             dT/dF(const. P) (K).
         """
-
-        return 1.0/(derivative(self._to_diff_dTdF, T, dx=0.001, args=(P, kwargs)))
+        if self.F(P, T, **kwargs) == 0 or self.F(P, T, **kwargs) == 1:
+            return np.inf
+        return 1.0 / (derivative(self._to_diff_dTdF, T, dx=0.001, args=(P, kwargs)))
 
     def dTdP(self, P, T, **kwargs):
         """
@@ -398,9 +400,9 @@ class hydrous_lithology(object):
             dT/dP(const. F) (K GPa-1).
         """
         if self.F(P, T, **kwargs) == 0:
-            dTdP = self.alphas/self.rhos/self.CP
+            dTdP = self.alphas / self.rhos / self.CP
         elif self.F(P, T, **kwargs) == 1:
-            dTdP = self.alphas/self.rhos/self.CP
+            dTdP = self.alphas / self.rhos / self.CP
         else:
             F = self.F(P, T, **kwargs)
 
@@ -424,7 +426,7 @@ class hydrous_lithology(object):
     # This finds the temperature at a given pressure for which the melt fraction is eqal to the
     # value specified. Used for calculating dT/dP (at const. F).
     def _to_diff_dTdP(self, P, F, T, kwargs={}):
-        t = root_scalar(self._hold_constant_F, x0=T, x1=T+10, args=(P, F, kwargs)).root
+        t = root_scalar(self._hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
         return t
 
     # This provides the misfit function when solving for F (Eqn. 19 of Katz et al., 2003)

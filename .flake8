@@ -5,3 +5,5 @@ exclude =
     .github,
 
 max-line-length = 99
+
+ignore = E741, W503

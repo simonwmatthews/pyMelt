@@ -17,9 +17,12 @@ __version__ = "0.5.1"
 __author__ = "Simon Matthews and Kevin Wong"
 
 import pyMelt.lithologies
+import pyMelt.geosettings
 # import pyMelt.meltingcolumn_classes
 import pyMelt.mantle_class
 from pyMelt.lithology_classes import hydrous_lithology
+
+__all__ = ['hydrous_lithology']
 
 
 class Mantle(pyMelt.mantle_class.mantle):
