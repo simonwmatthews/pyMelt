@@ -3,7 +3,7 @@
 McKenzie and Bickle (1988)
 ==================
 
-Implementation of the anhydrous melting model presented by Katz et al. (2003).
+Implementation of the anhydrous melting model presented by McKenzie and Bickle (1988).
 
 """
 
@@ -17,8 +17,8 @@ class garnet_peridotite(_lithology):
     """
     Implementation of the McKenzie and Bickle (1988) garnet peridotite melting model.
     As this parameterisation provides pressure as a function of solidus temperature,
-    scipt.optimize.fsolve is required to numerically find solidus temperature as a function
-    of temperature.
+    scipt.optimize.fsolve and scipy.special.expit are required to numerically find 
+    solidus temperature as a function of pressure.
     To use the same format of parameterisation for another lithology, the parameter values
     may be changed. They are provided as a dictionary during initialisation of the class, with
     values:
@@ -82,6 +82,9 @@ class garnet_peridotite(_lithology):
         """
         Calculates the solidus temperature, at a given pressure, using Equation 18 of
         McKenzie and Bickle (1988). Requires scipy.optimize.fsolve to solve for pressure.
+        As fsolve can only solve for a single pressure TSolidus first detects whether P is
+        given as a list, tuple, numpy.ndarray (e.g. numpy.linspace), or scalar prior to 
+        calculating the solidus pressure.
         
         Parameters
         ----------
@@ -129,7 +132,8 @@ class garnet_peridotite(_lithology):
     def _dTdPSolidus(self, P): 
         """
         Returns the solidus temperature gradient at any given pressure. Requires 
-        scipy.optimize.fsolve to solve for pressure.
+        scipy.optimize.fsolve to solve for pressure, and scipy.special.expit to 
+        avoid exponential overflows that can occur with numpy.exp.
         
         Parameters
         ----------
