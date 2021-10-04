@@ -11,6 +11,7 @@ from pyMelt.lithology_classes import lithology as _lithology
 from pyMelt.lithology_classes import default_properties as _default_properties
 import numpy as np
 from scipy.optimize import fsolve
+from scipy.special import expit
 
 class garnet_peridotite(_lithology):
     """
@@ -92,9 +93,9 @@ class garnet_peridotite(_lithology):
         float
             Solidus temperature (degC).
         """
-        func = lambda TSolidus: P-((TSolidus-self.parameters['A1'])/self.parameters['A2'] + self.parameters['A3']*np.exp(self.parameters['A4']*(TSolidus-self.parameters['A1'])))
-        TSolidus_initial_guess = 1300
-        TSolidus_solution = fsolve(func, TSolidus_initial_guess)
+        func = lambda TSolidus: ((TSolidus-self.parameters['A1'])/self.parameters['A2'] + self.parameters['A3']*np.exp(self.parameters['A4']*(TSolidus-self.parameters['A1'])))-P
+        TSolidus_initial_guess = 1300.0
+        TSolidus_solution = fsolve(func, TSolidus_initial_guess, maxfev=50000)[0]
         return TSolidus_solution
     
     def TLiquidus(self, P):
@@ -128,10 +129,10 @@ class garnet_peridotite(_lithology):
         float
             Solidus temperaure gradient (degC/GPa)
         """
-        func = lambda TSolidus: 1/(1/self.parameters['A2'] + self.parameters['A3']*self.parameters['A4']*np.exp(self.parameters['A4']*(TSolidus-self.parameters['A1'])))
-        dTdPSolidus_initial_guess = 20
-        dTdPSolidus_solution = fsolve(func, dTdPSolidus_initial_guess)
-        return dTdPSolidus_solution
+        
+        TSolidus = self.TSolidus(P)
+        dTdPSolidus = 1/(1/self.parameters['A2'] + self.parameters['A3']*self.parameters['A4']*expit(self.parameters['A4']*(TSolidus-self.parameters['A1'])))
+        return dTdPSolidus
 
     def _dTdPLiquidus(self, P):
         """
@@ -149,7 +150,7 @@ class garnet_peridotite(_lithology):
         dTdPLiquidus = self.parameters['B2']+self.parameters['B3']/(1+(P/self.parameters['B4'])**2)
         return dTdPLiquidus
     
-    def _RescaledT(self, T, P): ### Equation 20 of McKenzie and Bickle 1988
+    def _RescaledT(self, T, P): 
         """
         Calculates the rescaled temperature defined by Equation 20 of 
         McKenzie and Bickle (1988).
@@ -165,8 +166,8 @@ class garnet_peridotite(_lithology):
         float
             Rescaled Temperature (dimensionless).
         """
-        TSolidus = self.TSolidus(P,)
-        TLiquidus = self.TLiquidus(P,)
+        TSolidus = self.TSolidus(P)
+        TLiquidus = self.TLiquidus(P)
         RescaledT = (T-(TSolidus+TLiquidus)/2)/(TLiquidus-TSolidus)
         return RescaledT
     
@@ -248,4 +249,3 @@ class garnet_peridotite(_lithology):
         RescaledT = self._RescaledT(T, P)
         dTdP = RescaledT*(dTdPLiquidus-dTdPSolidus) + 0.5*(dTdPSolidus+dTdPLiquidus)
         return dTdP
-    
