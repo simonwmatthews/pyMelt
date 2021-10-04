@@ -51,7 +51,6 @@ class garnet_peridotite(_lithology):
     parameters : dict, default: parameters from McKenzie and Bickle (1988)
         The model parameters described above
     """
-    
     def __init__(self,
                  CP=_default_properties['CP'],
                  alphas=_default_properties['alphas'],
@@ -93,9 +92,20 @@ class garnet_peridotite(_lithology):
         float
             Solidus temperature (degC).
         """
-        func = lambda TSolidus: ((TSolidus-self.parameters['A1'])/self.parameters['A2'] + self.parameters['A3']*np.exp(self.parameters['A4']*(TSolidus-self.parameters['A1'])))-P
+
         TSolidus_initial_guess = 1300.0
-        TSolidus_solution = fsolve(func, TSolidus_initial_guess, maxfev=50000)[0]
+        TSolidus_solution = []
+        if isinstance(P,(list, tuple, np.ndarray)) is True:
+            for i in range(len(P)):
+                func = lambda TSolidus: ((TSolidus - self.parameters['A1']) / self.parameters['A2'] 
+                                         + self.parameters['A3'] * np.exp(self.parameters['A4']
+                                         * (TSolidus - self.parameters['A1']))) - P[i]
+                TSolidus_solution.append(fsolve(func, TSolidus_initial_guess, maxfev=50000)[0])
+        else:
+            func = lambda TSolidus: ((TSolidus - self.parameters['A1']) /  self.parameters['A2']
+                                     + self.parameters['A3'] * np.exp(self.parameters['A4']
+                                     * (TSolidus - self.parameters['A1']))) - P
+            TSolidus_solution = fsolve(func, TSolidus_initial_guess, maxfev=50000)[0]
         return TSolidus_solution
     
     def TLiquidus(self, P):
@@ -112,7 +122,8 @@ class garnet_peridotite(_lithology):
         float
             Solidus temperature (degC).
         """
-        TLiquidus = self.parameters['B1']+self.parameters['B2']*P + self.parameters['B3']*np.arctan(P/self.parameters['B4'])
+        TLiquidus = (self.parameters['B1'] + self.parameters['B2'] * P + self.parameters['B3']
+                     * np.arctan(P / self.parameters['B4']))
         return TLiquidus
     
     def _dTdPSolidus(self, P): 
@@ -131,7 +142,9 @@ class garnet_peridotite(_lithology):
         """
         
         TSolidus = self.TSolidus(P)
-        dTdPSolidus = 1/(1/self.parameters['A2'] + self.parameters['A3']*self.parameters['A4']*expit(self.parameters['A4']*(TSolidus-self.parameters['A1'])))
+        dTdPSolidus = (1 / (1 / self.parameters['A2'] + self.parameters['A3'] 
+                       * self.parameters['A4'] * expit(self.parameters['A4'] 
+                       * (TSolidus - self.parameters['A1']))))
         return dTdPSolidus
 
     def _dTdPLiquidus(self, P):
@@ -147,7 +160,8 @@ class garnet_peridotite(_lithology):
         float
             Solidus temperaure gradient (degC/GPa)
         """
-        dTdPLiquidus = self.parameters['B2']+self.parameters['B3']/(1+(P/self.parameters['B4'])**2)
+        dTdPLiquidus = (self.parameters['B2'] + self.parameters['B3'] /
+                        (1 + (P/self.parameters['B4'])**2))
         return dTdPLiquidus
     
     def _RescaledT(self, T, P): 
@@ -168,7 +182,7 @@ class garnet_peridotite(_lithology):
         """
         TSolidus = self.TSolidus(P)
         TLiquidus = self.TLiquidus(P)
-        RescaledT = (T-(TSolidus+TLiquidus)/2)/(TLiquidus-TSolidus)
+        RescaledT = (T - (TSolidus + TLiquidus) / 2) / (TLiquidus - TSolidus)
         return RescaledT
     
     def F(self, P, T): 
@@ -191,12 +205,13 @@ class garnet_peridotite(_lithology):
         TSolidus = self.TSolidus(P)
         TLiquidus = self.TLiquidus(P)
         RescaledT = self._RescaledT(T, P)
-        if T>TLiquidus:
+        if T > TLiquidus:
             F = 1.0
-        elif T<TSolidus:
-            F=0.0
+        elif T < TSolidus:
+            F = 0.0
         else:
-            F = RescaledT + (RescaledT**2 - 0.25)*(self.parameters['a0']+self.parameters['a1']*RescaledT) + 0.5
+            F = (RescaledT + (RescaledT**2 - 0.25) * (self.parameters['a0']
+                 + self.parameters['a1'] * RescaledT) + 0.5)
         return F
 
     def dTdF(self, P, T):
@@ -224,7 +239,8 @@ class garnet_peridotite(_lithology):
         elif T > TLiquidus:
             dTdF = np.inf
         else:
-            dFdT = ((1-0.25*self.parameters['a1']) + 3*self.parameters['a0']*RescaledT + 3*self.parameters['a1']*RescaledT**2)/(TLiquidus-TSolidus)
+            dFdT = (((1 - 0.25 * self.parameters['a1']) + 3 * self.parameters['a0'] * RescaledT
+                     + 3 * self.parameters['a1'] * RescaledT**2) / (TLiquidus - TSolidus))
             dTdF = 1/dFdT
         return dTdF
     
@@ -247,5 +263,5 @@ class garnet_peridotite(_lithology):
         dTdPSolidus = self._dTdPSolidus(P)
         dTdPLiquidus = self._dTdPLiquidus(P)
         RescaledT = self._RescaledT(T, P)
-        dTdP = RescaledT*(dTdPLiquidus-dTdPSolidus) + 0.5*(dTdPSolidus+dTdPLiquidus)
+        dTdP = RescaledT * (dTdPLiquidus - dTdPSolidus) + 0.5 * (dTdPSolidus + dTdPLiquidus)
         return dTdP
