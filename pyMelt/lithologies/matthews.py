@@ -538,8 +538,8 @@ class klb1:
     DeltaS :     float, default: pyMelt.default_properties['DeltaS']
         The entropy of fusion J K-1 kg-1
     parameters : dict, default: parameters from Matthews et al. (2021)
-        The model parameters described above
 
+    
     """
 
     def __init__(self,
