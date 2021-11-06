@@ -246,8 +246,10 @@ class SpreadingCentre(GeoSetting):
                             cnormed[i + 1, :] = [0] * _np.shape(c)[1]
                     c = cnormed
                 # Normalise melts for this lithology
-                c = c * f[:, None] / f.sum()
+                c = c * f[:, None] / (1.0 - f[:, None])
                 c = _np.sum(c, axis=0)
+                c = c / _np.sum(f[:] / (1.0 - f[:]))
+
                 # Normalise melts for all lithologies
                 cm += c * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)

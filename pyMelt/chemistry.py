@@ -90,163 +90,168 @@ stracke03_bsic = {'Rb': 0.57,
                   'Yb': 2.99,
                   'Lu': 0.45}
 
-olv_D = {'Rb': _np.nan,
-         'Ba': _np.nan,
-         'Th': _np.nan,
-         'U': _np.nan,
-         'Nb': _np.nan,
-         'Ta': _np.nan,
+# From Gibson & Geist compilation
+olv_D = {'Rb': 0.0003,
+         'Ba': 0.000005,
+         'Th': 0.00005,
+         'U': 0.00038,
+         'Nb': 0.0005,
+         'Ta': 0.0005,
          'La': 0.0005,
          'Ce': 0.0005,
-         'Pb': _np.nan,
-         'Pr': _np.nan,
+         'Pb': 0.003,
+         'Pr': 0.0008,
          'Nd': 0.00042,
-         'Sr': _np.nan,
-         'Zr': _np.nan,
-         'Hf': _np.nan,
+         'Sr': 0.00004,
+         'Zr': 0.0033,
+         'Hf': 0.0022,
          'Sm': 0.0011,
          'Eu': 0.0016,
-         'Ti': _np.nan,
+         'Ti': 0.015,
          'Gd': 0.0011,
          'Tb': 0.0015,
          'Dy': 0.0027,
          'Ho': 0.0016,
-         'Y': _np.nan,
+         'Y': 0.0099,
          'Er': 0.013,
          'Yb': 0.020,
          'Lu': 0.020,
          }
 
-opx_D = {'Rb': _np.nan,
-         'Ba': _np.nan,
-         'Th': _np.nan,
-         'U': _np.nan,
-         'Nb': _np.nan,
-         'Ta': _np.nan,
+# From Gibson & Geist compilation
+opx_D = {'Rb': 0.0002,
+         'Ba': 0.000006,
+         'Th': 0.002,
+         'U': 0.002,
+         'Nb': 0.004,
+         'Ta': 0.004,
          'La': 0.0031,
          'Ce': 0.0040,
-         'Pb': _np.nan,
-         'Pr': _np.nan,
+         'Pb': 0.009,
+         'Pr': 0.0048,
          'Nd': 0.01200,
-         'Sr': _np.nan,
-         'Zr': _np.nan,
-         'Hf': _np.nan,
+         'Sr': 0.0007,
+         'Zr': 0.013,
+         'Hf': 0.03,
          'Sm': 0.0200,
          'Eu': 0.0130,
-         'Ti': _np.nan,
+         'Ti': 0.086,
          'Gd': 0.0130,
          'Tb': 0.0190,
          'Dy': 0.0110,
          'Ho': 0.0065,
-         'Y': _np.nan,
+         'Y': 0.052,
          'Er': 0.045,
          'Yb': 0.080,
          'Lu': 0.120,
          }
 
-cpx_D = {'Rb': _np.nan,
-         'Ba': _np.nan,
-         'Th': _np.nan,
-         'U': _np.nan,
-         'Nb': _np.nan,
-         'Ta': _np.nan,
+# From Gibson & Geist compilation
+cpx_D = {'Rb': 0.0004,
+         'Ba': 0.0004,
+         'Th': 0.0059,
+         'U': 0.0094,
+         'Nb': 0.015,
+         'Ta': 0.015,
          'La': 0.0490,
          'Ce': 0.0800,
-         'Pb': _np.nan,
-         'Pr': _np.nan,
+         'Pb': 0.012,
+         'Pr': 0.126,
          'Nd': 0.17800,
-         'Sr': _np.nan,
-         'Zr': _np.nan,
-         'Hf': _np.nan,
+         'Sr': 0.091,
+         'Zr': 0.119,
+         'Hf': 0.284,
          'Sm': 0.2930,
          'Eu': 0.3350,
-         'Ti': _np.nan,
+         'Ti': 0.350,
          'Gd': 0.3500,
          'Tb': 0.4030,
          'Dy': 0.4000,
          'Ho': 0.4270,
-         'Y': _np.nan,
+         'Y': 0.426,
          'Er': 0.420,
          'Yb': 0.400,
          'Lu': 0.376,
          }
 
-grt_D = {'Rb': _np.nan,
-         'Ba': _np.nan,
-         'Th': _np.nan,
-         'U': _np.nan,
-         'Nb': _np.nan,
-         'Ta': _np.nan,
+# From Gibson & Geist compilation
+grt_D = {'Rb': 0.0002,
+         'Ba': 0.00007,
+         'Th': 0.009,
+         'U': 0.028,
+         'Nb': 0.015,
+         'Ta': 0.015,
          'La': 0.0010,
          'Ce': 0.0050,
-         'Pb': _np.nan,
-         'Pr': _np.nan,
+         'Pb': 0.005,
+         'Pr': 0.014,
          'Nd': 0.05200,
-         'Sr': _np.nan,
-         'Zr': _np.nan,
-         'Hf': _np.nan,
+         'Sr': 0.0007,
+         'Zr': 0.270,
+         'Hf': 0.400,
          'Sm': 0.2500,
          'Eu': 0.4960,
-         'Ti': _np.nan,
+         'Ti': 0.600,
          'Gd': 0.84800,
          'Tb': 1.4770,
          'Dy': 2.2000,
          'Ho': 3.3150,
-         'Y': _np.nan,
+         'Y': 3.100,
          'Er': 4.400,
          'Yb': 6.600,
          'Lu': 7.100,
          }
 
-spn_D = {'Rb': _np.nan,
-         'Ba': _np.nan,
-         'Th': _np.nan,
-         'U': _np.nan,
-         'Nb': _np.nan,
-         'Ta': _np.nan,
+# alphaMELTS defaults
+spn_D = {'Rb': 0.0001,
+         'Ba': 0.0001,
+         'Th': 0.0,
+         'U': 0.0,
+         'Nb': 0.0,
+         'Ta': 0.0,
          'La': 0.0100,
          'Ce': 0.0100,
-         'Pb': _np.nan,
-         'Pr': _np.nan,
+         'Pb': 0.0,
+         'Pr': 0.01,
          'Nd': 0.0100,
-         'Sr': _np.nan,
-         'Zr': _np.nan,
-         'Hf': _np.nan,
+         'Sr': 0.0,
+         'Zr': 0.0,
+         'Hf': 0.0,
          'Sm': 0.0100,
          'Eu': 0.0100,
-         'Ti': _np.nan,
+         'Ti': 0.15,
          'Gd': 0.0100,
          'Tb': 0.0100,
          'Dy': 0.0100,
          'Ho': 0.0100,
-         'Y': _np.nan,
+         'Y': 0.01,
          'Er': 0.0100,
          'Yb': 0.0100,
          'Lu': 0.0100,
          }
 
-plg_D = {'Rb': _np.nan,
-         'Ba': _np.nan,
-         'Th': _np.nan,
-         'U': _np.nan,
-         'Nb': _np.nan,
-         'Ta': _np.nan,
+plg_D = {'Rb': 0.03,
+         'Ba': 0.33,
+         'Th': 0.05,
+         'U': 0.11,
+         'Nb': 0.01,
+         'Ta': 0.0,
          'La': 0.2700,
          'Ce': 0.200,
-         'Pb': _np.nan,
-         'Pr': _np.nan,
+         'Pb': 0.36,
+         'Pr': 0.17,
          'Nd': 0.1400,
-         'Sr': _np.nan,
-         'Zr': _np.nan,
-         'Hf': _np.nan,
+         'Sr': 2.0,
+         'Zr':0.01,
+         'Hf': 0.01,
          'Sm': 0.1100,
          'Eu': 0.7300,
-         'Ti': _np.nan,
+         'Ti': 0.04,
          'Gd': 0.0660,
          'Tb': 0.0600,
          'Dy': 0.0550,
          'Ho': 0.0480,
-         'Y': _np.nan,
+         'Y': 0.03,
          'Er': 0.0100,
          'Yb': 0.031,
          'Lu': 0.0250,
@@ -468,13 +473,14 @@ class invmelSpecies(species):
         The density of the mantle (g cm-3)
     """
 
-    def init(self, name, c0, olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
+    def __init__(self, name, c0, olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
              mineralProportions=mo91_MineralProportions, density=3.3,
              modal='NonModalVariable', modalValue=0.18,
              **kwargs):
                 self.name = name
                 self.c0 = c0
-                self.D = np.array([olv_d, cpx_D, opx_D, spn_D, grt_D, plg_D])
+                self.D = {'olv':olv_D, 'cpx':cpx_D, 'opx':opx_D,
+                          'spn':spn_D, 'grt':grt_D, 'plg':plg_D}
                 self.mineralProportions = mineralProportions
                 self.density = density
                 self.modal = modal
@@ -491,7 +497,7 @@ class invmelSpecies(species):
             return self._cl_prev
 
         # Determine the current mineralogy
-        GarnetSpinel = self._GarnetSpinelTransition(state.Pressure, state.T)
+        GarnetSpinel = self._GarnetSpinelTransition(state.Pressure, state['T'])
         SpinelPlagioclase = self._SpinelPlagioclaseTransition(state.Pressure)
         if GarnetSpinel == 1 and SpinelPlagioclase == 1:
             mineralProportions = self.mineralProportions.loc['grt_field']
@@ -499,64 +505,71 @@ class invmelSpecies(species):
             mineralProportions = self.mineralProportions.loc['spn_field']
         elif GarnetSpinel == 0 and SpinelPlagioclase == 0:
             mineralProportions = self.mineralProportions.loc['plg_field']
-        elif SpinelPlagioclas == 1:
+        elif SpinelPlagioclase == 1:
             grtField = self.mineralProportions.loc['grt_field']
             spnField = self.mineralProportions.loc['spn_field']
             mineralProportions = [(grtFieldProp * GarnetSpinel + spnFieldProp * (1 - GarnetSpinel))
                                   for grtFieldProp, spnFieldProp in zip(grtField, spnField)]
-            mineralProportions = _pd.Series(mineralProportions, index=self.mineralProprtions.index)
+            mineralProportions = _pd.Series(mineralProportions,
+                                            index=self.mineralProportions.columns)
         else:
             spnField = self.mineralProportions.loc['spn_field']
             plgField = self.mineralProportions.loc['plg_field']
             mineralProportions = [(spnFldPrp * SpinelPlagioclase
                                    + plgFldPrp * (1 - SpinelPlagioclase))
-                                  for spnFldPrp, plgFldPrp in zip(SpinelField, PlagioclaseField)]
-            mineralProportions = _pd.Series(mineralProportions, index=self.mineralProprtions.index)
+                                  for spnFldPrp, plgFldPrp in zip(spnField, plgField)]
+            mineralProportions = _pd.Series(mineralProportions,
+                                            index=self.mineralProportions.columns)
 
         modalValue = self.modalValue
-        if modal == 'NonModalVariable':
+        if self.modal == 'NonModalVariable':
             modalValue = (mineralProportions['cpx'] + mineralProportions['grt']
                           + mineralProportions['spn'] + mineralProportions['plg'])
 
-        P = np.zeros(6)
-        if state.F < ModalValue:
-            P[2] = mineralProportions['cpx'] * state.F / modalValue
-            P[3] = mineralProportions['grt'] * state.F / modalValue
-            P[4] = mineralProportions['spn'] * state.F / modalValue
-            P[5] = mineralProportions['plg'] * state.F / modalValue
-            P[0] = (mineralProportions['olv'] * (1 - (P[2] + P[3] + P[4] + P[5]))
-                    / (mineralProportions['olv'] + mineralProportions['opx']))
-            P[0] = (mineralProportions['opx'] * (1 - (P[2] + P[3] + P[4] + P[5]))
-                    / (mineralProportions['olv'] + mineralProportions['opx']))
+        P = {}
+        if state.F < modalValue:
+            P['cpx'] = mineralProportions['cpx'] * state.F / modalValue
+            P['grt'] = mineralProportions['grt'] * state.F / modalValue
+            P['spn'] = mineralProportions['spn'] * state.F / modalValue
+            P['plg'] = mineralProportions['plg'] * state.F / modalValue
+            P['olv'] = (mineralProportions['olv'] * (1 - (P['cpx'] + P['grt'] + P['spn'] +
+                                                     P['plg']))
+                        / (mineralProportions['olv'] + mineralProportions['opx']))
+            P['opx'] = (mineralProportions['opx'] * (1 - (P['cpx'] + P['grt'] + P['spn'] +
+                                                     P['plg']))
+                        / (mineralProportions['olv'] + mineralProportions['opx']))
 
-            D = sum([d * p for d, p in zip(self.D, mineralProportions)])
+            # D = sum([d * p for d, p in zip(self.D, mineralProportions)])
+            D = sum([self.D[min] * mineralProportions[min] for min in mineralProportions.index])
 
         elif state.F >= modalValue:
-            P[0] = (mineralProportions['olv']
+            P['olv'] = (mineralProportions['olv']
                     / (mineralProportions['olv'] + mineralProportions['opx']))
-            P[1] = (mineralProportions['opx']
+            P['opx'] = (mineralProportions['opx']
                     / (mineralProportions['olv'] + mineralProportions['opx']))
-            P[2] = 0
-            P[3] = 0
-            P[4] = 0
-            P[5] = 0
-            D = ((self.D[0] * mineralProportions['olv'] + self.D[1] * mineralProportions['opx'])
+            P['cpx'] = 0
+            P['grt'] = 0
+            P['spn'] = 0
+            P['plg'] = 0
+            D = ((self.D['olv'] * mineralProportions['olv']
+                  + self.D['opx'] * mineralProportions['opx'])
                  / (mineralProportions['olv'] + mineralProportions['opx']))
 
-        Pbar = sum([d * p for d, p in zip(self.D, P)])
 
-        k1 = self._dcsdX(self._F_prev, self._cs, Dbar, Pbar)
+        Pbar = sum([self.D[min] * P[min] for min in self.D.keys()])
+
+        k1 = self._dcsdX(self._F_prev, self._cs, D, Pbar)
         k2 = self._dcsdX(self._F_prev + (state.F - self._F_prev) / 2,
-                   self._cs + k1 * (state.F - self._F_prev) / 2, Dbar, Pbar)
+                   self._cs + k1 * (state.F - self._F_prev) / 2, D, Pbar)
         k3 = self._dcsdX(self._F_prev + (state.F - self._F_prev) / 2,
-                   self._cs + k2 * (state.F - self._F_prev) / 2, Dbar, Pbar)
+                   self._cs + k2 * (state.F - self._F_prev) / 2, D, Pbar)
         k4 = self._dcsdX(self._F_prev + (state.F - self._F_prev),
-                   self._cs + k3 * (state.F - self._F_prev), Dbar, Pbar)
+                   self._cs + k3 * (state.F - self._F_prev), D, Pbar)
         self._cs = self._cs + (1 / 6) * (state.F - self._F_prev) * (k1 + 2 * k2 + 2 * k3 + k4)
         if self._cs < 1e-6:
-            self._cs = 0.0
+            self._cs = 0
 
-        cl = cl(self._cs, state.F, Dbar, Pbar)
+        cl = self._cl(self._cs, state.F, D, Pbar)
 
         self._F_prev = state.F
         self._cl_prev = cl
@@ -590,7 +603,7 @@ class invmelSpecies(species):
         elif d >= 35:
             SpinelPlagioclaseTransition = 1
         else:
-            SpinelPlagioclaseTransition = (35 - d) / 10
+            SpinelPlagioclaseTransition = 1 - (35 - d) / 10
         return SpinelPlagioclaseTransition
 
     def _GarnetIn(self, P):
@@ -611,7 +624,7 @@ class invmelSpecies(species):
         T = 666.7 * P - 400
         return T
 
-    def SpinelOut(self, P):
+    def _SpinelOut(self, P):
         """
         Calculate the temperature of spinel-out at a given temperature
 
@@ -647,14 +660,14 @@ class invmelSpecies(species):
             contribution from gt mantle
 
         """
-        GarnetIn = self.GarnetIn(P)
-        SpinelOut = self.SpinelOut(P)
+        GarnetIn = self._GarnetIn(P)
+        SpinelOut = self._SpinelOut(P)
         if T <= SpinelOut:
             GarnetSpinelTransition = 1
         elif T >= GarnetIn:
             GarnetSpinelTransition = 0
         else:
-            GarnetSpinelTransition = (T - SpinelOut) / (GarnetIn - SpinelOut)
+            GarnetSpinelTransition = 1 - (T - SpinelOut) / (GarnetIn - SpinelOut)
         return GarnetSpinelTransition
 
     def _dcsdX(self, X, cs, Dbar, Pbar):

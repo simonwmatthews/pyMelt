@@ -215,7 +215,8 @@ class MeltingColumn():
 
     def _create_species_objects(self, elements, method, **kwargs):
         methods = {'batch': pyMelt.chemistry.BatchSpecies,
-                   'continuous': pyMelt.chemistry.ContinuousSpecies}
+                   'continuous': pyMelt.chemistry.ContinuousSpecies,
+                   'invmel': pyMelt.chemistry.invmelSpecies}
         species_objects = []
         for el in elements:
             kwargs_recon = {}
