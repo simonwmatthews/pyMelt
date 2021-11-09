@@ -13,6 +13,7 @@ import numpy as _np
 import pandas as _pd
 from copy import copy
 from scipy.interpolate import interp1d
+from scipy.integrate import trapz
 from warnings import warn
 
 
@@ -239,16 +240,19 @@ class SpreadingCentre(GeoSetting):
                     cnormed = _np.zeros(_np.shape(c))
                     df = f[1:] - f[: - 1]
                     for i in range(_np.shape(c)[0] - 1):
-                        if _np.sum(df[:i]) > 0:
-                            cnormed[i + 1, :] = (_np.sum(c[1:i + 1, :] * df[:i, None], axis=0)
-                                                 / _np.sum(df[:i]))
+                        if f[i] > 0 and f[i - 1] > 0:
+                            cnormed[i + 1, :] = (_np.sum(0.5 * (c[1:i + 1, :] + c[0:i, :])
+                                                 * df[:i, None], axis=0) / f[i])
+                        elif f[i] > 0:
+                            cnormed[i + 1, :] = (_np.sum(c[1:i + 1, :]
+                                                 * df[:i, None], axis=0) / f[i])
                         else:
                             cnormed[i + 1, :] = [0] * _np.shape(c)[1]
                     c = cnormed
                 # Normalise melts for this lithology
-                c = c * f[:, None] / (1.0 - f[:, None])
-                c = _np.sum(c, axis=0)
-                c = c / _np.sum(f[:] / (1.0 - f[:]))
+                c = trapz(c * f[:, None] / (1.0 - f[:, None]),
+                          self.lithologies[lith]['Pressure'].to_numpy()[:], axis=0)
+                c = c / trapz(f / (1 - f), self.lithologies[lith]['Pressure'].to_numpy())
 
                 # Normalise melts for all lithologies
                 cm += c * self.lithology_contributions[lith]

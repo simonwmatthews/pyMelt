@@ -9,6 +9,7 @@ inclusion in pyMelt calculations, alongside default implementations.
 
 import numpy as _np
 import pandas as _pd
+from warnings import warn
 
 workman05_ddm = {'Rb': 0.05,
                  'Ba': 0.563,
@@ -526,37 +527,39 @@ class invmelSpecies(species):
             modalValue = (mineralProportions['cpx'] + mineralProportions['grt']
                           + mineralProportions['spn'] + mineralProportions['plg'])
 
-        P = {}
+        p = {}
         if state.F < modalValue:
-            P['cpx'] = mineralProportions['cpx'] * state.F / modalValue
-            P['grt'] = mineralProportions['grt'] * state.F / modalValue
-            P['spn'] = mineralProportions['spn'] * state.F / modalValue
-            P['plg'] = mineralProportions['plg'] * state.F / modalValue
-            P['olv'] = (mineralProportions['olv'] * (1 - (P['cpx'] + P['grt'] + P['spn'] +
-                                                     P['plg']))
+            p['cpx'] = mineralProportions['cpx'] * state.F / modalValue
+            p['grt'] = mineralProportions['grt'] * state.F / modalValue
+            p['spn'] = mineralProportions['spn'] * state.F / modalValue
+            p['plg'] = mineralProportions['plg'] * state.F / modalValue
+            p['olv'] = (mineralProportions['olv'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
+                                                     p['plg']))
                         / (mineralProportions['olv'] + mineralProportions['opx']))
-            P['opx'] = (mineralProportions['opx'] * (1 - (P['cpx'] + P['grt'] + P['spn'] +
-                                                     P['plg']))
+            p['opx'] = (mineralProportions['opx'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
+                                                     p['plg']))
                         / (mineralProportions['olv'] + mineralProportions['opx']))
 
-            # D = sum([d * p for d, p in zip(self.D, mineralProportions)])
             D = sum([self.D[min] * mineralProportions[min] for min in mineralProportions.index])
 
         elif state.F >= modalValue:
-            P['olv'] = (mineralProportions['olv']
+            p['olv'] = (mineralProportions['olv']
                     / (mineralProportions['olv'] + mineralProportions['opx']))
-            P['opx'] = (mineralProportions['opx']
+            p['opx'] = (mineralProportions['opx']
                     / (mineralProportions['olv'] + mineralProportions['opx']))
-            P['cpx'] = 0
-            P['grt'] = 0
-            P['spn'] = 0
-            P['plg'] = 0
+            p['cpx'] = 0
+            p['grt'] = 0
+            p['spn'] = 0
+            p['plg'] = 0
             D = ((self.D['olv'] * mineralProportions['olv']
                   + self.D['opx'] * mineralProportions['opx'])
                  / (mineralProportions['olv'] + mineralProportions['opx']))
 
+        if self.name == 'Ba':
+            print(D)
 
-        Pbar = sum([self.D[min] * P[min] for min in self.D.keys()])
+
+        Pbar = sum([self.D[min] * p[min] for min in self.D.keys()])
 
         k1 = self._dcsdX(self._F_prev, self._cs, D, Pbar)
         k2 = self._dcsdX(self._F_prev + (state.F - self._F_prev) / 2,
@@ -565,11 +568,20 @@ class invmelSpecies(species):
                    self._cs + k2 * (state.F - self._F_prev) / 2, D, Pbar)
         k4 = self._dcsdX(self._F_prev + (state.F - self._F_prev),
                    self._cs + k3 * (state.F - self._F_prev), D, Pbar)
-        self._cs = self._cs + (1 / 6) * (state.F - self._F_prev) * (k1 + 2 * k2 + 2 * k3 + k4)
-        if self._cs < 1e-6:
-            self._cs = 0
+        cs = self._cs + (1 / 6) * (state.F - self._F_prev) * (k1 + 2 * k2 + 2 * k3 + k4)
+        cl = self._cl(cs, state.F, D, Pbar)
 
-        cl = self._cl(self._cs, state.F, D, Pbar)
+        # Check if discretisation is too course
+        if (k1 + 2 * k2 + 2 * k3 + k4) > 0 and D < 1:
+            warn("Discretisation is too course to capture the behaviour of " + self.name + ".")
+            cl = _np.nan
+            self._cs = _np.nan
+
+        # Prevent float errors
+        elif cs < 1e-6:
+            self._cs = 0
+        else:
+            self._cs = cs
 
         self._F_prev = state.F
         self._cl_prev = cl
