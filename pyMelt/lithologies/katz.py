@@ -216,7 +216,7 @@ class lherzolite(_lithology):
 
         if F == 0:
             dTdP = self.alphas/self.rhos/self.CP
-        elif F < self.FcpxOut(P, **kwargs):
+        elif F < FcpxOut:
             dTdP = (((F**(1/self.parameters['beta1']))
                     * (dTdPLherzLiquidus-dTdPSolidus)) + dTdPSolidus)
         elif F < 1.0:
