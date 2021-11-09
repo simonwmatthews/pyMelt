@@ -191,6 +191,10 @@ class hydrous_lithology(object):
         porosity controlled by the phi argument.
     phi : float, default: 0.005
         The porosity to use during continuous melting, if applicable. The default value is 0.5%.
+    threshold_F : float or None, default: None
+        If set, when the melt fraction goes above the chosen threshold, the hydrous extension will
+        be skipped. Doing so may help speed up the calculations, but a threshold melt fraction
+        should be chosen with care.
 
     Notes
     -----
@@ -213,7 +217,7 @@ class hydrous_lithology(object):
     """
 
     def __init__(self, lithology, H2O, D=0.01, K=43.0, gamma=0.75, chi1=12.0, chi2=1.0,
-                 l=0.6, continuous=False, phi=0.005):
+                 l=0.6, continuous=False, phi=0.005, threshold_F=None):
         self.lithology = lithology
 
         for m in dir(lithology):
@@ -234,6 +238,7 @@ class hydrous_lithology(object):
         self.l = l
         self.continuous = continuous
         self.phi = phi
+        self.threshold_F = threshold_F
 
     def H2O_saturation(self, P):
         """
@@ -347,6 +352,10 @@ class hydrous_lithology(object):
             The melt fraction.
 
         """
+        if self.threshold_F is not None:
+            anhydrous_F = self.lithology.F(P, T, **kwargs)
+            if anhydrous_F > self.threshold_F:
+                return anhydrous_F
 
         F = root_scalar(self._f_to_solve, bracket=[0, 1], args=(P, T))
 
