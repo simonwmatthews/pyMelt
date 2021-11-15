@@ -11,6 +11,33 @@ import numpy as _np
 import pandas as _pd
 from warnings import warn
 
+default_methods = {'Rb': 'continuous_instantaneous',
+                   'Ba': 'continuous_instantaneous',
+                   'Th': 'invmel',
+                   'U': 'invmel',
+                   'Nb': 'invmel',
+                   'Ta': 'invmel',
+                   'La': 'invmel',
+                   'Ce': 'invmel',
+                   'Pb': 'invmel',
+                   'Pr': 'invmel',
+                   'Nd': 'invmel',
+                   'Sr': 'invmel',
+                   'Zr': 'invmel',
+                   'Hf': 'invmel',
+                   'Sm': 'invmel',
+                   'Eu': 'invmel',
+                   'Ti': 'invmel',
+                   'Gd': 'invmel',
+                   'Tb': 'invmel',
+                   'Dy': 'invmel',
+                   'Ho': 'invmel',
+                   'Y': 'invmel',
+                   'Er': 'invmel',
+                   'Yb': 'invmel',
+                   'Lu': 'invmel'
+                   }
+
 workman05_ddm = {'Rb': 0.05,
                  'Ba': 0.563,
                  'Th': 0.0079,
@@ -293,33 +320,14 @@ class species(object):
     """
 
     def __init__(self, name, c0, **kwargs):
+        self.calculation_type = None
         self.name = name
         self.c0 = c0
 
-    def instantaneous_melt(self, state):
+    def composition(self, state):
         """
-        Returns the concentration of the species in the instantaneous melt for the specified state.
-        This function should be redefined according to the chemical model being used. If the model
-        does not predict instantaneous melts it need not be redefined.
-
-        Parameters
-        ----------
-        state : pandas.Series
-            The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
-            will most likely be generated automatically by the `MeltingColumn_1D` class.
-
-        Returns
-        -------
-        float
-            The concentration of the species in the melt.
-        """
-        return _np.nan
-
-    def accumulated_melt(self, state):
-        """
-        Returns the concentration of the species in the accumulated melt at the specified state.
-        This function should be redefined according to the chemical model being used. If the model
-        does not predict accumulated melts it need not be redefined.
+        Returns the concentration of the species in the melt for the specified state.
+        This function should be redefined according to the chemical model being used.
 
         Parameters
         ----------
@@ -351,11 +359,12 @@ class BatchSpecies(species):
     """
 
     def __init__(self, name, c0, D, **kwargs):
+        self.calculation_type = "accumulated"
         self.name = name
         self.c0 = c0
         self.D = D
 
-    def accumulated_melt(self, state):
+    def composition(self, state):
         """
         Returns the concentration in the melt during batch melting.
 
@@ -369,7 +378,7 @@ class BatchSpecies(species):
         return self.c0 / (self.D * (1 - state['F']) + state['F'])
 
 
-class ContinuousSpecies(species):
+class ContinuousSpecies_instantaneous(species):
     """
     Implementation of the species class for batch melting with a constant partition coefficient.
 
@@ -385,12 +394,13 @@ class ContinuousSpecies(species):
     """
 
     def __init__(self, name, c0, D, phi=0.005, **kwargs):
+        self.calculation_type = "instantaneous"
         self.name = name
         self.c0 = c0
         self.D = D
         self.phi = phi
 
-    def instantaneous_melt(self, state):
+    def composition(self, state):
         """
         Returns the instantaneous concentration in the melt during near-fractional (continuous)
         melting.
@@ -407,7 +417,30 @@ class ContinuousSpecies(species):
 
         return self.c0 / ((1 - self.phi) * self.D + self.phi) * (1 - state.F)**exponent
 
-    def accumulated_melt(self, state):
+
+class ContinuousSpecies_accumulated(species):
+    """
+    Implementation of the species class for batch melting with a constant partition coefficient.
+
+    Parameters
+    ----------
+    name :  str
+        The name of the species.
+    c0 :    float
+        The concentration of the species in the solid. Must be the same units as required in the
+        output.
+    D : float
+        The partition coefficient
+    """
+
+    def __init__(self, name, c0, D, phi=0.005, **kwargs):
+        self.calculation_type = "accumulated"
+        self.name = name
+        self.c0 = c0
+        self.D = D
+        self.phi = phi
+
+    def composition(self, state):
         """
         Returns the concentration in the melt during batch melting.
 
@@ -459,6 +492,14 @@ class invmelSpecies(species):
         One of 'NonModalFixed', or 'NonModalVariable'. NEED MORE INFO HERE.
     modalValue : int, default: 0.18
         NEED MORE INFO HERE. The modal value to use with NonModalFixed.
+    garnetInCoeffs : list of floats, default: [666.7, 400.0]
+        The coefficients to use in the garnet in surface, T = [0] * P - [1]. Default values are
+        appropriate for lherzolite.
+    spinelOutCoeffs : list of floats, default: [666.7, 533.0]
+        The coefficients to use in the spinel out surface, T = [0] * P - [1]. Default values are
+        appropriate for lherzolite.
+    plagioclaseInInterval : list of floats, default: [25.0, 35.0]
+        The plagioclase in interval in km. Default values are appropriate for lherzolite.
 
     Attributes
     ----------
@@ -468,7 +509,7 @@ class invmelSpecies(species):
         Concentration of the species in the solid.
     D : numpy.Array
         The partition coefficients in the order: olivine, cpx, opx, spinel, garnet, plag.
-    MineralProportions : pandas.DataFrame
+    MineralProportions_solid : pandas.DataFrame
         See parameters above.
     density : float
         The density of the mantle (g cm-3)
@@ -476,20 +517,24 @@ class invmelSpecies(species):
 
     def __init__(self, name, c0, olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
              mineralProportions=mo91_MineralProportions, density=3.3,
-             modal='NonModalVariable', modalValue=0.18,
-             **kwargs):
+             modal='NonModalVariable', modalValue=0.18, garnetInCoeffs = [666.7, 400.0],
+             spinelOutCoeffs = [666.7, 533.0], plagioclaseInInterval = [25.0, 35.0], **kwargs):
+                self.calculation_type = "instantaneous"
                 self.name = name
                 self.c0 = c0
                 self.D = {'olv':olv_D, 'cpx':cpx_D, 'opx':opx_D,
                           'spn':spn_D, 'grt':grt_D, 'plg':plg_D}
-                self.mineralProportions = mineralProportions
+                self.mineralProportions_solid = mineralProportions
                 self.density = density
                 self.modal = modal
                 self.modalValue = modalValue
+                self.garnetInCoeffs = garnetInCoeffs
+                self.spinelOutCoeffs = spinelOutCoeffs
+                self.plagioclaseInInterval = plagioclaseInInterval
                 self._cs = c0
                 self._F_prev = 0.0
 
-    def instantaneous_melt(self, state):
+    def composition(self, state):
         # Check if this is a new calculation or not:
         if state.F < self._F_prev:
             self._cs = c0
@@ -497,69 +542,15 @@ class invmelSpecies(species):
         if state.F == 1:
             return self._cl_prev
 
-        # Determine the current mineralogy
-        GarnetSpinel = self._GarnetSpinelTransition(state.Pressure, state['T'])
-        SpinelPlagioclase = self._SpinelPlagioclaseTransition(state.Pressure)
-        if GarnetSpinel == 1 and SpinelPlagioclase == 1:
-            mineralProportions = self.mineralProportions.loc['grt_field']
-        elif GarnetSpinel == 0 and SpinelPlagioclase == 1:
-            mineralProportions = self.mineralProportions.loc['spn_field']
-        elif GarnetSpinel == 0 and SpinelPlagioclase == 0:
-            mineralProportions = self.mineralProportions.loc['plg_field']
-        elif SpinelPlagioclase == 1:
-            grtField = self.mineralProportions.loc['grt_field']
-            spnField = self.mineralProportions.loc['spn_field']
-            mineralProportions = [(grtFieldProp * GarnetSpinel + spnFieldProp * (1 - GarnetSpinel))
-                                  for grtFieldProp, spnFieldProp in zip(grtField, spnField)]
-            mineralProportions = _pd.Series(mineralProportions,
-                                            index=self.mineralProportions.columns)
-        else:
-            spnField = self.mineralProportions.loc['spn_field']
-            plgField = self.mineralProportions.loc['plg_field']
-            mineralProportions = [(spnFldPrp * SpinelPlagioclase
-                                   + plgFldPrp * (1 - SpinelPlagioclase))
-                                  for spnFldPrp, plgFldPrp in zip(spnField, plgField)]
-            mineralProportions = _pd.Series(mineralProportions,
-                                            index=self.mineralProportions.columns)
+        D = self.D_bulk(state['Pressure'], state['T'], state.F)
+        Pbar = self.P_bulk(state['Pressure'], state['T'], state.F)
 
-        modalValue = self.modalValue
-        if self.modal == 'NonModalVariable':
-            modalValue = (mineralProportions['cpx'] + mineralProportions['grt']
-                          + mineralProportions['spn'] + mineralProportions['plg'])
+        if D < 1e-4:
+            warn(self.name + " is extremely incompatible, unless the step size is extremely small"
+                             " its partitioning behaviour is unlikely to be captured correctly. "
+                             "You are probably better off calculating it using the "
+                             "ContinuousSpecies_accumulated class.")
 
-        p = {}
-        if state.F < modalValue:
-            p['cpx'] = mineralProportions['cpx'] * state.F / modalValue
-            p['grt'] = mineralProportions['grt'] * state.F / modalValue
-            p['spn'] = mineralProportions['spn'] * state.F / modalValue
-            p['plg'] = mineralProportions['plg'] * state.F / modalValue
-            p['olv'] = (mineralProportions['olv'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
-                                                     p['plg']))
-                        / (mineralProportions['olv'] + mineralProportions['opx']))
-            p['opx'] = (mineralProportions['opx'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
-                                                     p['plg']))
-                        / (mineralProportions['olv'] + mineralProportions['opx']))
-
-            D = sum([self.D[min] * mineralProportions[min] for min in mineralProportions.index])
-
-        elif state.F >= modalValue:
-            p['olv'] = (mineralProportions['olv']
-                    / (mineralProportions['olv'] + mineralProportions['opx']))
-            p['opx'] = (mineralProportions['opx']
-                    / (mineralProportions['olv'] + mineralProportions['opx']))
-            p['cpx'] = 0
-            p['grt'] = 0
-            p['spn'] = 0
-            p['plg'] = 0
-            D = ((self.D['olv'] * mineralProportions['olv']
-                  + self.D['opx'] * mineralProportions['opx'])
-                 / (mineralProportions['olv'] + mineralProportions['opx']))
-
-        if self.name == 'Ba':
-            print(D)
-
-
-        Pbar = sum([self.D[min] * p[min] for min in self.D.keys()])
 
         k1 = self._dcsdX(self._F_prev, self._cs, D, Pbar)
         k2 = self._dcsdX(self._F_prev + (state.F - self._F_prev) / 2,
@@ -588,8 +579,84 @@ class invmelSpecies(species):
 
         return cl
 
-    def accumulated_melt(self, state):
-        return _np.nan
+    def mineralProportions(self, P, T):
+        GarnetSpinel = self._GarnetSpinelTransition(P, T)
+        SpinelPlagioclase = self._SpinelPlagioclaseTransition(P)
+        if GarnetSpinel == 1 and SpinelPlagioclase == 1:
+            mineralProportions = self.mineralProportions_solid.loc['grt_field']
+        elif GarnetSpinel == 0 and SpinelPlagioclase == 1:
+            mineralProportions = self.mineralProportions_solid.loc['spn_field']
+        elif GarnetSpinel == 0 and SpinelPlagioclase == 0:
+            mineralProportions = self.mineralProportions_solid.loc['plg_field']
+        elif SpinelPlagioclase == 1:
+            grtField = self.mineralProportions_solid.loc['grt_field']
+            spnField = self.mineralProportions_solid.loc['spn_field']
+            mineralProportions = [(grtFieldProp * GarnetSpinel + spnFieldProp * (1 - GarnetSpinel))
+                                  for grtFieldProp, spnFieldProp in zip(grtField, spnField)]
+            mineralProportions = _pd.Series(mineralProportions,
+                                            index=self.mineralProportions_solid.columns)
+        else:
+            spnField = self.mineralProportions_solid.loc['spn_field']
+            plgField = self.mineralProportions_solid.loc['plg_field']
+            mineralProportions = [(spnFldPrp * SpinelPlagioclase
+                                   + plgFldPrp * (1 - SpinelPlagioclase))
+                                  for spnFldPrp, plgFldPrp in zip(spnField, plgField)]
+            mineralProportions = _pd.Series(mineralProportions,
+                                            index=self.mineralProportions_solid.columns)
+        return mineralProportions
+
+    def D_bulk(self, P, T, F=0.0):
+        mineralProportions = self.mineralProportions(P, T)
+
+        modalValue = self.modalValue
+        if self.modal == 'NonModalVariable':
+            modalValue = (mineralProportions['cpx'] + mineralProportions['grt']
+                          + mineralProportions['spn'] + mineralProportions['plg'])
+
+        if F < modalValue:
+            D = sum([self.D[min] * mineralProportions[min] for min in mineralProportions.index])
+        elif F >= modalValue:
+            D = ((self.D['olv'] * mineralProportions['olv']
+                  + self.D['opx'] * mineralProportions['opx'])
+                 / (mineralProportions['olv'] + mineralProportions['opx']))
+
+        return D
+
+    def P_bulk(self, P, T, F=0.0):
+        mineralProportions = self.mineralProportions(P, T)
+
+        modalValue = self.modalValue
+        if self.modal == 'NonModalVariable':
+            modalValue = (mineralProportions['cpx'] + mineralProportions['grt']
+                          + mineralProportions['spn'] + mineralProportions['plg'])
+
+        p = {}
+        if F < modalValue:
+            p['cpx'] = mineralProportions['cpx'] * F / modalValue
+            p['grt'] = mineralProportions['grt'] * F / modalValue
+            p['spn'] = mineralProportions['spn'] * F / modalValue
+            p['plg'] = mineralProportions['plg'] * F / modalValue
+            p['olv'] = (mineralProportions['olv'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
+                                                     p['plg']))
+                        / (mineralProportions['olv'] + mineralProportions['opx']))
+            p['opx'] = (mineralProportions['opx'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
+                                                     p['plg']))
+                        / (mineralProportions['olv'] + mineralProportions['opx']))
+
+        elif F >= modalValue:
+            p['olv'] = (mineralProportions['olv']
+                    / (mineralProportions['olv'] + mineralProportions['opx']))
+            p['opx'] = (mineralProportions['opx']
+                    / (mineralProportions['olv'] + mineralProportions['opx']))
+            p['cpx'] = 0
+            p['grt'] = 0
+            p['spn'] = 0
+            p['plg'] = 0
+
+        Pbar = sum([self.D[min] * p[min] for min in self.D.keys()])
+
+        return Pbar
+
 
     def _SpinelPlagioclaseTransition(self, P):
         """
@@ -610,12 +677,14 @@ class invmelSpecies(species):
 
         """
         d = (P / (self.density * 10)) * 1000
-        if d <= 25:
+        if d <= self.plagioclaseInInterval[0]:
             SpinelPlagioclaseTransition = 0
-        elif d >= 35:
+        elif d >= self.plagioclaseInInterval[1]:
             SpinelPlagioclaseTransition = 1
         else:
-            SpinelPlagioclaseTransition = 1 - (35 - d) / 10
+            SpinelPlagioclaseTransition = (1 - (self.plagioclaseInInterval[1] - d)
+                                           / (self.plagioclaseInInterval[1]
+                                              - self.plagioclaseInInterval[0]))
         return SpinelPlagioclaseTransition
 
     def _GarnetIn(self, P):
@@ -633,7 +702,7 @@ class invmelSpecies(species):
             temperature in degC
 
         """
-        T = 666.7 * P - 400
+        T = self.garnetInCoeffs[0] * P - self.garnetInCoeffs[1]
         return T
 
     def _SpinelOut(self, P):
@@ -651,7 +720,7 @@ class invmelSpecies(species):
             temperature in degC
 
         """
-        T = 666.7 * P - 533
+        T = self.spinelOutCoeffs[0] * P - self.spinelOutCoeffs[1]
         return T
 
     def _GarnetSpinelTransition(self, P, T):

@@ -51,6 +51,7 @@ class MeltingColumn():
         self.P = calculation_results.P
         self.T = calculation_results['T']
         self.chemistry_output = None
+        self._species_calc_type = None
 
         self.lithologies = {}
         for i in range(self.mantle.number_lithologies):
@@ -110,13 +111,17 @@ class MeltingColumn():
 
         return f, a
 
-    def calculate_chemistry(self, elements=None, species_objects=None, method='batch',
-                            output_type='accumulated', **kwargs):
+    def calculate_chemistry(self, elements=None, species_objects=None, method='default', **kwargs):
         """
         Calculate the composition of the melt for each species object supplied. If species objects
         are not defined manually the default options can be used for each element by specifying
         them in the elements list. See documentation for more information about the default values.
         In built methods include batch melting, near-fractional melting, and INVMEL melting.
+
+        If elements is not set and the mantle is made of one lithology, the composition will be
+        set to the depleted mantle of Workman & Hart (2005). Invmel is used by default, except for
+        Ba and Rb which are modelled using continuous_instantaneous, with the partition
+        coefficients from Workman & Hart (2005).
 
         Note that the effects of the aluminous phase transitions are not incorporated into the
         batch and near-fractional melting calculations.
@@ -140,8 +145,11 @@ class MeltingColumn():
             Each lithology name is a key of the dictionary, the values are a list of
             pyMelt.chemical_classes.species objects. If None, the species objects will be generated
             from the `elements` argument.
-        method : string
-            One of 'batch', 'continuous', 'invmel'
+        method : string or dict or dict of dicts, default: 'default'
+            One of 'default', 'batch', 'continuous_accumulated', 'continuous_instantaneous',
+            'invmel'. If using different models for different elements, specify them as a
+            dictionary. This can be nested within another dictionary if you wish to use different
+            combinations for each lithology.
 
         Notes
         -----
@@ -153,38 +161,61 @@ class MeltingColumn():
          - D, the bulk partition coefficient
          - phi, the porosity during melting (as a fraction, not percent).
         """
+        # Check if using defaults, and assemble args if so:
+        if method == 'default':
+            if self.mantle.number_lithologies > 1:
+                warn("The default parameters are being used which are suitable only for "
+                     "lherzolite. If one of your lithologies is pyroxenite the results will not "
+                     "be reliable.")
+            kwargs['olv_D'] = pyMelt.chemistry.olv_D
+            kwargs['cpx_D'] = pyMelt.chemistry.cpx_D
+            kwargs['opx_D'] = pyMelt.chemistry.opx_D
+            kwargs['spn_D'] = pyMelt.chemistry.spn_D
+            kwargs['grt_D'] = pyMelt.chemistry.grt_D
+            kwargs['plg_D'] = pyMelt.chemistry.plg_D
+            kwargs['D'] = pyMelt.chemistry.workman05_D
+            method = pyMelt.chemistry.default_methods
 
         # Assemble the species_objects dictionary if not provided
         if species_objects is None:
-            if elements is None:
+            if elements is None and self.mantle.number_lithologies == 1:
+                print("Lithology composition is set to the depleted mantle of Workman & Hart "
+                      "(2005).")
+                elements = {self.mantle.names[0]: pyMelt.chemistry.workman05_ddm}
+            elif elements is None:
                 raise InputError("Either species_objects or elements must be provided.")
-            else:
-                species_objects = {}
-                for lith in elements:
-                    kwargs_recon = {}
-                    for kw in kwargs:
-                        if isinstance(kwargs[kw], dict) and kwargs[kw].keys() == elements.keys():
-                            kwargs_recon[kw] = kwargs[kw][lith]
-                        else:
-                            kwargs_recon[kw] = kwargs[kw]
-                    species_objects[lith] = self._create_species_objects(elements[lith],
-                                                                         method,
-                                                                         **kwargs_recon)
+
+            species_objects = {}
+            for lith in elements:
+                method_recon = {}
+                kwargs_recon = {}
+                if(isinstance(method, dict)
+                   and any(item in method.keys() for item in elements.keys())):
+                    method_recon = method[lith]
+                else:
+                    method_recon = method
+                for kw in kwargs:
+                    if(isinstance(kwargs[kw], dict)
+                       and any(item in kwargs[kw].keys() for item in elements.keys())):
+                        kwargs_recon[kw] = kwargs[kw][lith]
+                    else:
+                        kwargs_recon[kw] = kwargs[kw]
+                species_objects[lith] = self._create_species_objects(elements[lith],
+                                                                     method,
+                                                                     **kwargs_recon)
+
+        self._species_calc_type = {}
+        for lith in species_objects:
+            species_calc_type = []
+            for species in species_objects[lith]:
+                species_calc_type.append(species.calculation_type)
+            self._species_calc_type[lith] = species_calc_type
 
         # Check that the lithology names are correct
         for lith in species_objects:
             if lith not in self.mantle.names:
                 raise InputError("The lithology specified (" + lith + ") was not found in "
                                  "the mantle from which this melting column was constructed.")
-
-        # Check that there isn't any mutually inconsistent chemistry happening.
-        if self.chemistry_output is None:
-            self.chemistry_output = output_type
-        elif self.chemistry_output != output_type:
-            raise InputError("The output_type must match the output_type used for previous "
-                             "calculations with this melting column. To compare different "
-                             "output formats create a duplicate column before calculating "
-                             "chemistry.")
 
         # Iterate through calculations for each lithology:
         for lith in species_objects:
@@ -195,13 +226,7 @@ class MeltingColumn():
             for i, row in self.lithologies[lith].iterrows():
                 for j in range(len(species_objects[lith])):
                     if row.F > 1e-15:
-                        if output_type == 'accumulated':
-                            results[i, j] = species_objects[lith][j].accumulated_melt(row)
-                        elif output_type == 'instantaneous':
-                            results[i, j] = species_objects[lith][j].instantaneous_melt(row)
-                        else:
-                            raise InputError("The output type was not recognised. It must be "
-                                             "one of 'accumulated' or 'fractional'.")
+                        results[i, j] = species_objects[lith][j].composition(row)
                     else:
                         results[i, j] = np.nan
 
@@ -215,15 +240,23 @@ class MeltingColumn():
 
     def _create_species_objects(self, elements, method, **kwargs):
         methods = {'batch': pyMelt.chemistry.BatchSpecies,
-                   'continuous': pyMelt.chemistry.ContinuousSpecies,
+                   'continuous_instantaneous': pyMelt.chemistry.ContinuousSpecies_instantaneous,
+                   'continuous_accumulated': pyMelt.chemistry.ContinuousSpecies_accumulated,
                    'invmel': pyMelt.chemistry.invmelSpecies}
         species_objects = []
         for el in elements:
             kwargs_recon = {}
             for arg in kwargs:
-                if isinstance(kwargs[arg], dict) and kwargs[arg].keys() == elements.keys():
-                    kwargs_recon[arg] = kwargs[arg][el]
+                if(isinstance(kwargs[arg], dict)
+                   and any(item in kwargs[arg].keys() for item in elements.keys())):
+                    if el in kwargs[arg].keys():
+                        kwargs_recon[arg] = kwargs[arg][el]
+                    else:
+                        kwargs_recon[arg] = None
                 else:
                     kwargs_recon[arg] = kwargs[arg]
-            species_objects.append(methods[method](el, elements[el], **kwargs_recon))
+            if isinstance(method, dict) and method.keys() == elements.keys():
+                species_objects.append(methods[method[el]](el, elements[el], **kwargs_recon))
+            else:
+                species_objects.append(methods[method](el, elements[el], **kwargs_recon))
         return species_objects
