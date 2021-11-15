@@ -446,19 +446,20 @@ class OceanIsland(GeoSetting):
                 # Get the melt fractions for the lithology
                 f = self.lithologies[lith].F.to_numpy()
                 # If instantaneous melts, need to pool over columns first
-                if self.MeltingColumn.chemistry_output == 'instantaneous':
-                    warn("When homogenising instantaneous melts numerical error is likely to be "
-                         "introduced due to discretisation. This will affect the most "
-                         "incompatible elements most severely.")
-                    cnormed = _np.zeros(_np.shape(c))
-                    df = f[1:] - f[:-1]
-                    for i in range(_np.shape(c)[0] - 1):
-                        if _np.sum(df[:i]) > 0:
-                            cnormed[i + 1, :] = (_np.sum(c[1:i + 1, :] * df[:i, None], axis=0)
-                                                 / _np.sum(df[:i]))
-                        else:
-                            cnormed[i + 1, :] = [0] * _np.shape(c)[1]
-                    c = cnormed
+                for j in range(len(species)):
+                    if self.MeltingColumn._species_calc_type[lith][j] == 'instantaneous':
+                        cnormed = _np.zeros(_np.shape(c)[0])
+                        df = f[1:] - f[: - 1]
+                        for i in range(_np.shape(c)[0] - 1):
+                            if f[i] > 0 and f[i - 1] > 0:
+                                cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1, j] + c[0:i, j])
+                                                     * df[:i], axis=0) / f[i])
+                            elif f[i] > 0:
+                                cnormed[i + 1] = (_np.sum(c[1:i + 1, j]
+                                                     * df[:i], axis=0) / f[i])
+                            else:
+                                cnormed[i + 1] = 0
+                        c[:, j] = cnormed
                 # Normalise melts for all lithologies
                 cm += c[-1, :] * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)
