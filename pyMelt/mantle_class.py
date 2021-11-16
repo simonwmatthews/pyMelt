@@ -347,7 +347,7 @@ class mantle:
 
         return T
 
-    def AdiabaticMelt(self, Tp, Pstart=8.0, Pend=0.01, steps=1001, ReportSSS=True,
+    def AdiabaticMelt(self, Tp, Pstart=None, Pend=0.01, steps=1001, ReportSSS=True,
                       adjust_pressure=True):
         """
         Performs simultaneous integration of dFdP and dTdP to obtain the thermal gradient
@@ -358,13 +358,14 @@ class mantle:
 
         Parameters
         ----------
-        Tp :        float
+        Tp : float
             The potential temperature (degC) at which to perform the calculation.
-        Pstart :    float, default: 8.0
-            The pressure (in GPa) at which to begin upwelling.
-        Pend :      float, default: 0.0
+        Pstart : float or None, default: None
+            The pressure (in GPa) at which to begin upwelling. If None, the calculation will start
+            at the solidus.
+        Pend : float, default: 0.0
             The pressure (in GPa) at which to stop upwelling.
-        steps :     int, default: 1001
+        steps : int, default: 1001
             The number of dP increments to split the melting region into.
         ReportSSS : bool, default: True
             Print to the console if the start is above the solidus of one of the lithologies.
@@ -382,6 +383,10 @@ class mantle:
         """
 
         T = np.zeros(steps)
+        if Pstart is None:
+            solidus_intersect = self.solidus_intersection(Tp)
+            Pstart = np.nanmax(solidus_intersect) + 1e-5
+
         T[0] = self.adiabat(Pstart, Tp)
         P = np.linspace(Pstart, Pend, steps)
         dP = (Pend - Pstart) / (steps - 1)

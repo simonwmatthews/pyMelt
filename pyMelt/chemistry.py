@@ -118,6 +118,58 @@ stracke03_bsic = {'Rb': 0.57,
                   'Yb': 2.99,
                   'Lu': 0.45}
 
+palme13_pm = {'Rb': 0.605,
+              'Ba': 6.85,
+              'Th': 0.0849,
+              'U': 0.0229,
+              'Nb': 0.595,
+              'Ta': 0.043,
+              'La': 0.6832,
+              'Ce': 1.7529,
+              'Pb': 0.185,
+              'Pr': 0.2657,
+              'Nd': 1.341,
+              'Sr': 22.0,
+              'Zr': 10.3,
+              'Hf': 0.3014,
+              'Sm': 0.4347,
+              'Eu': 0.1665,
+              'Ti': 1265.0,
+              'Gd': 0.5855,
+              'Tb': 0.1075,
+              'Dy': 0.7239,
+              'Ho': 0.1597,
+              'Y': 4.13,
+              'Er': 0.4684,
+              'Yb': 0.4774,
+              'Lu': 0.07083}
+
+palme13_ci = {'Rb': 2.32,
+              'Ba': 2.42,
+              'Th': 0.03,
+              'U': 0.00810,
+              'Nb': 0.283,
+              'Ta': 0.015,
+              'La': 0.2414,
+              'Ce': 0.6194,
+              'Pb': 2.62,
+              'Pr': 0.09390,
+              'Nd': 0.4737,
+              'Sr': 7.79,
+              'Zr': 3.63,
+              'Hf': 0.1065,
+              'Sm': 0.1536,
+              'Eu': 0.05883,
+              'Ti': 447.0,
+              'Gd': 0.2069,
+              'Tb': 0.03797,
+              'Dy': 0.2558,
+              'Ho': 0.05644,
+              'Y': 1.46,
+              'Er': 0.1655,
+              'Yb': 0.1687,
+              'Lu': 0.02503}
+
 # From Gibson & Geist compilation
 olv_D = {'Rb': 0.0003,
          'Ba': 0.000005,
@@ -284,6 +336,14 @@ plg_D = {'Rb': 0.03,
          'Yb': 0.031,
          'Lu': 0.0250,
          }
+
+defaultD = _pd.DataFrame({'olv': olv_D,
+                         'cpx': cpx_D,
+                         'opx': opx_D,
+                         'plg': plg_D,
+                         'grt': grt_D,
+                         'spn': spn_D,
+                        })
 
 klb1_MineralProportions = _pd.DataFrame([[0.609, 0.125, 0.119, 0.147, 0.000, 0.000],
                                          [0.597, 0.233, 0.158, 0.000, 0.012, 0.000],
@@ -517,7 +577,7 @@ class invmelSpecies(species):
 
     def __init__(self, name, c0, olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
              mineralProportions=mo91_MineralProportions, density=3.3,
-             modal='NonModalVariable', modalValue=0.18, garnetInCoeffs = [666.7, 400.0],
+             modal='NonModalFixed', modalValue=0.18, garnetInCoeffs = [666.7, 400.0],
              spinelOutCoeffs = [666.7, 533.0], plagioclaseInInterval = [25.0, 35.0], **kwargs):
                 self.calculation_type = "instantaneous"
                 self.name = name
@@ -615,7 +675,7 @@ class invmelSpecies(species):
 
         if F < modalValue:
             D = sum([self.D[min] * mineralProportions[min] for min in mineralProportions.index])
-        elif F >= modalValue:
+        else:
             D = ((self.D['olv'] * mineralProportions['olv']
                   + self.D['opx'] * mineralProportions['opx'])
                  / (mineralProportions['olv'] + mineralProportions['opx']))
@@ -632,10 +692,10 @@ class invmelSpecies(species):
 
         p = {}
         if F < modalValue:
-            p['cpx'] = mineralProportions['cpx'] * F / modalValue
-            p['grt'] = mineralProportions['grt'] * F / modalValue
-            p['spn'] = mineralProportions['spn'] * F / modalValue
-            p['plg'] = mineralProportions['plg'] * F / modalValue
+            p['cpx'] = mineralProportions['cpx'] / modalValue
+            p['grt'] = mineralProportions['grt'] / modalValue
+            p['spn'] = mineralProportions['spn'] / modalValue
+            p['plg'] = mineralProportions['plg'] / modalValue
             p['olv'] = (mineralProportions['olv'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
                                                      p['plg']))
                         / (mineralProportions['olv'] + mineralProportions['opx']))
@@ -643,7 +703,7 @@ class invmelSpecies(species):
                                                      p['plg']))
                         / (mineralProportions['olv'] + mineralProportions['opx']))
 
-        elif F >= modalValue:
+        else:
             p['olv'] = (mineralProportions['olv']
                     / (mineralProportions['olv'] + mineralProportions['opx']))
             p['opx'] = (mineralProportions['opx']

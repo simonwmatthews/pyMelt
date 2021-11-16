@@ -11,10 +11,13 @@ at a spreading centre.
 
 import numpy as _np
 import pandas as _pd
+import matplotlib.pyplot as _plt
 from copy import copy
 from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 from warnings import warn
+
+import pyMelt.chemistry
 
 
 class GeoSetting(object):
@@ -40,6 +43,122 @@ class GeoSetting(object):
         self.MeltingColumn = MeltingColumn
         self.lithologies = MeltingColumn.lithologies
         self.mantle = MeltingColumn.mantle
+
+    def crystallisation_chemistry(self, mineralProportions, fractionate=True,
+                                  D = pyMelt.chemistry.defaultD):
+        """
+        Calculates the concentrations of elements in the homogenised magma following an interval
+        of crystallisation.
+
+        Parameters
+        ----------
+        fractionate : bool, default: True
+            If True, the calculation will follow fractional crystallisation.
+        mineralProportions: dict
+            The proportions of each mineral, relative to the system total (1.0). The minerals must
+            have the same name as used in the D argument. If the default partition coefficients
+            are used the mineral labels are olv, cpx, opx, plg, spn, grt.
+        D : pandas.DataFrame, default: pyMelt.chemistry.defaultD
+            The partition coefficients for each element and mineral. Columns are minerals, rows
+            are elements.
+
+        Returns
+        -------
+        pandas.Series
+            The concentrations of the trace elements in the evolved melt.
+        """
+
+        X = 1 - sum(mineralProportions.values())
+        Dbulk = _pd.Series(index = self.chemistry.index, data = [0]*len(self.chemistry))
+        for mineral in mineralProportions:
+            Dbulk += mineralProportions[mineral] * D[mineral] / (1 - X)
+        if fractionate is True:
+            evolved_chemistry = self.chemistry * X ** (Dbulk - 1.0)
+        else:
+            evolved_chemistry = self.chemistry / (X * (1 - Dbulk) + Dbulk)
+        return evolved_chemistry
+
+    def plot_spider(self, normalisation = 'PM', plot_instantaneous=False, plot_original=True,
+                    crystal_fraction=None, element_order=None, **kwargs):
+        """
+        Plot a basic spider diagram of the chemical composition, optionally alongside the
+        instantaneous melts and/or an evolved melt.
+
+        Parameters
+        ----------
+        normalisation : dict or str, default: 'PM'
+            How to normalise the values. To use the built in default options pass a string:
+            - 'PM' gives the Primitive Mantle of Palme and O'Neill (2013)
+            - 'CI' gives the chondritic composition of Palme and O'Neill (2013)
+            - 'DM' gives the depleted mantle composition of Workman and Hart (2005)
+
+            Otherwise, pass a dict of elements (keys) and their concentrations.
+        plot_instantaneous : bool, default: False
+            Plot the range of the instantaneous melts (or accumulated melts at each step) as a
+            field.
+        plot_original : bool, default: True
+            Plot the original homogenised chemistry.
+        crystal_fraction : None or dict, default: None
+            Plot an evolved melt having crystallised crystals in the proportions passed. If using
+            non-default options for GeoSetting.crystallisation_chemistry() pass these as additional
+            arguments
+        element_order : None or list, default: None
+            Use to adjust the order of the elements, otherwise they will be given in the order of
+            the chemistry attribute.
+
+        Returns
+        -------
+        matplotlib.figure, matplotlib.axes
+
+        """
+        f, a = _plt.subplots(dpi=150)
+
+        default_norms = {'PM': pyMelt.chemistry.palme13_pm,
+                         'CI': pyMelt.chemistry.palme13_ci,
+                         'DM': pyMelt.chemistry.workman05_ddm}
+
+        if isinstance(normalisation, str):
+            normalisation = default_norms[normalisation]
+
+        if element_order is None:
+            element_order = list(self.chemistry.keys())
+
+        if plot_instantaneous is True:
+            normed_hi = []
+            normed_lo = []
+            for el in element_order:
+                hi = 0.0
+                lo = 1e16
+                for lith in self.MeltingColumn.lithologies:
+                    lithmax = _np.max(self.MeltingColumn.lithologies[lith][el])
+                    lithmin = _np.min(self.MeltingColumn.lithologies[lith][el])
+                    if lithmax > hi:
+                        hi = lithmax
+                    if lithmin < lo:
+                        lo = lithmin
+                    normed_hi.append(hi/normalisation[el])
+                    normed_lo.append(lo/normalisation[el])
+            a.fill_between(range(len(element_order)), normed_lo, normed_hi, alpha=0.2)
+
+        if plot_original is True:
+            normed = []
+            for el in element_order:
+                normed.append(self.chemistry[el]/normalisation[el])
+            a.plot(range(len(element_order)), normed)
+
+        if crystal_fraction is not None:
+            unnormed = self.crystallisation_chemistry(crystal_fraction, **kwargs)
+            normed = []
+            for el in element_order:
+                normed.append(unnormed[el]/normalisation[el])
+            a.plot(range(len(element_order)), normed)
+
+        a.set_yscale('log')
+        a.set_xticks(range(len(element_order)))
+        a.set_xticklabels(element_order)
+        a.set_ylabel('Normalised concentration')
+
+        return f, a
 
 
 class SpreadingCentre(GeoSetting):
