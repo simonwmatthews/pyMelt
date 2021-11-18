@@ -192,7 +192,7 @@ class mantle:
             F[i] = self.lithologies[i].F(P, T)
         return F
 
-    def dFdP(self, P, T):
+    def dFdP(self, P, T, prevent_freezing=False):
         """
         Calculates the value of dFdP for each lithology at the given pressure
         and temperature, using Eq(26) of Phipps Morgan (2001).
@@ -203,6 +203,8 @@ class mantle:
             Pressure in GPa.
         T : float
             Temperature in degC.
+        prevent_freezing : bool, default: False
+            If set to True, any dFdP values > 0 will be set to 0.
 
         Returns
         -------
@@ -242,6 +244,9 @@ class mantle:
                           + bulk_props['CP'] / (T + 273.15) * dTdF[key])
 
                 dFdP[key] = - top / bottom
+
+                if prevent_freezing is True and dFdP[key] > 0:
+                    dFdP[key] = 0.0
 
         return dFdP
 
@@ -347,8 +352,8 @@ class mantle:
 
         return T
 
-    def AdiabaticMelt(self, Tp, Pstart=None, Pend=0.01, steps=1001, ReportSSS=True,
-                      adjust_pressure=True):
+    def AdiabaticMelt(self, Tp, Pstart=None, Pend=0.01, dP=-0.004, steps=None, ReportSSS=True,
+                      adjust_pressure=True, prevent_freezing=True, warn_prevent_freezing=True):
         """
         Performs simultaneous integration of dFdP and dTdP to obtain the thermal gradient
         through the melting region. F of each lithology is then calculated using the P,T path.
@@ -365,8 +370,12 @@ class mantle:
             at the solidus.
         Pend : float, default: 0.0
             The pressure (in GPa) at which to stop upwelling.
-        steps : int, default: 1001
-            The number of dP increments to split the melting region into.
+        dP : float, default: -0.004
+            The step size in pressure (GPa) to use in the calculation. If the argument steps is
+            set, dP will be ignored.
+        steps : None or int, default: None
+            The number of dP increments to split the melting region into. If set to None, the
+            number of steps is determined by dP.
         ReportSSS : bool, default: True
             Print to the console if the start is above the solidus of one of the lithologies.
             Either way the code will calculate the melt fraction at this point by conserving
@@ -374,6 +383,12 @@ class mantle:
         adjust_pressure : bool, default: True
             If True, the pressure range will be adjusted slightly so that one point coincides with
             the solidus. This should avoid issues with discretisation.
+        prevent_freezing : bool, default: True
+            In some melting regions heat extraction by one lithology can cause another's melts to
+            partially freeze (releasing some heat). If set to True this is prevented from
+            happening. This is most useful when modelling fractional melt extraction.
+        warn_prevent_freezing : bool, default: True
+            If set to True, when a melt is prevented from freezing, a warning will be raised.
 
         Returns
         -------
@@ -382,14 +397,20 @@ class mantle:
             crustal thickness may then be performed on this instance, if desired.
         """
 
-        T = np.zeros(steps)
         if Pstart is None:
             solidus_intersect = self.solidus_intersection(Tp)
             Pstart = np.nanmax(solidus_intersect) + 1e-5
+            adjust_pressure = False
 
+        if steps is None:
+            P = np.arange(Pstart, Pend, dP)
+            steps = len(P)
+        else:
+            P = np.linspace(Pstart, Pend, steps)
+            dP = (Pend - Pstart) / (steps - 1)
+
+        T = np.zeros(steps)
         T[0] = self.adiabat(Pstart, Tp)
-        P = np.linspace(Pstart, Pend, steps)
-        dP = (Pend - Pstart) / (steps - 1)
 
         if (adjust_pressure is True
                 and T[0] < np.nanmin(self.solidus_intersection_isobaric(Pstart))):
@@ -429,17 +450,24 @@ class mantle:
 
                 # If melting is ongoing
                 else:
-                    k1 = self.dFdP(P[i - 1], T[i - 1])
+                    k1 = self.dFdP(P[i - 1], T[i - 1], prevent_freezing)
                     j1 = self.dTdP(P[i - 1], T[i - 1], k1)
-                    k2 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1)
+                    k2 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, prevent_freezing)
                     j2 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, k2)
-                    k3 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2)
+                    k3 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, prevent_freezing)
                     j3 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, k3)
-                    k4 = self.dFdP(P[i], T[i - 1] + dP * j3)
+                    k4 = self.dFdP(P[i], T[i - 1] + dP * j3, prevent_freezing)
                     j4 = self.dTdP(P[i], T[i - 1] + dP * j3, k4)
 
                     T[i] = T[i - 1] + dP / 6 * (j1 + 2 * j2 + 2 * j3 + j4)
                     F[i] = self.F(P[i], T[i])
+
+                    if prevent_freezing is True:
+                        for j in range(self.number_lithologies):
+                            if F[i, j] < F[i - 1, j]:
+                                F[i, j] = F[i - 1, j]
+                                if warn_prevent_freezing is True:
+                                    warn("Freezing prevented.")
 
         results = pd.DataFrame(F, columns=self.names)
         results['P'] = P

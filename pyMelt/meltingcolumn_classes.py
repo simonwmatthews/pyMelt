@@ -13,6 +13,7 @@ from pyMelt.core import InputError
 import matplotlib.pyplot as plt
 import pandas as pd
 import pyMelt.chemistry
+from copy import copy as _copy
 
 
 class MeltingColumn():
@@ -163,10 +164,10 @@ class MeltingColumn():
         """
         # Check if using defaults, and assemble args if so:
         if method == 'default':
-            if self.mantle.number_lithologies > 1:
-                warn("The default parameters are being used which are suitable only for "
-                     "lherzolite. If one of your lithologies is pyroxenite the results will not "
-                     "be reliable.")
+            # if self.mantle.number_lithologies > 1:
+            #     warn("The default parameters are being used which are suitable only for "
+            #          "lherzolite. If one of your lithologies is pyroxenite the results will not "
+            #          "be reliable.")
             kwargs['olv_D'] = pyMelt.chemistry.olv_D
             kwargs['cpx_D'] = pyMelt.chemistry.cpx_D
             kwargs['opx_D'] = pyMelt.chemistry.opx_D
@@ -176,12 +177,19 @@ class MeltingColumn():
             kwargs['D'] = pyMelt.chemistry.workman05_D
             method = pyMelt.chemistry.default_methods
 
+        # Check if all elements are provided for each lithology
+        if elements is not None and len(elements) > 1:
+            lithologies = list(elements.keys())
+            if any(set(elements[lith].keys()) != set(elements[lithologies[0]].keys())
+                   for lith in lithologies):
+                elements = self._tidy_chemistry_inputs(elements)
+
         # Assemble the species_objects dictionary if not provided
         if species_objects is None:
             if elements is None and self.mantle.number_lithologies == 1:
                 print("Lithology composition is set to the depleted mantle of Workman & Hart "
                       "(2005).")
-                elements = {self.mantle.names[0]: pyMelt.chemistry.workman05_ddm}
+                elements = {self.mantle.names[0]: pyMelt.chemistry.workman05_dmm}
             elif elements is None:
                 raise InputError("Either species_objects or elements must be provided.")
 
@@ -201,7 +209,7 @@ class MeltingColumn():
                     else:
                         kwargs_recon[kw] = kwargs[kw]
                 species_objects[lith] = self._create_species_objects(elements[lith],
-                                                                     method,
+                                                                     method_recon,
                                                                      **kwargs_recon)
 
         self._species_calc_type = {}
@@ -255,8 +263,26 @@ class MeltingColumn():
                         kwargs_recon[arg] = None
                 else:
                     kwargs_recon[arg] = kwargs[arg]
-            if isinstance(method, dict) and method.keys() == elements.keys():
+            if isinstance(method, dict) and any(item in method.keys() for item in elements.keys()):
                 species_objects.append(methods[method[el]](el, elements[el], **kwargs_recon))
             else:
                 species_objects.append(methods[method](el, elements[el], **kwargs_recon))
         return species_objects
+
+    def _tidy_chemistry_inputs(self, elements):
+        lithologies = list(elements.keys())
+
+        elements_list = list(elements[lithologies[0]].keys())
+        for lith in lithologies:
+            to_pop = []
+            for i in range(len(elements_list)):
+                if elements_list[i] not in elements[lith]:
+                    to_pop.append(i)
+            for i in range(len(to_pop)):
+                elements_list.pop(to_pop[i] - i)
+
+        reconstruct = {}
+        for lith in lithologies:
+            reconstruct[lith] = {el: elements[lith][el] for el in elements_list}
+
+        return reconstruct

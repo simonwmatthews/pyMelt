@@ -19,6 +19,28 @@ from warnings import warn
 
 import pyMelt.chemistry
 
+# Weighting function
+def weighting_expdecay(P, weighting_wavelength, weighting_amplitude=1.0):
+    """
+    Weights melts according to an exponential decay function, with the greatest weighting at the
+    base of the melting region, and zero weighting at the top.
+
+    Parameters
+    ----------
+    P : numpy.array or pandas.Series
+        The complete set of pressure values for the melting region.
+    weighting_wavelength : float
+        The wavelength of the exponential decay (applied to pressures normalised to vary between
+        0 and 1).
+    weighting_amplitude : float, default: 1.0
+        The amplitude of the exponential function.
+    """
+    Pmax = _np.max(MeltingColumn.P)
+    Pmax = _np.min(MeltingColumn.P)
+
+    w = amplitude * _np.exp(- wavelength * (Pmax - P) / (Pmax - Pmin))
+
+    return w
 
 class GeoSetting(object):
     """
@@ -28,6 +50,13 @@ class GeoSetting(object):
     ----------
     MeltingColumn : pyMelt.meltingcolumn_classes.MeltingColumn
         The melting column from which to construct the geological setting.
+    weightingFunction : function or None, default: None
+        A function used to apply an additional weighting to melts during homogenisation, perhaps
+        for simulating the behaviour of active upwelling. The result from the function will be
+        added to the triangular weighting applied already. The function must take the melting
+        region pressures (as a numpy array or pandas Series) as its first argument, any other
+        arguments will be passed in kwargs.
+
 
     Attributes
     ----------
@@ -39,10 +68,12 @@ class GeoSetting(object):
         The mantle object from which the melting column was calculated.
     """
 
-    def __init(self, MeltingColumn):
+    def __init(self, MeltingColumn, weightingFunction = None, **kwargs):
         self.MeltingColumn = MeltingColumn
         self.lithologies = MeltingColumn.lithologies
         self.mantle = MeltingColumn.mantle
+        self.weightingFunction = weightingFunction
+        self.kwargs = kwargs
 
     def crystallisation_chemistry(self, mineralProportions, fractionate=True,
                                   D = pyMelt.chemistry.defaultD):
@@ -115,7 +146,7 @@ class GeoSetting(object):
 
         default_norms = {'PM': pyMelt.chemistry.palme13_pm,
                          'CI': pyMelt.chemistry.palme13_ci,
-                         'DM': pyMelt.chemistry.workman05_ddm}
+                         'DM': pyMelt.chemistry.workman05_dmm}
 
         if isinstance(normalisation, str):
             normalisation = default_norms[normalisation]
@@ -160,6 +191,22 @@ class GeoSetting(object):
 
         return f, a
 
+    def _weighting_coefficients(self, P):
+        """
+        Calculates the weighting coefficients, or returns 0 if no weighting function is supplied.
+
+        Parameters
+        ----------
+        P : numpy.array or pandas.Series
+            The complete set of pressure values for the melting region.
+        """
+        if self.weightingFunction is not None:
+            weights = self.weightingFunction(P, self.kwargs)
+        else:
+            weights = _np.zeros(_np.shape(P))
+
+        return weights
+
 
 class SpreadingCentre(GeoSetting):
     """
@@ -184,6 +231,12 @@ class SpreadingCentre(GeoSetting):
         results will be interpolated over the new number of steps. This primarily controls how
         finely the crustal thickness is determined, i.e., the size of the P overstep in obtaining
         the crustal thickness.
+    weightingFunction : function or None, default: None
+        A function used to apply an additional weighting to melts during homogenisation, perhaps
+        for simulating the behaviour of active upwelling. The result from the function will be
+        added to the triangular weighting applied already. The function must take the melting
+        region pressures (as a numpy array or pandas Series) as its first argument, any other
+        arguments will be passed in kwargs.
 
     Attributes
     ----------
@@ -205,7 +258,8 @@ class SpreadingCentre(GeoSetting):
         The homogenised melt composition
     """
 
-    def __init__(self, MeltingColumn, P_lithosphere=0.0, extract_melt=False, steps=10001):
+    def __init__(self, MeltingColumn, P_lithosphere=0.0, extract_melt=False, steps=10001,
+                 weightingFunction=None, **kwargs):
         self.MeltingColumn = MeltingColumn
         self.lithologies = copy(MeltingColumn.lithologies)
         self.mantle = MeltingColumn.mantle
@@ -213,6 +267,8 @@ class SpreadingCentre(GeoSetting):
         self.T = copy(self.MeltingColumn.T)
         self.F = copy(self.MeltingColumn.F)
         self.P_lithosphere = P_lithosphere
+        self.weightingFunction = weightingFunction
+        self.kwargs = kwargs
 
         # These will be set by the `integrate_tri` method.
         self.tc = None
@@ -267,8 +323,11 @@ class SpreadingCentre(GeoSetting):
         """
         rho = self.mantle.bulk_properties()['rho']
         g = 9.81
+
+        # Calculate the contributions to tc (without additional weighting)
         tc = 1.0 / (rho * g * 1e3) * self.MeltingColumn.F / (1.0 - self.MeltingColumn.F)
 
+        # Do the same for the individual lithologies
         Flith = _pd.DataFrame()
         for i in range(self.mantle.number_lithologies):
             Flith[self.mantle.names[i]] = self.lithologies[self.mantle.names[i]].F
@@ -293,6 +352,8 @@ class SpreadingCentre(GeoSetting):
                 for j in range(_np.shape(P)[0]):
                     tc_lith[j, i] = interp_lith[i](P[j])
 
+        weights = self._weighting_coefficients(P)
+
         tc_int = _np.zeros(_np.shape(P)[0])
         tc_lith_int = _np.zeros([_np.shape(P)[0], _np.shape(tc_lith)[1]])
         tc_intP = _np.zeros(_np.shape(P)[0])
@@ -302,9 +363,9 @@ class SpreadingCentre(GeoSetting):
 
         for i in range(_np.shape(P)[0]):
             if i != 0:
-                tc_int[i] = tc_int[i - 1] + tc[i] * _np.abs(P[i] - P[i - 1])
+                tc_int[i] = tc_int[i - 1] + tc[i] * (_np.abs(P[i] - P[i - 1]) + weights)
                 tc_lith_int[i] = (tc_lith_int[i - 1]
-                                  + tc_lith[i] * _np.abs(P[i] - P[i - 1]))
+                                  + tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
                 if(extract_melt is False and tc_intP[i] + P_base_existingLith > P[i]
                    and tc_found is False):
@@ -340,6 +401,8 @@ class SpreadingCentre(GeoSetting):
                 species = list(self.lithologies[lith].columns)[3:]
                 first_lithology = False
 
+        weights = self._weighting_coefficients(self.MeltingColumn.P)
+
         cm = _np.zeros([len(species)])
         for lith in self.mantle.names:
             if self.lithology_contributions[lith] > 0:
@@ -367,9 +430,10 @@ class SpreadingCentre(GeoSetting):
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
                 # Normalise melts for this lithology
-                c = trapz(c * f[:, None] / (1.0 - f[:, None]),
+                c = trapz((1 + weights) * c * f[:, None] / (1.0 - f[:, None]),
                           self.lithologies[lith]['Pressure'].to_numpy()[:], axis=0)
-                c = c / trapz(f / (1 - f), self.lithologies[lith]['Pressure'].to_numpy())
+                c = c / trapz((1 + weights) * f / (1 - f),
+                              self.lithologies[lith]['Pressure'].to_numpy())
 
                 # Normalise melts for all lithologies
                 cm += c * self.lithology_contributions[lith]
@@ -447,6 +511,9 @@ class OceanIsland(GeoSetting):
         al. (2014).
     radius : float, default: 1e5
         The plume radius in m. Default is 1e5 m (or 100 km), after Shorttle et al. (2014).
+    weighting_function : function or None
+        A function of pressure allowing non-uniform weighting of melts throughout the melting
+        region. Useful for simulating active upwelling, for example.
 
     Attributes
     ----------

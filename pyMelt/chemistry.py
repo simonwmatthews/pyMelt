@@ -38,7 +38,7 @@ default_methods = {'Rb': 'continuous_instantaneous',
                    'Lu': 'invmel'
                    }
 
-workman05_ddm = {'Rb': 0.05,
+workman05_dmm = {'Rb': 0.05,
                  'Ba': 0.563,
                  'Th': 0.0079,
                  'U': 0.0032,
@@ -101,7 +101,6 @@ stracke03_bsic = {'Rb': 0.57,
                   'La': 1.68,
                   'Ce': 5.89,
                   'Pb': 0.09,
-                  'Pr': _np.nan,
                   'Nd': 7.45,
                   'Sr': 81.0,
                   'Zr': 64.0,
@@ -110,9 +109,7 @@ stracke03_bsic = {'Rb': 0.57,
                   'Eu': 1.04,
                   'Ti': 7735.0,
                   'Gd': 4.03,
-                  'Tb': _np.nan,
                   'Dy': 5.01,
-                  'Ho': _np.nan,
                   'Y': 28.5,
                   'Er': 3.13,
                   'Yb': 2.99,
@@ -548,10 +545,11 @@ class invmelSpecies(species):
         and columns: mo91_MineralProportions, klb1_MineralProportions, kg1_MineralProportions.
     densiy : float, default: 3.3
         The density of the mantle (g cm-3)
-    modal : str, default: 'NonModalVariable'
+    modal : str, default: 'NonModalFixed'
         One of 'NonModalFixed', or 'NonModalVariable'. NEED MORE INFO HERE.
-    modalValue : int, default: 0.18
-        NEED MORE INFO HERE. The modal value to use with NonModalFixed.
+    cpxExhaustion : int, default: 0.18
+        The melt fraction at which cpx (and grt/plg/spn) are exhausted. The modal value to use
+        with NonModalFixed.
     garnetInCoeffs : list of floats, default: [666.7, 400.0]
         The coefficients to use in the garnet in surface, T = [0] * P - [1]. Default values are
         appropriate for lherzolite.
@@ -577,7 +575,7 @@ class invmelSpecies(species):
 
     def __init__(self, name, c0, olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
              mineralProportions=mo91_MineralProportions, density=3.3,
-             modal='NonModalFixed', modalValue=0.18, garnetInCoeffs = [666.7, 400.0],
+             modal='NonModalFixed', cpxExhaustion=0.18, garnetInCoeffs = [666.7, 400.0],
              spinelOutCoeffs = [666.7, 533.0], plagioclaseInInterval = [25.0, 35.0], **kwargs):
                 self.calculation_type = "instantaneous"
                 self.name = name
@@ -587,7 +585,7 @@ class invmelSpecies(species):
                 self.mineralProportions_solid = mineralProportions
                 self.density = density
                 self.modal = modal
-                self.modalValue = modalValue
+                self.modalValue = cpxExhaustion
                 self.garnetInCoeffs = garnetInCoeffs
                 self.spinelOutCoeffs = spinelOutCoeffs
                 self.plagioclaseInInterval = plagioclaseInInterval
@@ -597,7 +595,7 @@ class invmelSpecies(species):
     def composition(self, state):
         # Check if this is a new calculation or not:
         if state.F < self._F_prev:
-            self._cs = c0
+            self._cs = self.c0
 
         if state.F == 1:
             return self._cl_prev
