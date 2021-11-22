@@ -432,7 +432,7 @@ class BatchSpecies(species):
             will most likely be generated automatically by the `MeltingColumn_1D` class.
 
         """
-        return self.c0 / (self.D * (1 - state['F']) + state['F'])
+        return self.c0 / (self.D(state) * (1 - state['F']) + state['F'])
 
     def D(self, state):
         """
@@ -476,7 +476,7 @@ class ContinuousSpecies_instantaneous(species):
         self.calculation_type = "instantaneous"
         self.name = name
         self.c0 = c0
-        self.D = D
+        self._D = D
         self.phi = phi
 
     def composition(self, state):
@@ -492,9 +492,33 @@ class ContinuousSpecies_instantaneous(species):
 
         """
 
-        exponent = (1 - self.phi) * (1 - self.D) / ((1 - self.phi) * self.D + self.phi)
+        D = self.D(state)
 
-        return self.c0 / ((1 - self.phi) * self.D + self.phi) * (1 - state.F)**exponent
+        exponent = (1 - self.phi) * (1 - D) / ((1 - self.phi) * D + self.phi)
+
+        return self.c0 / ((1 - self.phi) * D + self.phi) * (1 - state.F)**exponent
+
+    def D(self, state):
+        """
+        The partition coefficient. If a constant partition coefficient is used it will return that
+        value. If a variable coefficient is used it will call the function to calculate it.
+
+        Parameters
+        ----------
+        state : pandas.Series
+            The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+            will most likely be generated automatically by the `MeltingColumn_1D` class.
+
+        Returns
+        -------
+        float
+            The partition coefficient
+        """
+        if callable(self._D):
+            d = self._D(state)
+        else:
+            d = self._D
+        return d
 
 
 class ContinuousSpecies_accumulated(species):
@@ -516,7 +540,7 @@ class ContinuousSpecies_accumulated(species):
         self.calculation_type = "accumulated"
         self.name = name
         self.c0 = c0
-        self.D = D
+        self._D = D
         self.phi = phi
 
     def composition(self, state):
@@ -531,9 +555,31 @@ class ContinuousSpecies_accumulated(species):
 
         """
 
-        Deff = (1 - self.phi) * self.D + self.phi
+        Deff = (1 - self.phi) * self.D(state) + self.phi
 
         return self.c0 / state.F * (1 - (1 - state.F)**(1 / Deff))
+
+    def D(self, state):
+        """
+        The partition coefficient. If a constant partition coefficient is used it will return that
+        value. If a variable coefficient is used it will call the function to calculate it.
+
+        Parameters
+        ----------
+        state : pandas.Series
+            The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+            will most likely be generated automatically by the `MeltingColumn_1D` class.
+
+        Returns
+        -------
+        float
+            The partition coefficient
+        """
+        if callable(self._D):
+            d = self._D(state)
+        else:
+            d = self._D
+        return d
 
 
 class invmelSpecies(species):
@@ -602,7 +648,7 @@ class invmelSpecies(species):
                 self.calculation_type = "instantaneous"
                 self.name = name
                 self.c0 = c0
-                self.D = {'olv':olv_D, 'cpx':cpx_D, 'opx':opx_D,
+                self._D = {'olv':olv_D, 'cpx':cpx_D, 'opx':opx_D,
                           'spn':spn_D, 'grt':grt_D, 'plg':plg_D}
                 self.mineralProportions_solid = mineralProportions
                 self.density = density
@@ -659,6 +705,32 @@ class invmelSpecies(species):
 
         return cl
 
+    def D(self, state):
+        """
+        The partition coefficient. If a constant partition coefficient is used it will return that
+        value. If a variable coefficient is used it will call the function to calculate it.
+
+        Parameters
+        ----------
+        state : pandas.Series
+            The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+            will most likely be generated automatically by the `MeltingColumn_1D` class.
+
+        Returns
+        -------
+        float
+            The partition coefficient
+        """
+        d = {}
+
+        for min in self._D:
+            if callable(self._D[min]):
+                d[min] = self._D[min](state)
+            else:
+                d[min] = self._D[min]
+
+        return d
+
     def mineralProportions(self, P, T):
         GarnetSpinel = self._GarnetSpinelTransition(P, T)
         SpinelPlagioclase = self._SpinelPlagioclaseTransition(P)
@@ -687,6 +759,7 @@ class invmelSpecies(species):
 
     def D_bulk(self, P, T, F=0.0):
         mineralProportions = self.mineralProportions(P, T)
+        Dminerals = self.D(_pd.Series({'Pressure': P, 'T': T}))
 
         modalValue = self.modalValue
         if self.modal == 'NonModalVariable':
@@ -694,16 +767,17 @@ class invmelSpecies(species):
                           + mineralProportions['spn'] + mineralProportions['plg'])
 
         if F < modalValue:
-            D = sum([self.D[min] * mineralProportions[min] for min in mineralProportions.index])
+            D = sum([Dminerals[min] * mineralProportions[min] for min in mineralProportions.index])
         else:
-            D = ((self.D['olv'] * mineralProportions['olv']
-                  + self.D['opx'] * mineralProportions['opx'])
+            D = ((Dminerals['olv'] * mineralProportions['olv']
+                  + Dminerals['opx'] * mineralProportions['opx'])
                  / (mineralProportions['olv'] + mineralProportions['opx']))
 
         return D
 
     def P_bulk(self, P, T, F=0.0):
         mineralProportions = self.mineralProportions(P, T)
+        Dminerals = self.D(_pd.Series({'Pressure': P, 'T': T}))
 
         modalValue = self.modalValue
         if self.modal == 'NonModalVariable':
@@ -733,7 +807,7 @@ class invmelSpecies(species):
             p['spn'] = 0
             p['plg'] = 0
 
-        Pbar = sum([self.D[min] * p[min] for min in self.D.keys()])
+        Pbar = sum([Dminerals[min] * p[min] for min in Dminerals.keys()])
 
         return Pbar
 
