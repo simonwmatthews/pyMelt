@@ -11,3 +11,4 @@ interactively on myBinder also.
 
    tutorial1
    tutorial2
+   tutorial3
