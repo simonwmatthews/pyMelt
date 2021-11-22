@@ -35,10 +35,10 @@ def weighting_expdecay(P, weighting_wavelength, weighting_amplitude=1.0):
     weighting_amplitude : float, default: 1.0
         The amplitude of the exponential function.
     """
-    Pmax = _np.max(MeltingColumn.P)
-    Pmax = _np.min(MeltingColumn.P)
+    Pmax = _np.max(P)
+    Pmin = _np.min(P)
 
-    w = amplitude * _np.exp(- wavelength * (Pmax - P) / (Pmax - Pmin))
+    w = weighting_amplitude * _np.exp(- 1 / weighting_wavelength * (Pmax - P) / (Pmax - Pmin))
 
     return w
 
@@ -191,7 +191,7 @@ class GeoSetting(object):
 
         return f, a
 
-    def _weighting_coefficients(self, P):
+    def _weighting_coefficients(self, P, empty_value = 0.0):
         """
         Calculates the weighting coefficients, or returns 0 if no weighting function is supplied.
 
@@ -201,9 +201,9 @@ class GeoSetting(object):
             The complete set of pressure values for the melting region.
         """
         if self.weightingFunction is not None:
-            weights = self.weightingFunction(P, self.kwargs)
+            weights = self.weightingFunction(P, **self.kwargs)
         else:
-            weights = _np.zeros(_np.shape(P))
+            weights = _np.full(_np.shape(P), empty_value)
 
         return weights
 
@@ -352,7 +352,7 @@ class SpreadingCentre(GeoSetting):
                 for j in range(_np.shape(P)[0]):
                     tc_lith[j, i] = interp_lith[i](P[j])
 
-        weights = self._weighting_coefficients(P)
+        weights = self._weighting_coefficients(_np.array(P))
 
         tc_int = _np.zeros(_np.shape(P)[0])
         tc_lith_int = _np.zeros([_np.shape(P)[0], _np.shape(tc_lith)[1]])
@@ -363,9 +363,9 @@ class SpreadingCentre(GeoSetting):
 
         for i in range(_np.shape(P)[0]):
             if i != 0:
-                tc_int[i] = tc_int[i - 1] + tc[i] * (_np.abs(P[i] - P[i - 1]) + weights)
+                tc_int[i] = tc_int[i - 1] + tc[i] * (_np.abs(P[i] - P[i - 1]) + weights[i])
                 tc_lith_int[i] = (tc_lith_int[i - 1]
-                                  + tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights))
+                                  + tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
                 if(extract_melt is False and tc_intP[i] + P_base_existingLith > P[i]
                    and tc_found is False):
@@ -430,7 +430,7 @@ class SpreadingCentre(GeoSetting):
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
                 # Normalise melts for this lithology
-                c = trapz((1 + weights) * c * f[:, None] / (1.0 - f[:, None]),
+                c = trapz((1 + weights[:, None]) * c * f[:, None] / (1.0 - f[:, None]),
                           self.lithologies[lith]['Pressure'].to_numpy()[:], axis=0)
                 c = c / trapz((1 + weights) * f / (1 - f),
                               self.lithologies[lith]['Pressure'].to_numpy())
@@ -489,12 +489,12 @@ class SpreadingCentre(GeoSetting):
         return TcrysMin, TcrysMax
 
 
-class OceanIsland(GeoSetting):
+class IntraPlate(GeoSetting):
     """
-    Implementation of an ocean island, representing mantle upwelling beneath lithosphere. The
-    melt flux is calculated assuming flow in a deformable plume conduit (Turcotte and Schubert,
-    2002). At present a constant rate of decompression throughout the conduit is assumed, likely
-    leading to inaccuracies in the estimated melt chemistry.
+    Implementation of an intra-plate volcanic province, representing mantle upwelling beneath
+    lithosphere. The melt flux is calculated assuming flow in a deformable plume conduit (Turcotte
+    and Schubert, 2002). At present a constant rate of decompression throughout the conduit is
+    assumed, likely leading to inaccuracies in the estimated melt chemistry.
 
     Parameters
     ----------
@@ -534,7 +534,7 @@ class OceanIsland(GeoSetting):
     """
 
     def __init__(self, MeltingColumn, P_lithosphere, relative_density=None, viscosity=1e19,
-                 radius=1e5):
+                 radius=1e5, weightingFunction=None, **kwargs):
         self.MeltingColumn = MeltingColumn
         self.lithologies = copy(MeltingColumn.lithologies)
         self.P_lithosphere = P_lithosphere
@@ -542,6 +542,8 @@ class OceanIsland(GeoSetting):
         self.P = copy(self.MeltingColumn.P)
         self.T = copy(self.MeltingColumn.T)
         self.F = copy(self.MeltingColumn.F)
+        self.weightingFunction = weightingFunction
+        self.kwargs = kwargs
 
         # Remove melts that are produced more shallow than the base of the lithosphere
         self.F = self.F[self.P > self.P_lithosphere]
@@ -601,6 +603,8 @@ class OceanIsland(GeoSetting):
 
         Where :math:`F` is the total melt fraction obtained.
         """
+        if self.weightingFunction is not None:
+            warn("The weighting function will not be applied to the melt flux.")
         Qv = _np.pi / 8 * (relative_density * 9.81 * radius**4) / viscosity
         Qm = Qv * self.F.max()
         return Qm
@@ -621,6 +625,10 @@ class OceanIsland(GeoSetting):
                 first_lithology = False
 
         cm = _np.zeros([len(species)])
+
+        # Calculate the weighting for each melt
+        w = self._weighting_coefficients(self.MeltingColumn.P, empty_value=1.0)
+
         for lith in self.mantle.names:
             if self.lithology_contributions[lith] > 0:
                 # Get the chemistry for the lithology
@@ -639,13 +647,19 @@ class OceanIsland(GeoSetting):
                         for i in range(_np.shape(c)[0] - 1):
                             if f[i] > 0 and f[i - 1] > 0:
                                 cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1, j] + c[0:i, j])
-                                                     * df[:i], axis=0) / f[i])
+                                                     * df[:i] * w[1:i + 1], axis=0)
+                                                  / _np.sum(df[:i]*w[1:i + 1]))
                             elif f[i] > 0:
                                 cnormed[i + 1] = (_np.sum(c[1:i + 1, j]
-                                                     * df[:i], axis=0) / f[i])
+                                                     * df[:i] * w[1:i + 1], axis=0)
+                                                  / _np.sum(df[:i] * w[1:i + 1]))
                             else:
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
+                    elif self.weightingFunction is not None:
+                        warn("Accumulated melts cannot be used with a weighting function for "
+                             " an intra-plate melting region.")
+                        c[:, j] = [_np.nan]*np.shape(c)[0]
                 # Normalise melts for all lithologies
                 cm += c[-1, :] * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)

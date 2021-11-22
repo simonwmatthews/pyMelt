@@ -419,7 +419,7 @@ class BatchSpecies(species):
         self.calculation_type = "accumulated"
         self.name = name
         self.c0 = c0
-        self.D = D
+        self._D = D
 
     def composition(self, state):
         """
@@ -433,6 +433,28 @@ class BatchSpecies(species):
 
         """
         return self.c0 / (self.D * (1 - state['F']) + state['F'])
+
+    def D(self, state):
+        """
+        The partition coefficient. If a constant partition coefficient is used it will return that
+        value. If a variable coefficient is used it will call the function to calculate it.
+
+        Parameters
+        ----------
+        state : pandas.Series
+            The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+            will most likely be generated automatically by the `MeltingColumn_1D` class.
+
+        Returns
+        -------
+        float
+            The partition coefficient
+        """
+        if callable(self._D):
+            d = self._D(state)
+        else:
+            d = self._D
+        return d
 
 
 class ContinuousSpecies_instantaneous(species):
