@@ -20,6 +20,9 @@ Modules
 .. automodule:: pyMelt.geosettings
   :members:
 
+.. automodule:: pyMelt.chemistry
+  :members:
+
 .. automodule:: pyMelt.lithologies
   :members:
 
