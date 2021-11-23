@@ -37,6 +37,9 @@ default_methods = {'Rb': 'continuous_instantaneous',
                    'Yb': 'invmel',
                    'Lu': 'invmel'
                    }
+"""
+The method to use for each element when a method isn't otherwise specified.
+"""
 
 workman05_dmm = {'Rb': 0.05,
                  'Ba': 0.563,
@@ -64,6 +67,10 @@ workman05_dmm = {'Rb': 0.05,
                  'Yb': 0.365,
                  'Lu': 0.058
                  }
+"""
+The trace element concentrations in the depleted MORB mantle from Workman & Hart (2005). All
+concentrations are in ppmw.
+"""
 
 workman05_D = {'Rb': 1e-5,
                'Ba': 0.00012,
@@ -91,6 +98,9 @@ workman05_D = {'Rb': 1e-5,
                'Yb': 0.115,
                'Lu': 0.120
                }
+"""
+The bulk partition coefficients for MORB production from Workman & Hart (2005).
+"""
 
 stracke03_bsic = {'Rb': 0.57,
                   'Ba': 6.59,
@@ -114,6 +124,9 @@ stracke03_bsic = {'Rb': 0.57,
                   'Er': 3.13,
                   'Yb': 2.99,
                   'Lu': 0.45}
+"""
+The trace element concentrations (ppmw) in bulk subducted igneous crust from Stracke et al. (2003).
+"""
 
 palme13_pm = {'Rb': 0.605,
               'Ba': 6.85,
@@ -140,6 +153,9 @@ palme13_pm = {'Rb': 0.605,
               'Er': 0.4684,
               'Yb': 0.4774,
               'Lu': 0.07083}
+"""
+The composition of the primitive mantle (ppmw) from Palme & O'Neill (2013).
+"""
 
 palme13_ci = {'Rb': 2.32,
               'Ba': 2.42,
@@ -166,6 +182,9 @@ palme13_ci = {'Rb': 2.32,
               'Er': 0.1655,
               'Yb': 0.1687,
               'Lu': 0.02503}
+"""
+Trace element concentrations in a CI chondrite (ppmw) from Palme & O'Neill (2013).
+"""
 
 # From Gibson & Geist compilation
 olv_D = {'Rb': 0.0003,
@@ -194,6 +213,9 @@ olv_D = {'Rb': 0.0003,
          'Yb': 0.020,
          'Lu': 0.020,
          }
+"""
+Trace element partition coefficients between olivine and melt, compiled by Gibson & Geist (2010).
+"""
 
 # From Gibson & Geist compilation
 opx_D = {'Rb': 0.0002,
@@ -222,6 +244,10 @@ opx_D = {'Rb': 0.0002,
          'Yb': 0.080,
          'Lu': 0.120,
          }
+"""
+Trace element partition coefficients between orthopyroxene and melt, compiled by Gibson & Geist
+(2010).
+"""
 
 # From Gibson & Geist compilation
 cpx_D = {'Rb': 0.0004,
@@ -250,6 +276,10 @@ cpx_D = {'Rb': 0.0004,
          'Yb': 0.400,
          'Lu': 0.376,
          }
+"""
+Trace element partition coefficients between clinopyroxene and melt, compiled by Gibson & Geist
+(2010).
+"""
 
 # From Gibson & Geist compilation
 grt_D = {'Rb': 0.0002,
@@ -278,6 +308,9 @@ grt_D = {'Rb': 0.0002,
          'Yb': 6.600,
          'Lu': 7.100,
          }
+"""
+Trace element partition coefficients between garnet and melt, compiled by Gibson & Geist (2010).
+"""
 
 # alphaMELTS defaults
 spn_D = {'Rb': 0.0001,
@@ -306,6 +339,9 @@ spn_D = {'Rb': 0.0001,
          'Yb': 0.0100,
          'Lu': 0.0100,
          }
+"""
+Trace element partition coefficients between spinel and melt, compiled by Gibson & Geist (2010).
+"""
 
 plg_D = {'Rb': 0.03,
          'Ba': 0.33,
@@ -333,6 +369,10 @@ plg_D = {'Rb': 0.03,
          'Yb': 0.031,
          'Lu': 0.0250,
          }
+"""
+Trace element partition coefficients between plagioclase and melt, compiled by Gibson & Geist
+(2010).
+"""
 
 defaultD = _pd.DataFrame({'olv': olv_D,
                          'cpx': cpx_D,
@@ -341,24 +381,39 @@ defaultD = _pd.DataFrame({'olv': olv_D,
                          'grt': grt_D,
                          'spn': spn_D,
                         })
+"""
+Dataframe containing the partition coefficients for each phase in INVMEL.
+"""
 
 klb1_MineralProportions = _pd.DataFrame([[0.609, 0.125, 0.119, 0.147, 0.000, 0.000],
                                          [0.597, 0.233, 0.158, 0.000, 0.012, 0.000],
                                          [0.646, 0.208, 0.076, 0.000, 0.000, 0.070]],
                                         columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'],
                                         index=['grt_field', 'spn_field', 'plg_field'])
+"""
+Mineral proportions (Wt%) for KLB1 in the garnet-, spinel-, and plagioclase-field. NEED TO CONFIRM
+SOURCE.
+"""
 
 kg1_MineralProportions = _pd.DataFrame([[0.181, 0.012, 0.422, 0.385, 0.000, 0.000],
                                         [0.110, 0.178, 0.641, 0.000, 0.071, 0.000],
                                         [0.118, 0.150, 0.655, 0.000, 0.000, 0.067]],
                                        columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'],
                                        index=['grt_field', 'spn_field', 'plg_field'])
+"""
+Mineral proportions (Wt%) for KG1 in the garnet-, spinel-, and plagioclase-field. NEED TO CONFIRM
+SOURCE.
+"""
 
 mo91_MineralProportions = _pd.DataFrame([[0.598, 0.221, 0.076, 0.115, 0.000, 0.000],
                                          [0.578, 0.270, 0.119, 0.000, 0.033, 0.000],
                                          [0.636, 0.263, 0.012, 0.000, 0.000, 0.089]],
                                         columns=['olv', 'opx', 'cpx', 'grt', 'spn', 'plg'],
                                         index=['grt_field', 'spn_field', 'plg_field'])
+"""
+Mineral proportions (Wt%) for lherzolite in the garnet-, spinel-, and plagioclase-field, from
+McKenzie & O'Nions (1991).
+"""
 
 
 class species(object):
