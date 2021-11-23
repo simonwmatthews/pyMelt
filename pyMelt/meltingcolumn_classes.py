@@ -114,18 +114,17 @@ class MeltingColumn():
 
     def calculate_chemistry(self, elements=None, species_objects=None, method='default', **kwargs):
         """
-        Calculate the composition of the melt for each species object supplied. If species objects
-        are not defined manually the default options can be used for each element by specifying
-        them in the elements list. See documentation for more information about the default values.
-        In built methods include batch melting, near-fractional melting, and INVMEL melting.
+        Calculate the composition of the melt according to default (or user defined) chemical
+        models. The method may be run with default options if the mantle consists of only one
+        lithology. Otherwise the parameters for each lithology must be specified, or pre-defined
+        species objects must be provided.
 
         If elements is not set and the mantle is made of one lithology, the composition will be
-        set to the depleted mantle of Workman & Hart (2005). Invmel is used by default, except for
-        Ba and Rb which are modelled using continuous_instantaneous, with the partition
-        coefficients from Workman & Hart (2005).
-
-        Note that the effects of the aluminous phase transitions are not incorporated into the
-        batch and near-fractional melting calculations.
+        set to the depleted mantle of Workman & Hart (2005). The INVMEL forward model is used by
+        default, except for Ba and Rb which are modelled using continuous_instantaneous. The
+        mineral-specific partition coefficients for INVMEL are the constant values compiled by
+        Gibson & Geist (2010). The bulk partition coefficients for Ba and Rb are from Workman &
+        Hart (2005).
 
         Unless passing the species objects directly, the parameters used by the trace element
         model must be given also. If a constant value should be used for every lithology and
@@ -161,6 +160,20 @@ class MeltingColumn():
         The 'continuous' melting routine uses:
          - D, the bulk partition coefficient
          - phi, the porosity during melting (as a fraction, not percent).
+
+        The 'invmel' melting routine uses:
+         - olv_D, the olivine-melt partition coefficient
+         - cpx_D, the olivine-melt partition coefficient
+         - opx_D, the olivine-melt partition coefficient
+         - spn_D, the olivine-melt partition coefficient
+         - grt_D, the olivine-melt partition coefficient
+         - plg_D, the olivine-melt partition coefficient
+         - MineralProportions, the mass fraction of each mineral present (prior to melting) in the
+           spinel, plagioclase, and garnet field.
+         - cpxExhaustion, the melt fraction at which cpx (and grt/plg/spn) are exhausted.
+         - garnetInCoeffs, coefficients controlling the P and T of the garnet in reaction
+         - spinelOutCoeffs, coefficients controlling the P and T of the spinel out reaction
+         - plagioclaseInInterval, The plagioclase in interval (in km).
         """
         # Check if using defaults, and assemble args if so:
         if method == 'default':
@@ -175,7 +188,7 @@ class MeltingColumn():
             for argname in default_kwargs:
                 if argname not in kwargs:
                     kwargs[argname] = default_kwargs[argname]
-                    
+
             method = pyMelt.chemistry.default_methods
 
         # Check if all elements are provided for each lithology

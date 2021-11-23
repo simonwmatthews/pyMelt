@@ -611,13 +611,10 @@ class invmelSpecies(species):
         A dataframe with the proportions of each mineral phase (columns) in the garnet-, spinel-,
         and plagioclase-field for the lithology. See built in defaults for formatting of keys
         and columns: mo91_MineralProportions, klb1_MineralProportions, kg1_MineralProportions.
-    densiy : float, default: 3.3
+    density : float, default: 3.3
         The density of the mantle (g cm-3)
-    modal : str, default: 'NonModalFixed'
-        One of 'NonModalFixed', or 'NonModalVariable'. NEED MORE INFO HERE.
     cpxExhaustion : int, default: 0.18
-        The melt fraction at which cpx (and grt/plg/spn) are exhausted. The modal value to use
-        with NonModalFixed.
+        The melt fraction at which cpx (and grt/plg/spn) are exhausted.
     garnetInCoeffs : list of floats, default: [666.7, 400.0]
         The coefficients to use in the garnet in surface, T = [0] * P - [1]. Default values are
         appropriate for lherzolite.
@@ -643,7 +640,7 @@ class invmelSpecies(species):
 
     def __init__(self, name, c0, olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
              mineralProportions=mo91_MineralProportions, density=3.3,
-             modal='NonModalFixed', cpxExhaustion=0.18, garnetInCoeffs = [666.7, 400.0],
+             cpxExhaustion=0.18, garnetInCoeffs = [666.7, 400.0],
              spinelOutCoeffs = [666.7, 533.0], plagioclaseInInterval = [25.0, 35.0], **kwargs):
                 self.calculation_type = "instantaneous"
                 self.name = name
@@ -652,7 +649,6 @@ class invmelSpecies(species):
                           'spn':spn_D, 'grt':grt_D, 'plg':plg_D}
                 self.mineralProportions_solid = mineralProportions
                 self.density = density
-                self.modal = modal
                 self.modalValue = cpxExhaustion
                 self.garnetInCoeffs = garnetInCoeffs
                 self.spinelOutCoeffs = spinelOutCoeffs
@@ -762,9 +758,6 @@ class invmelSpecies(species):
         Dminerals = self.D(_pd.Series({'Pressure': P, 'T': T}))
 
         modalValue = self.modalValue
-        if self.modal == 'NonModalVariable':
-            modalValue = (mineralProportions['cpx'] + mineralProportions['grt']
-                          + mineralProportions['spn'] + mineralProportions['plg'])
 
         if F < modalValue:
             D = sum([Dminerals[min] * mineralProportions[min] for min in mineralProportions.index])
@@ -780,9 +773,6 @@ class invmelSpecies(species):
         Dminerals = self.D(_pd.Series({'Pressure': P, 'T': T}))
 
         modalValue = self.modalValue
-        if self.modal == 'NonModalVariable':
-            modalValue = (mineralProportions['cpx'] + mineralProportions['grt']
-                          + mineralProportions['spn'] + mineralProportions['plg'])
 
         p = {}
         if F < modalValue:
