@@ -400,7 +400,7 @@ class species(object):
         return _np.nan
 
 
-class BatchSpecies(species):
+class batchSpecies(species):
     """
     Implementation of the species class for batch melting with a constant partition coefficient.
 
@@ -457,7 +457,7 @@ class BatchSpecies(species):
         return d
 
 
-class ContinuousSpecies_instantaneous(species):
+class continuousSpecies_instantaneous(species):
     """
     Implementation of the species class for batch melting with a constant partition coefficient.
 
@@ -521,7 +521,7 @@ class ContinuousSpecies_instantaneous(species):
         return d
 
 
-class ContinuousSpecies_accumulated(species):
+class continuousSpecies_accumulated(species):
     """
     Implementation of the species class for batch melting with a constant partition coefficient.
 
@@ -664,8 +664,8 @@ class invmelSpecies(species):
         if state.F == 1:
             return self._cl_prev
 
-        D = self.D_bulk(state['Pressure'], state['T'], state.F)
-        Pbar = self.P_bulk(state['Pressure'], state['T'], state.F)
+        D = self.D_bulk(state['P'], state['T'], state.F)
+        Pbar = self.P_bulk(state['P'], state['T'], state.F)
 
         if D < 1e-4:
             warn(self.name + " is extremely incompatible, unless the step size is extremely small"
@@ -755,7 +755,7 @@ class invmelSpecies(species):
 
     def D_bulk(self, P, T, F=0.0):
         mineralProportions = self.mineralProportions(P, T)
-        Dminerals = self.D(_pd.Series({'Pressure': P, 'T': T}))
+        Dminerals = self.D(_pd.Series({'P': P, 'T': T}))
 
         modalValue = self.modalValue
 
@@ -770,7 +770,7 @@ class invmelSpecies(species):
 
     def P_bulk(self, P, T, F=0.0):
         mineralProportions = self.mineralProportions(P, T)
-        Dminerals = self.D(_pd.Series({'Pressure': P, 'T': T}))
+        Dminerals = self.D(_pd.Series({'P': P, 'T': T}))
 
         modalValue = self.modalValue
 

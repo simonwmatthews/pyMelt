@@ -16,7 +16,7 @@ import pyMelt.chemistry
 from copy import copy as _copy
 
 
-class MeltingColumn():
+class meltingColumn():
     """
     Class for storing the results of a 1D multi-lithology melting model.
 
@@ -57,7 +57,7 @@ class MeltingColumn():
         self.lithologies = {}
         for i in range(self.mantle.number_lithologies):
             df = pd.DataFrame()
-            df['Pressure'] = self.P
+            df['P'] = self.P
             df['T'] = self.T
             df['F'] = self.calculation_results[self.mantle.names[i]]
             self.lithologies[self.mantle.names[i]] = df
@@ -112,7 +112,7 @@ class MeltingColumn():
 
         return f, a
 
-    def calculate_chemistry(self, elements=None, species_objects=None, method='default', **kwargs):
+    def calculateChemistry(self, elements=None, species_objects=None, method='default', **kwargs):
         """
         Calculate the composition of the melt according to default (or user defined) chemical
         models. The method may be run with default options if the mantle consists of only one
@@ -196,7 +196,11 @@ class MeltingColumn():
             lithologies = list(elements.keys())
             if any(set(elements[lith].keys()) != set(elements[lithologies[0]].keys())
                    for lith in lithologies):
-                elements = self._tidy_chemistry_inputs(elements)
+                       elements = self._tidy_chemistry_inputs(elements)
+
+        if elements is not None and any([el in ['P', 'T', 'F']
+                                         for el in elements[list(elements.keys())[0]]]):
+            raise InputError("Please rename elements so that none of P, T, or F appear.")
 
         # Assemble the species_objects dictionary if not provided
         if species_objects is None:
@@ -261,9 +265,9 @@ class MeltingColumn():
             self.lithologies[lith] = pd.concat([self.lithologies[lith], constructdf], axis=1)
 
     def _create_species_objects(self, elements, method, **kwargs):
-        methods = {'batch': pyMelt.chemistry.BatchSpecies,
-                   'continuous_instantaneous': pyMelt.chemistry.ContinuousSpecies_instantaneous,
-                   'continuous_accumulated': pyMelt.chemistry.ContinuousSpecies_accumulated,
+        methods = {'batch': pyMelt.chemistry.batchSpecies,
+                   'continuous_instantaneous': pyMelt.chemistry.continuousSpecies_instantaneous,
+                   'continuous_accumulated': pyMelt.chemistry.continuousSpecies_accumulated,
                    'invmel': pyMelt.chemistry.invmelSpecies}
         species_objects = []
         for el in elements:

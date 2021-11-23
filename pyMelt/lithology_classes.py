@@ -163,7 +163,7 @@ class lithology(object):
         return dTdF * dFdP
 
 
-class hydrous_lithology(object):
+class hydrousLithology(object):
     r"""
     The hydrous lithology class modifies the melting expressions in a given lithology class so
     that water-present melting can be modelled.

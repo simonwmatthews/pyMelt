@@ -42,7 +42,7 @@ def weighting_expdecay(P, weighting_wavelength, weighting_amplitude=1.0):
 
     return w
 
-class GeoSetting(object):
+class geoSetting(object):
     """
     Base clase for geological settings.
 
@@ -75,7 +75,7 @@ class GeoSetting(object):
         self.weightingFunction = weightingFunction
         self.kwargs = kwargs
 
-    def crystallisation_chemistry(self, mineralProportions, fractionate=True,
+    def crystallisationChemistry(self, mineralProportions, fractionate=True,
                                   D = pyMelt.chemistry.defaultD):
         """
         Calculates the concentrations of elements in the homogenised magma following an interval
@@ -109,7 +109,7 @@ class GeoSetting(object):
             evolved_chemistry = self.chemistry / (X * (1 - Dbulk) + Dbulk)
         return evolved_chemistry
 
-    def plot_spider(self, normalisation = 'PM', plot_instantaneous=False, plot_original=True,
+    def plotSpider(self, normalisation = 'PM', plot_instantaneous=False, plot_original=True,
                     crystal_fraction=None, element_order=None, **kwargs):
         """
         Plot a basic spider diagram of the chemical composition, optionally alongside the
@@ -131,7 +131,7 @@ class GeoSetting(object):
             Plot the original homogenised chemistry.
         crystal_fraction : None or dict, default: None
             Plot an evolved melt having crystallised crystals in the proportions passed. If using
-            non-default options for GeoSetting.crystallisation_chemistry() pass these as additional
+            non-default options for geoSetting.crystallisationChemistry() pass these as additional
             arguments
         element_order : None or list, default: None
             Use to adjust the order of the elements, otherwise they will be given in the order of
@@ -178,7 +178,7 @@ class GeoSetting(object):
             a.plot(range(len(element_order)), normed)
 
         if crystal_fraction is not None:
-            unnormed = self.crystallisation_chemistry(crystal_fraction, **kwargs)
+            unnormed = self.crystallisationChemistry(crystal_fraction, **kwargs)
             normed = []
             for el in element_order:
                 normed.append(unnormed[el]/normalisation[el])
@@ -208,7 +208,7 @@ class GeoSetting(object):
         return weights
 
 
-class SpreadingCentre(GeoSetting):
+class spreadingCentre(geoSetting):
     """
     Implementation of a spreading centre, representing either mid-ocean ridge spreading or
     continental rift spreading. The crustal thickness is calculated assuming a triangular melting
@@ -321,7 +321,7 @@ class SpreadingCentre(GeoSetting):
             pressure of melting.
 
         """
-        rho = self.mantle.bulk_properties()['rho']
+        rho = self.mantle.bulkProperties()['rho']
         g = 9.81
 
         # Calculate the contributions to tc (without additional weighting)
@@ -431,15 +431,15 @@ class SpreadingCentre(GeoSetting):
                         c[:, j] = cnormed
                 # Normalise melts for this lithology
                 c = trapz((1 + weights[:, None]) * c * f[:, None] / (1.0 - f[:, None]),
-                          self.lithologies[lith]['Pressure'].to_numpy()[:], axis=0)
+                          self.lithologies[lith]['P'].to_numpy()[:], axis=0)
                 c = c / trapz((1 + weights) * f / (1 - f),
-                              self.lithologies[lith]['Pressure'].to_numpy())
+                              self.lithologies[lith]['P'].to_numpy())
 
                 # Normalise melts for all lithologies
                 cm += c * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)
 
-    def MeltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
+    def meltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
         """
         Identifies the crystallisation temperature of the deepest and shallowest melts,
         according to the technique used by Matthews et al. (2016).
@@ -489,7 +489,7 @@ class SpreadingCentre(GeoSetting):
         return TcrysMin, TcrysMax
 
 
-class IntraPlate(GeoSetting):
+class intraPlate(geoSetting):
     """
     Implementation of an intra-plate volcanic province, representing mantle upwelling beneath
     lithosphere. The melt flux is calculated assuming flow in a deformable plume conduit (Turcotte
@@ -560,14 +560,14 @@ class IntraPlate(GeoSetting):
 
         # Calculate the melt flux.
         if relative_density is not None:
-            self.melt_flux = self.calc_melt_flux(relative_density, viscosity, radius)
+            self.melt_flux = self.calcMeltFlux(relative_density, viscosity, radius)
         else:
             self.melt_flux = None
 
         self.chemistry = None
         self._homogenise_chemistry()
 
-    def calc_melt_flux(self, relative_density, viscosity, radius):
+    def calcMeltFlux(self, relative_density, viscosity, radius):
         r"""
         Calculates the melt flux for given plume conduit parameters. Assumes a deformable conduit
         with constant upwelling velocity, after Turcotte & Schubert (2002).

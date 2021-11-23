@@ -3,7 +3,7 @@ from warnings import warn
 import pandas as pd
 from scipy.optimize import fsolve
 
-from pyMelt.meltingcolumn_classes import MeltingColumn
+from pyMelt.meltingcolumn_classes import meltingColumn
 
 
 class mantle:
@@ -66,7 +66,7 @@ class mantle:
             self.rhos[i] = self.lithologies[i].rhos
             self.DeltaS[i] = self.lithologies[i].DeltaS
 
-    def bulk_properties(self, P=None, T=None):
+    def bulkProperties(self, P=None, T=None):
         """
             Calculates the bulk thermodynamic properties of the solid or partially
             molten mantle.
@@ -96,7 +96,7 @@ class mantle:
 
         return {'alpha': alpha, 'CP': CP, 'rho': rho}
 
-    def solidus_intersection(self, Tp):
+    def solidusIntersection(self, Tp):
         """
         Finds the pressure at which each lithology's solidus will be intersected,
         assuming the mantle follows the solid adiabat up until that point.
@@ -128,7 +128,7 @@ class mantle:
                 intersect[i] = np.nan
         return intersect
 
-    def solidus_intersection_isobaric(self, P):
+    def solidusIntersectionIsobaric(self, P):
         """
         Finds the pressure at which each lithology's solidus will be intersected,
         assuming the mantle is heated isobarically.
@@ -165,7 +165,7 @@ class mantle:
         float or numpy.array
             Temperature of the mantle at the given pressure and Tp.
         """
-        bulk_props = self.bulk_properties(P)
+        bulk_props = self.bulkProperties(P)
         T = ((Tp + 273.15) * np.exp(bulk_props['alpha']
              / (bulk_props['rho'] * bulk_props['CP']) * P) - 273.15)
         return T
@@ -230,7 +230,7 @@ class mantle:
                 key = lithologies_melting[i]
                 not_key[key] = False
 
-                bulk_props = self.bulk_properties(P, T)
+                bulk_props = self.bulkProperties(P, T)
 
                 # Equation (26) from PM2001 to find dFdP of first lithology
                 top = (bulk_props['CP'] / (T + 273.15) * dTdP[key]
@@ -250,7 +250,7 @@ class mantle:
 
         return dFdP
 
-    def adiabatic_gradient(self, P, T):
+    def adiabaticGradient(self, P, T):
         """
         Calculates dTdP if melting has gone to completion (or hasn't started) for the bulk mantle.
 
@@ -267,7 +267,7 @@ class mantle:
             The adiabatic gradient in C/GPa
         """
 
-        bulk_props = self.bulk_properties(P, T)
+        bulk_props = self.bulkProperties(P, T)
 
         dTdP = bulk_props['alpha'] * (T + 273.15) / bulk_props['rho'] / bulk_props['CP']
 
@@ -305,11 +305,11 @@ class mantle:
             key = melting_lithologies[key]
             dTdP = self.lithologies[key].dTdP(P, T) + self.lithologies[key].dTdF(P, T) * dFdP[key]
         else:
-            dTdP = self.adiabatic_gradient(P, T)
+            dTdP = self.adiabaticGradient(P, T)
 
         return dTdP
 
-    def IsobaricMelt(self, Tstart, P, dT=0.1):
+    def isobaricMelt(self, Tstart, P, dT=0.1):
         """
         Calculates the amount of melt generated, and the mantle's temperature, after
         an interval of melting occuring due to mantle being instantaneously placed
@@ -334,25 +334,25 @@ class mantle:
             Temperature of mantle following the melting step.
         """
 
-        solidus_intersection = self.solidus_intersection_isobaric(P)
+        solidus_intersection = self.solidusIntersectionIsobaric(P)
 
         # Calculate the entropy lost associated with cooling solid material to the
         # solidus temperature
         solT = np.nanmin(solidus_intersection)
-        bulk_props = self.bulk_properties(P, solT)
+        bulk_props = self.bulkProperties(P, solT)
         DeltaS_cool = - bulk_props['CP'] * np.log((solT + 273.15) / (Tstart + 273.15))
 
         DeltaS_melt = 0
         T = solT + dT
         while DeltaS_melt < DeltaS_cool and T < Tstart:
-            bulk_props = self.bulk_properties(P, T)
+            bulk_props = self.bulkProperties(P, T)
             DeltaS_melt = (np.sum(self.F(P, T) * self.proportions * self.DeltaS) +
                            - bulk_props['CP'] * np.log((solT + 273.15) / (T + 273.15)))
             T = T + dT
 
         return T
 
-    def AdiabaticMelt(self, Tp, Pstart=None, Pend=0.01, dP=-0.004, steps=None, ReportSSS=True,
+    def adiabaticMelt(self, Tp, Pstart=None, Pend=0.01, dP=-0.004, steps=None, ReportSSS=True,
                       adjust_pressure=True, prevent_freezing=True, warn_prevent_freezing=True):
         """
         Performs simultaneous integration of dFdP and dTdP to obtain the thermal gradient
@@ -392,13 +392,13 @@ class mantle:
 
         Returns
         -------
-        pyMelt.MeltingColumn
+        pyMelt.meltingColumn
             The results are returned in a 1D Melting Column instance, further calculations, e.g.
             crustal thickness may then be performed on this instance, if desired.
         """
 
         if Pstart is None:
-            solidus_intersect = self.solidus_intersection(Tp)
+            solidus_intersect = self.solidusIntersection(Tp)
             Pstart = np.nanmax(solidus_intersect) + 1e-5
             adjust_pressure = False
 
@@ -413,8 +413,8 @@ class mantle:
         T[0] = self.adiabat(Pstart, Tp)
 
         if (adjust_pressure is True
-                and T[0] < np.nanmin(self.solidus_intersection_isobaric(Pstart))):
-            p_intersect = np.nanmax(self.solidus_intersection(Tp))
+                and T[0] < np.nanmin(self.solidusIntersectionIsobaric(Pstart))):
+            p_intersect = np.nanmax(self.solidusIntersection(Tp))
             diff = np.abs(P - p_intersect)
             adjustment = P[np.argmin(diff)] - p_intersect
             if adjustment < 0:
@@ -423,10 +423,10 @@ class mantle:
 
         F = np.zeros([steps, self.number_lithologies])
 
-        if T[0] > np.nanmin(self.solidus_intersection_isobaric(Pstart)):
+        if T[0] > np.nanmin(self.solidusIntersectionIsobaric(Pstart)):
             if ReportSSS is True:
                 warn("Super solidus start")
-            T[0] = self.IsobaricMelt(T[0], Pstart)
+            T[0] = self.isobaricMelt(T[0], Pstart)
 
         for i in range(steps):
             if i == 0:
@@ -440,10 +440,10 @@ class mantle:
                 # If melting has gone to completion
                 elif (np.shape(np.where((F[i - 1] * self.proportions > 0)
                                         & (F[i - 1] * self.proportions < 1))[0])[0] == 0):
-                    j1 = self.adiabatic_gradient(P[i - 1], T[i - 1])
-                    j2 = self.adiabatic_gradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1)
-                    j3 = self.adiabatic_gradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2)
-                    j4 = self.adiabatic_gradient(P[i], T[i - 1] + dP * j3)
+                    j1 = self.adiabaticGradient(P[i - 1], T[i - 1])
+                    j2 = self.adiabaticGradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1)
+                    j3 = self.adiabaticGradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2)
+                    j4 = self.adiabaticGradient(P[i], T[i - 1] + dP * j3)
 
                     T[i] = T[i - 1] + dP / 6 * (j1 + 2 * j2 + 2 * j3 + j4)
                     F[i] = self.F(P[i], T[i])
@@ -473,4 +473,4 @@ class mantle:
         results['P'] = P
         results['T'] = T
 
-        return MeltingColumn(results, self, Tp)
+        return meltingColumn(results, self, Tp)
