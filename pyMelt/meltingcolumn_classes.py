@@ -164,17 +164,18 @@ class MeltingColumn():
         """
         # Check if using defaults, and assemble args if so:
         if method == 'default':
-            # if self.mantle.number_lithologies > 1:
-            #     warn("The default parameters are being used which are suitable only for "
-            #          "lherzolite. If one of your lithologies is pyroxenite the results will not "
-            #          "be reliable.")
-            kwargs['olv_D'] = pyMelt.chemistry.olv_D
-            kwargs['cpx_D'] = pyMelt.chemistry.cpx_D
-            kwargs['opx_D'] = pyMelt.chemistry.opx_D
-            kwargs['spn_D'] = pyMelt.chemistry.spn_D
-            kwargs['grt_D'] = pyMelt.chemistry.grt_D
-            kwargs['plg_D'] = pyMelt.chemistry.plg_D
-            kwargs['D'] = pyMelt.chemistry.workman05_D
+            default_kwargs = {'olv_D': pyMelt.chemistry.olv_D,
+                              'cpx_D': pyMelt.chemistry.cpx_D,
+                              'opx_D': pyMelt.chemistry.opx_D,
+                              'spn_D': pyMelt.chemistry.spn_D,
+                              'grt_D': pyMelt.chemistry.grt_D,
+                              'plg_D': pyMelt.chemistry.plg_D,
+                              'D': pyMelt.chemistry.workman05_D}
+
+            for argname in default_kwargs:
+                if argname not in kwargs:
+                    kwargs[argname] = default_kwargs[argname]
+                    
             method = pyMelt.chemistry.default_methods
 
         # Check if all elements are provided for each lithology

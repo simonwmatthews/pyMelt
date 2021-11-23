@@ -2,7 +2,7 @@
 Tutorials
 #########
 
-There are two tutorials presently available for pyMelt. They will soon be available to use
+There are three tutorials presently available for pyMelt. They will soon be available to use
 interactively on myBinder also.
 
 .. toctree::
