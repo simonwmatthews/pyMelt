@@ -218,13 +218,13 @@ class lherzolite(_lithology):
 
         if F == 0:
             dTdP = self.alphas / self.rhos / self.CP
-        elif F < self.FcpxOut(P, **kwargs):
+        elif F < self._FcpxOut(P, **kwargs):
             dTdP = (((F**(1 / self.parameters['beta1']))
                     * (dTdPLherzLiquidus - dTdPSolidus)) + dTdPSolidus)
         elif F < 1.0:
             Trel = (T - TcpxOut) / (TLiquidus - TcpxOut)
             dTdP = ((TLiquidus - TcpxOut) / (1 - FcpxOut)
-                    * (1 / self.parameters['beta2']) * Trel**(1 - self.paraeters['beta2'])
+                    * (1 / self.parameters['beta2']) * Trel**(1 - self.parameters['beta2'])
                     * dFdPcpxOut * (Trel**self.parameters['beta2'] - 1)
                     + dTdPcpxOut + Trel * (dTdPLiquidus - dTdPcpxOut))
         else:
