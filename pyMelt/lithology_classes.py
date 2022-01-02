@@ -257,9 +257,9 @@ class hydrousLithology(object):
 
     def melt_H2O(self, F, P=None):
         """
-        Returns the H2O content of the melt at a particular melt fraction, assuming batch
-        melting, and H2O saturation controlled by the H2O_saturation method. If H2O is
-        saturated, it will remain in the bulk system.
+        Returns the H2O content of the melt at a particular melt fraction, assuming either batch
+        or continuous melting, and H2O saturation controlled by the H2O_saturation method. If H2O
+        is saturated, it will remain in the bulk system.
 
         Parameters
         ----------

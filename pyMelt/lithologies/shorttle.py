@@ -57,6 +57,7 @@ class kg1(_lithology):
     parameters : dict, default: parameters from Shorttle et al. (2014)
         The model parameters described above
     """
+
     def __init__(self,
                  CP=_default_properties['CP'],
                  alphas=_default_properties['alphas'],
@@ -144,16 +145,20 @@ class kg1(_lithology):
         Tliq = self.TLiquidus(P, **kwargs)
         Tcpx = self._TCpxOut(P, **kwargs)
 
+        if T < Tsol:
+            dTdP = self.alphas / self.rhos / self.CP
         if T < Tcpx:
             dTdP = (-(-(T - Tsol) / (Tcpx - Tsol)
                     * (self.parameters['B2'] + 2 * self.parameters['B3'] * P
                        - self.parameters['A2'] - self.parameters['A3'] * 2 * P)
                     - self.parameters['A2'] - self.parameters['A3'] * 2 * P))
-        else:
+        elif T < Tliq:
             dTdP = (-(-(T - Tcpx) / (Tliq - Tcpx)
                     * (self.parameters['C2'] + self.parameters['C3'] * 2 * P
                        - self.parameters['B2'] - self.parameters['B3'] * 2 * P)
                     - self.parameters['B2'] - 2 * self.parameters['B3'] * P))
+        else:
+            dTdP = self.alphas / self.rhos / self.CP
 
         return dTdP
 
@@ -278,6 +283,7 @@ class harzburgite(_lithology):
     parameters : dict, default: {}
         This model does not use any parameters, here for consistency.
     """
+
     def __init__(self,
                  CP=_default_properties['CP'],
                  alphas=_default_properties['alphas'],
