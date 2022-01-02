@@ -8,7 +8,8 @@ the `hydrous_lithology` class for converting an anhydrous lithology to a hydrous
 """
 from scipy.misc import derivative
 from scipy.optimize import root_scalar
-from copy import deepcopy
+import numpy as _np
+from pyMelt.core import convergenceError
 
 # Default constant values taken from Katz et al., 2003:
 default_properties = {'CP':     1000.0,  # Heat capacity in J Kg-1 K-1
@@ -360,7 +361,7 @@ class hydrous_lithology(object):
         F = root_scalar(self._f_to_solve, bracket=[0, 1], args=(P, T))
 
         if F.flag != 'converged':
-            raise pyMelt.core.convergenceError('The melt fraction calculation did not converge.')
+            raise convergenceError('The melt fraction calculation did not converge.')
             return _np.nan
         else:
             return F.root
