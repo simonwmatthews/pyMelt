@@ -31,7 +31,7 @@ pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson
 For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The user is directed to the [pyMultinest installation instructions](https://johannesbuchner.github.io/PyMultiNest/) for further guidance.
 
 ## Citing pyMelt
-If pyMelt enables or aids your research please cite the release you used. The latest release is v1.92, but does not yet have a doi. The most recent zenodo release is for v1.915:
+If pyMelt enables or aids your research please cite the release you used. The latest release is v1.930, but does not yet have a doi. The most recent zenodo release is for v1.915:
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
 
 You should also cite the relevant publications for the pure-lithology melting models. If you use our models, you should cite:
