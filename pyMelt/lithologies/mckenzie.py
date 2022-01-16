@@ -14,7 +14,7 @@ from scipy.optimize import fsolve
 from scipy.special import expit
 
 
-class garnet_peridotite(_lithology):
+class lherzolite(_lithology):
     """
     Implementation of the McKenzie and Bickle (1988) garnet peridotite melting model.
     As this parameterisation provides pressure as a function of solidus temperature,
