@@ -19,6 +19,18 @@ pyMelt Quickstart
    support
    license
 
+About
+^^^^^
+pyMelt is an open-source python library for calculating the melting behaviour of the Earth's
+mantle. The library implements the melting equations for multi-component mantle set out by
+`Phipps Morgan (2001) <https://doi.org/10.1029/2000GC000049>`_ alongside a number of melting models
+for lherzolite and pyroxenite lithologies.
+
+
+You can try out pyMelt without installing it by using the myBinder service.
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/simonwmatthews/pyMelt/HEAD?labpath=docs%2Ftutorial%2Ftutorial1.ipynb)
+
 
 Installation
 ^^^^^^^^^^^^
