@@ -25,6 +25,10 @@ provided at [pymelt.readthedocs.io](http://pymelt.readthedocs.io).
 ## Installation
 pyMelt is available on pip, and can be installed by running `pip install pyMelt` in a terminal.
 
+## Run pyMelt on the cloud with myBinder
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/simonwmatthews/pyMelt/HEAD?labpath=docs%2Ftutorial%2Ftutorial1.ipynb)
+You can use pyMelt and go through the tutorials right now without installing anything. 
+
 ## pyMelt_MultiNest
 pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al., 2021.
 
