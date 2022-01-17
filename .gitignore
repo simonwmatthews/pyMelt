@@ -146,3 +146,5 @@ dist/
 docs/build/
 
 pyMelt.egg-info/
+
+build/
