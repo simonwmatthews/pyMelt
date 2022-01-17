@@ -1,15 +1,10 @@
 
 # pyMelt mantle melting library
-S. Matthews (University of Iceland) and K. Wong (University of Leeds)
+S. Matthews (University of Iceland), K. Wong (University of Leeds), M. Gleeson (University of Cardiff)
 
 ## Introduction
 
-pyMelt is a python package for calculating the melting behaviour of mantle comprising multiple lithologies. The module implements the melting equations developed by Phipps Morgan (2001) to calculate the melting behaviour of mantle comprising any chosen lithology.
-
-Currently supported calculations:
-
-* Adiabatic decompression melting
-* Isobaric melting
+pyMelt is a python library for calculating the melting behaviour of mantle comprising multiple lithologies. The pyMelt library implements the melting equations developed by Phipps Morgan (2001), alongside many existing lherzolite and pyroxenite melting parameterisations.
 
 Parameters that can be calculated:
 
@@ -17,6 +12,10 @@ Parameters that can be calculated:
 * Melt fractions for each lithology
 * Crustal thickness for passive-upwelling at a mid-ocean ridge
 * Crystallisation temperatures (following the method in Matthews et al., 2016)
+* Magma flux at intra-plate settings
+* Lava trace element concentrations
+
+The `hydrousLithology` module allows hydrous melting to be approximated given any anhydrous lithology melting model using a modified version of the Katz et al. (2003) hydrous melting equations.
 
 ## Documentation
 Full documentation, further information about the package, and a tutorial for getting started are
@@ -27,16 +26,20 @@ pyMelt is available on pip, and can be installed by running `pip install pyMelt`
 
 ## Run pyMelt on the cloud with myBinder
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/simonwmatthews/pyMelt/HEAD?labpath=docs%2Ftutorial%2Ftutorial1.ipynb)
-You can use pyMelt and go through the tutorials right now without installing anything. 
+You can use pyMelt and go through the tutorials right now without installing anything.
 
 ## pyMelt_MultiNest
 pyMelt can be used in conjunction with the MultiNest algorithm (Feroz and Hobson, 2008; Feroz et al., 2009, 2013) via its python frontend, pyMultinest (Buchner et al., 2014). This permits the inversion of measured data (e.g. crystallisation temperature, crustal thickness) to obtain unknowns (e.g. potential temperature) via Bayesian inference. More details of the inversion methods are provided in Matthews et al., 2021.
 
 For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The user is directed to the [pyMultinest installation instructions](https://johannesbuchner.github.io/PyMultiNest/) for further guidance.
 
+Note that the pyMelt_MultiNest library is built for an old version of pyMelt and has not yet been updated.
+
 ## Citing pyMelt
-If pyMelt enables or aids your research please cite the release you used. The latest release is v1.930, but does not yet have a doi. The most recent zenodo release is for v1.915:
+If pyMelt enables or aids your research please cite the release you used. The latest release is v1.95, but does not yet have a doi. The most recent zenodo release is for v1.915:
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
+
+A manuscript describing the module will be released as a preprint soon.
 
 You should also cite the relevant publications for the pure-lithology melting models. If you use our models, you should cite:
 
