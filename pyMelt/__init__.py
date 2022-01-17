@@ -18,10 +18,9 @@ __author__ = "Simon Matthews and Kevin Wong"
 __all__ = ['Mantle', 'hydrous_lithology']
 
 import pyMelt.lithologies
+import pyMelt.geosettings
 # import pyMelt.meltingcolumn_classes
-import pyMelt.mantle_class
-from pyMelt.lithology_classes import hydrous_lithology
+from pyMelt.mantle_class import mantle
+from pyMelt.lithology_classes import hydrousLithology
 
-
-class Mantle(pyMelt.mantle_class.mantle):
-    __doc__ = pyMelt.mantle_class.mantle.__doc__
+__all__ = ['hydrousLithology', 'mantle']

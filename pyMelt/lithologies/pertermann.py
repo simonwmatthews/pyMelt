@@ -55,12 +55,12 @@ class g2(_lithology):
                  rhos=_default_properties['rhos'],
                  rhof=_default_properties['rhof'],
                  DeltaS=_default_properties['DeltaS'],
-                 parameters={'a':     0.7368,
-                             'b':     0.2632,
-                             'c':   1175.000,
-                             'd':    114.000,
-                             'e':    920.000,
-                             'f':    130.000
+                 parameters={'a': 0.7368,
+                             'b': 0.2632,
+                             'c': 1175.000,
+                             'd': 114.000,
+                             'e': 920.000,
+                             'f': 130.000
                              }
                  ):
 
@@ -100,8 +100,8 @@ class g2(_lithology):
         elif T > Tliq:
             F = 1.0
         else:
-            Tr = (T-Tsol)/(Tliq-Tsol)
-            F = self.parameters['a']*Tr**2 + self.parameters['b']*Tr
+            Tr = (T - Tsol) / (Tliq - Tsol)
+            F = self.parameters['a'] * Tr**2 + self.parameters['b'] * Tr
         return F
 
     def TLiquidus(self, P, **kwargs):
@@ -119,7 +119,7 @@ class g2(_lithology):
         float
             Liquidus temperature (degC).
         """
-        Tliq = self.parameters['c'] + self.parameters['d']*P
+        Tliq = self.parameters['c'] + self.parameters['d'] * P
         return Tliq
 
     def TSolidus(self, P, **kwargs):
@@ -137,7 +137,7 @@ class g2(_lithology):
         float
             Solidus temperature (degC).
         """
-        Tsol = self.parameters['e'] + self.parameters['f']*P
+        Tsol = self.parameters['e'] + self.parameters['f'] * P
         return Tsol
 
     def dTdF(self, P, T, **kwargs):
@@ -164,7 +164,7 @@ class g2(_lithology):
             dTdF = _np.inf
         else:
             dTdF = ((Tliq - Tsol) / (self.parameters['a'] * 2
-                    * ((T - Tsol) / (Tliq - Tsol))+self.parameters['b']))
+                    * ((T - Tsol) / (Tliq - Tsol)) + self.parameters['b']))
 
         return dTdF
 
@@ -184,9 +184,16 @@ class g2(_lithology):
         float
             dTdP(const. F) (K GPa-1)
         """
-        Tsol = self.TSolidus(P, **kwargs)
-        Tliq = self.TLiquidus(P, **kwargs)
-        dTdP = ((self.parameters['d'] - self.parameters['f'])
-                * (T - Tsol)/(Tliq - Tsol) + self.parameters['f'])
+
+        F = self.F(P, T, **kwargs)
+        if F == 0:
+            dTdP = self.alphas / self.rhos / self.CP
+        elif F < 1:
+            Tsol = self.TSolidus(P, **kwargs)
+            Tliq = self.TLiquidus(P, **kwargs)
+            dTdP = ((self.parameters['d'] - self.parameters['f'])
+                    * (T - Tsol) / (Tliq - Tsol) + self.parameters['f'])
+        else:
+            dTdP = self.alphas / self.rhos / self.CP
 
         return dTdP
