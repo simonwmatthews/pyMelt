@@ -363,9 +363,10 @@ class spreadingCentre(geoSetting):
 
         for i in range(_np.shape(P)[0]):
             if i != 0:
-                tc_int[i] = tc_int[i - 1] + tc[i] * (_np.abs(P[i] - P[i - 1]) + weights[i])
+                tc_int[i] = (tc_int[i - 1]
+                             + 0.5 * (tc[i] + tc[i-1]) * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_lith_int[i] = (tc_lith_int[i - 1]
-                                  + tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
+                                  + 0.5 * tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
                 if(extract_melt is False and tc_intP[i] + P_base_existingLith > P[i]
                    and tc_found is False):
