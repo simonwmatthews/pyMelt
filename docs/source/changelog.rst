@@ -6,6 +6,15 @@ The presently available stable version of pyMelt represents a largescale reorgan
 previous version of the module. The syntax has remained similar, but lithologies are now stored
 in separate sub-modules.
 
+v1.95
+-----
+* Hydrous melting is now supported via the `hydrousLithology` class
+* The `chemistry` module has been added for trace element calculations
+* By default, adiabatic decompression calculations will now start at the solidus with a fixed
+  pressure decrement.
+* This is essentially a move to v2.0, which is reserved for the version of pyMelt that coincides
+  with manuscript publication.
+  
 v1.93
 -----
 * The `MeltingColumn` class has been condensed and all geological-setting specific functionality
