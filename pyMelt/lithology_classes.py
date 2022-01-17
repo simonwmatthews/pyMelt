@@ -134,7 +134,7 @@ class lithology(object):
         def _to_diff(T, P, kwargs={}):
             return self.F(P, T, **kwargs)
 
-        return 1.0 / (derivative(_to_diff, T, dx=0.1, args=(P, kwargs)))
+        return 1.0 / (derivative(_to_diff, T, dx=0.001, args=(P, kwargs)))
 
     def dTdP(self, P, T, **kwargs):
         """
@@ -153,14 +153,31 @@ class lithology(object):
         float
             dT/dP(const. F) (K GPa-1).
         """
-        dTdF = self.dTdF(P, T, **kwargs)
 
-        def _to_diff(P, T, kwargs={}):
-            return self.F(P, T, **kwargs)
+        # This finds the temperature at a given pressure for which the melt fraction is eqal to the
+        # value specified. Used for calculating dT/dP (at const. F).
+        def _to_diff_dTdP(P, F, T, kwargs={}):
+            t = root_scalar(self._hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
+            return t
 
-        dFdP = derivative(_to_diff, P, args=(T, kwargs))
+        # This method is used to find the P-T curve at which F remains constant, for the
+        # calculation of dT/dP (at const. F).
+        def _hold_constant_F(t, P, F, kwargs={}):
+            return self.F(P, t, **kwargs) - F
 
-        return dTdF * dFdP
+        if self.F(P, T, **kwargs) == 0:
+            dTdP = self.alphas / self.rhos / self.CP
+
+        elif self.F(P, T, **kwargs) == 1:
+            dTdP = self.alphas / self.rhos / self.CP
+
+        else:
+            F = self.F(P, T, **kwargs)
+
+            dTdP = derivative(_to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
+
+        return dTdP
+
 
 
 class hydrousLithology(object):
