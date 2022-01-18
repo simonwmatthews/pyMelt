@@ -659,7 +659,9 @@ class intraPlate(geoSetting):
                 c = _np.nan_to_num(c, nan=0.0)
                 # Get the melt fractions for the lithology
                 f = self.lithologies[lith].F.to_numpy()
+
                 # If instantaneous melts, need to pool over columns first
+                # If accumulated melts, the existing number at top of column will be used
                 for j in range(len(species)):
                     if self.MeltingColumn._species_calc_type[lith][j] == 'instantaneous':
                         cnormed = _np.zeros(_np.shape(c)[0])
@@ -676,10 +678,14 @@ class intraPlate(geoSetting):
                             else:
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
+
+                    # If accumulated melts are calculated but a weighting function exists
                     elif self.weightingFunction is not None:
                         warn("Accumulated melts cannot be used with a weighting function for "
                              " an intra-plate melting region.")
                         c[:, j] = [_np.nan]*np.shape(c)[0]
+
+
                 # Normalise melts for all lithologies
                 cm += c[-1, :] * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)
