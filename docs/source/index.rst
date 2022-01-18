@@ -30,7 +30,7 @@ for lherzolite and pyroxenite lithologies.
 You can try out pyMelt without installing it by using the myBinder service.
 
 .. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/simonwmatthews/pyMelt/dev?labpath=docs%2Ftutorial%2Ftutorial1.ipynb
+ :target: https://mybinder.org/v2/gh/simonwmatthews/pyMelt/master?labpath=docs%2Ftutorial%2Ftutorial1.ipynb
 
 
 Installation
