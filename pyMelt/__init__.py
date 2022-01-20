@@ -15,6 +15,7 @@ provided for performing decompression melting calculations.
 
 __version__ = "0.5.1"
 __author__ = "Simon Matthews and Kevin Wong"
+__all__ = ['Mantle', 'hydrous_lithology']
 
 import pyMelt.lithologies
 import pyMelt.geosettings

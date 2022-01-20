@@ -53,7 +53,7 @@ class lherzolite(_lithology):
         The density of the melt (kg m-3)
     DeltaS :     float, default: pyMelt.lithology_class.default_properties['DeltaS']
         The entropy of fusion J K-1 kg-1
-    parameters : dict, default: parameters from Matthews et al. (2021)
+    parameters : dict, default: parameters from Katz et al. (2003)
         The model parameters described above
     """
 

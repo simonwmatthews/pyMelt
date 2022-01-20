@@ -48,9 +48,18 @@ Accessed by ``pyMelt.lithologies.katz.lherzolite()``
 
 Pertermann & Hirschmann (2003)
 -----------------------
-`Manuscript <https://doi.org/10.1093/petrology/egg074>`_
+`Manuscript <https://doi.org/10.1029/2000JB000118>`_
 
 G2
 ^^
 An experimental composition representing a MORB-like eclogite bulk composition.
 Accessed by ``pyMelt.lithologies.pertermann.g2()``
+
+McKenzie and Bickle (1988)
+-----------------------
+`Manuscript <https://doi.org/10.1093/petrology/29.3.625>`_
+
+Garnet peridotite
+^^
+Combines experimental constraints from a range of peridotite bulk compositions.
+Accessed by ``pyMelt.lithologies.mckenzie.garnet_peridotite()``

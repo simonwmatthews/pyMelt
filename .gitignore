@@ -143,6 +143,8 @@ H2O_CO2_SensitivityTesting.xlsx
 
 dist/
 
+build/
+
 docs/build/
 
 pyMelt.egg-info/

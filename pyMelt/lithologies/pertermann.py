@@ -1,6 +1,6 @@
 """
 ================================
-Pertermann and Hirschmann (2002)
+Pertermann and Hirschmann (2003, JGR)
 ================================
 
 The pertermann module implements the G2 model.
@@ -15,7 +15,7 @@ import numpy as _np
 
 class g2(_lithology):
     """
-    Implementation of the Pertermann and Hirschmann (2002) G2 melting model.
+    Implementation of the Pertermann and Hirschmann (2003, JGR) G2 melting model.
     To use the same format of parameterisation for another lithology, the parameter values
     may be changed. They are provided as a dictionary during initialisation of the class, with
     values:
@@ -44,7 +44,7 @@ class g2(_lithology):
         The density of the melt (kg m-3)
     DeltaS :     float, default: pyMelt.lithology_class.default_properties['DeltaS']
         The entropy of fusion J K-1 kg-1
-    parameters : dict, default: parameters from Matthews et al. (2021)
+    parameters : dict, default: parameters from Pertermann and Hirschmann (2003, JGR)
         The model parameters described above
     """
 
@@ -74,9 +74,9 @@ class g2(_lithology):
 
     def F(self, P, T, **kwargs):
         """
-        Calculates melt fraction at a given pressure and temperature using:
+        Calculates melt fraction at a given pressure and temperature using Equation 1:
             a*T'**2 + b*T',
-        where T is the normalised temperature:
+        where T is the normalised temperature (Equation 2):
             (T-Tsolidus)/(T-Tliquidus).
         If P and T are below the the solidus, 0 is returned, if they are above the liquidus, 1 is
         returned.
@@ -106,7 +106,7 @@ class g2(_lithology):
 
     def TLiquidus(self, P, **kwargs):
         """
-        Calculates the liquidus temperature, at a given pressure, using:
+        Calculates the liquidus temperature, at a given pressure, using Equation 3:
             c + d*P.
 
         Parameters
@@ -124,7 +124,7 @@ class g2(_lithology):
 
     def TSolidus(self, P, **kwargs):
         """
-        Calculates the solidus temperature, at a given pressure, using:
+        Calculates the solidus temperature, at a given pressure, using Equation 4:
             e + f*P.
 
         Parameters

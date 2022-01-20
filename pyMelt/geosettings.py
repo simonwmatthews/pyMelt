@@ -363,9 +363,10 @@ class spreadingCentre(geoSetting):
 
         for i in range(_np.shape(P)[0]):
             if i != 0:
-                tc_int[i] = tc_int[i - 1] + tc[i] * (_np.abs(P[i] - P[i - 1]) + weights[i])
+                tc_int[i] = (tc_int[i - 1]
+                             + 0.5 * (tc[i] + tc[i-1]) * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_lith_int[i] = (tc_lith_int[i - 1]
-                                  + tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
+                                  + 0.5 * tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
                 if(extract_melt is False and tc_intP[i] + P_base_existingLith > P[i]
                    and tc_found is False):
@@ -603,10 +604,29 @@ class intraPlate(geoSetting):
 
         Where :math:`F` is the total melt fraction obtained.
         """
-        if self.weightingFunction is not None:
-            warn("The weighting function will not be applied to the melt flux.")
+        # if self.weightingFunction is not None:
+        #     warn("The weighting function will not be applied to the melt flux.")
         Qv = _np.pi / 8 * (relative_density * 9.81 * radius**4) / viscosity
-        Qm = Qv * self.F.max()
+
+        if self.weightingFunction is None:
+            Qm = Qv * self.F.max()
+        else:
+            w = self._weighting_coefficients(self.P, empty_value=1.0).to_numpy()
+
+            # Create array to store weighted melt fractions for each lithology:
+            weightedF = _np.zeros(len(self.mantle.names))
+
+            for i, lith in zip(range(len(self.mantle.names)),self.mantle.names):
+                f = self.lithologies[lith].F.to_numpy()
+                df = f[1:] - f[:-1]
+                f_normed = (_np.sum(0.5 * df * (w[1:] + w[:-1]), axis=0))
+                weightedF[i] = f_normed
+
+            # Now weight the melt fractions by the abundance of each lithology:
+            totalF = _np.sum(weightedF * self.mantle.proportions)
+
+            Qm = Qv * totalF
+
         return Qm
 
     def _homogenise_chemistry(self):
@@ -639,7 +659,9 @@ class intraPlate(geoSetting):
                 c = _np.nan_to_num(c, nan=0.0)
                 # Get the melt fractions for the lithology
                 f = self.lithologies[lith].F.to_numpy()
+
                 # If instantaneous melts, need to pool over columns first
+                # If accumulated melts, the existing number at top of column will be used
                 for j in range(len(species)):
                     if self.MeltingColumn._species_calc_type[lith][j] == 'instantaneous':
                         cnormed = _np.zeros(_np.shape(c)[0])
@@ -656,10 +678,14 @@ class intraPlate(geoSetting):
                             else:
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
+
+                    # If accumulated melts are calculated but a weighting function exists
                     elif self.weightingFunction is not None:
                         warn("Accumulated melts cannot be used with a weighting function for "
                              " an intra-plate melting region.")
                         c[:, j] = [_np.nan]*np.shape(c)[0]
+
+
                 # Normalise melts for all lithologies
                 cm += c[-1, :] * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)
