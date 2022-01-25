@@ -64,7 +64,7 @@ class lherzolite(_lithology):
                  rhos=_default_properties['rhos'],
                  rhof=_default_properties['rhof'],
                  DeltaS=_default_properties['DeltaS'],
-                 parameters={'Mcpx': 0.15,
+                 parameters={'Mcpx': 0.17,
                              'A1': 1085.70,
                              'A2': 132.9,
                              'A3': - 5.1,
