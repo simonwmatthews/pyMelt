@@ -211,7 +211,7 @@ class lherzolite(_lithology):
         TLiquidus = self.TLiquidus(P, **kwargs)
         dTdPLiquidus = self._dTdPLiquidus(P, **kwargs)
         dTdPLherzLiquidus = self._dTdPLherzLiquidus(P, **kwargs)
-        TcpxOut = self._TcpxOut(P, **kwargs)
+        TcpxOut = self._dTdPcpxOut(P, **kwargs)
         dTdPcpxOut = self._dTdPcpxOut(P, **kwargs)
         FcpxOut = self._FcpxOut(P, **kwargs)
         dFdPcpxOut = self._dFdPcpxOut(P, **kwargs)
@@ -398,13 +398,30 @@ class lherzolite(_lithology):
         return self.parameters['B2'] + 2 * self.parameters['B3'] * P
 
     def _dTdPcpxOut(self, P, **kwargs):
-        term1 = ((self._TLherzLiquidus(P, **kwargs) - self.TSolidus(P, **kwargs))
-                 / self.parameters['beta1']
-                 * self._FcpxOut(P, **kwargs)**(1 / self.parameters['beta1'] - 1))
-        term2 = (self._FcpxOut(P, **kwargs)**(1 / self.parameters['beta1'])
-                 * (self._dTdPLherzLiquidus(P, **kwargs) - self._dTdPSolidus(P, **kwargs))
-                 + self._dTdPSolidus(P, **kwargs))
-        return term1 * self._dFdPcpxOut(P, **kwargs) + term2
+        # term1 = ((self._TLherzLiquidus(P, **kwargs) - self.TSolidus(P, **kwargs))
+        #          / self.parameters['beta1']
+        #          * self._FcpxOut(P, **kwargs)**(1 / self.parameters['beta1'] - 1))
+        # term2 = (self._FcpxOut(P, **kwargs)**(1 / self.parameters['beta1'])
+        #          * (self._dTdPLherzLiquidus(P, **kwargs) - self._dTdPSolidus(P, **kwargs))
+        #          + self._dTdPSolidus(P, **kwargs))
+        # return term1 * self._dFdPcpxOut(P, **kwargs) + term2
+        TSolidus = self.TSolidus(P, **kwargs)
+        TLherzLiquidus = self._TLherzLiquidus(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dTdPSolidus = self._dTdPSolidus(P, **kwargs)
+        dTdPLherzLiquidus = self._dTdPLherzLiquidus(P, **kwargs)
+        dFdPcpxOut = self._dFdPcpxOut(P, **kwargs)
+        A = ((dFdPcpxOut * (1 / self.parameters['beta1'])
+             * ((FcpxOut**((1 / self.parameters['beta1']) - 1))))
+             * (TLherzLiquidus - TSolidus))
+        B = ((FcpxOut**(1 / self.parameters['beta1']))
+             * (dTdPLherzLiquidus - dTdPSolidus)) + dTdPSolidus
+        dTdPcpxOut = A + B
+        return dTdPcpxOut
 
     def _dFdPcpxOut(self, P, **kwargs):
-        return - self.parameters['Mcpx'] / self._RxnCoef(P, **kwargs)**2 * self.parameters['r2']
+        # return - self.parameters['Mcpx'] / self._RxnCoef(P, **kwargs)**2 * self.parameters['r2']
+        RxnCoef = self._RxnCoef(P, **kwargs)
+        FcpxOut = self._FcpxOut(P, **kwargs)
+        dFdPcpxOut = ((-1) * FcpxOut * self.parameters['r2']) / RxnCoef
+        return dFdPcpxOut
