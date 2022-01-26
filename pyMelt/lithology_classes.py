@@ -179,7 +179,6 @@ class lithology(object):
         return dTdP
 
 
-
 class hydrousLithology(object):
     r"""
     The hydrous lithology class modifies the melting expressions in a given lithology class so
@@ -326,7 +325,7 @@ class hydrousLithology(object):
 
         Returns
         -------
-        Tsol:   float
+        float
             Solidus temperature (degC).
         """
 
@@ -343,7 +342,7 @@ class hydrousLithology(object):
             Pressure (GPa).
         Returns
         -------
-        Tliq:   float
+        float
             Liquidus temperature (degC).
         """
         return self.lithology.TLiquidus(P)
@@ -457,7 +456,6 @@ class hydrousLithology(object):
 
     # This provides the misfit function when solving for F (Eqn. 19 of Katz et al., 2003)
     def _f_to_solve(self, x, P, T):
-        misfit = 0
         fcalc = self.F_function(P, T, F=x)
         misfit = fcalc - x
         return misfit
