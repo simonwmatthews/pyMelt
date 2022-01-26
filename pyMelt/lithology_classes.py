@@ -157,7 +157,7 @@ class lithology(object):
         # This finds the temperature at a given pressure for which the melt fraction is eqal to the
         # value specified. Used for calculating dT/dP (at const. F).
         def _to_diff_dTdP(P, F, T, kwargs={}):
-            t = root_scalar(self._hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
+            t = root_scalar(_hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
             return t
 
         # This method is used to find the P-T curve at which F remains constant, for the
@@ -177,7 +177,6 @@ class lithology(object):
             dTdP = derivative(_to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
 
         return dTdP
-
 
 
 class hydrousLithology(object):

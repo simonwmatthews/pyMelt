@@ -13,6 +13,9 @@ import numpy as np
 from scipy.optimize import fsolve
 from scipy.special import expit
 
+from scipy.misc import derivative
+from scipy.optimize import root_scalar
+
 
 class lherzolite(_lithology):
     """
@@ -37,38 +40,39 @@ class lherzolite(_lithology):
     also be changed during class initialisation.
     Parameters
     ----------
-    CP :         float, default: pyMelt.lithology_class.default_properties['CP']
+    CP :         float, default: 1120.0
         The heat capacity (J K-1 kg-1)
-    alphas :     float, default: pyMelt.lithology_class.default_properties['alphas']
+    alphas :     float, default: 40
         The thermal expansivity of the solid (1e-6 K-1)
-    alphaf :     float, default: pyMelt.lithology_class.default_properties['alphaf']
+    alphaf :     float, default: 68
         The thermal expansivity of the melt (1e-6 K-1)
-    rhos :       float, default: pyMelt.lithology_class.default_properties['rhos']
+    rhos :       float, default: 3.3
         The density of the solid (kg m-3)
-    rhof :       float, default: pyMelt.lithology_class.default_properties['rhof']
+    rhof :       float, default: 2.8
         The density of the melt (kg m-3)
-    DeltaS :     float, default: pyMelt.lithology_class.default_properties['DeltaS']
+    DeltaS :     float, default: 250
         The entropy of fusion J K-1 kg-1
     parameters : dict, default: parameters from McKenzie and Bickle (1988)
         The model parameters described above
     """
+
     def __init__(self,
-                 CP=_default_properties['CP'],
-                 alphas=_default_properties['alphas'],
-                 alphaf=_default_properties['alphaf'],
-                 rhos=_default_properties['rhos'],
-                 rhof=_default_properties['rhof'],
-                 DeltaS=_default_properties['DeltaS'],
-                 parameters={'A1':   1100.0,
-                             'A2':    136.0,
+                 CP=1120.0,
+                 alphas=40,
+                 alphaf=68,
+                 rhos=3.3,
+                 rhof=2.8,
+                 DeltaS=250,
+                 parameters={'A1': 1100.0,
+                             'A2': 136.0,
                              'A3': 4.968e-4,
-                             'A4':   1.2e-2,
-                             'B1':   1736.0,
-                             'B2':    4.343,
-                             'B3':    180.0,
-                             'B4':   2.2169,
-                             'a0':   0.4256,
-                             'a1':    2.988
+                             'A4': 1.2e-2,
+                             'B1': 1736.0,
+                             'B2': 4.343,
+                             'B3': 180.0,
+                             'B4': 2.2169,
+                             'a0': 0.4256,
+                             'a1': 2.988
                              }
                  ):
         self.DeltaS = DeltaS
@@ -166,8 +170,8 @@ class lherzolite(_lithology):
         float
             Solidus temperaure gradient (degC/GPa)
         """
-        dTdPLiquidus = (self.parameters['B2'] + self.parameters['B3'] /
-                        (1 + (P / self.parameters['B4'])**2))
+        dTdPLiquidus = (self.parameters['B2'] + self.parameters['B3']
+                        / (1 + (P / self.parameters['B4'])**2))
         return dTdPLiquidus
 
     def _RescaledT(self, T, P):
@@ -220,40 +224,31 @@ class lherzolite(_lithology):
                  + self.parameters['a1'] * RescaledT) + 0.5)
         return F
 
-    def dTdF(self, P, T):
+    def dTdF(self, P, T, **kwargs):
         """
-        Calculates dT/dF(const. P). First calculates the melt fraction. If F is
-        zero, returns _np.inf. If F is 1, returns _np.inf. Otherwise uses the
-        appropriate expression for melt fraction.
+        Calculates dT/dF(const. P) numerically.
 
         Parameters
         ----------
-        P : float
+        P:  float
             Pressure (GPa)
-        T : float
+        T:  float
             Temperature (degC)
+
         Returns
         -------
         float
             dT/dF(const. P) (K).
         """
-        TSolidus = self.TSolidus(P)
-        TLiquidus = self.TLiquidus(P)
-        RescaledT = self._RescaledT(T, P)
-        if T < TSolidus:
-            dTdF = np.inf
-        elif T > TLiquidus:
-            dTdF = np.inf
-        else:
-            dFdT = (((1 - 0.25 * self.parameters['a1']) + 3 * self.parameters['a0'] * RescaledT
-                     + 3 * self.parameters['a1'] * RescaledT**2) / (TLiquidus - TSolidus))
-            dTdF = 1 / dFdT
-        return dTdF
 
-    def dTdP(self, P, T):
+        def _to_diff(T, P, kwargs={}):
+            return self.F(P, T, **kwargs)
+
+        return 1.0 / (derivative(_to_diff, T, dx=0.001, args=(P, kwargs)))
+
+    def dTdP(self, P, T, **kwargs):
         """
-        Calculates dT/dP(const. F). First calculates F, then chooses the
-        appropriate expression for melt fraction.
+        Calculates dT/dP(const. F) numerically.
 
         Parameters
         ----------
@@ -261,13 +256,33 @@ class lherzolite(_lithology):
             Pressure (GPa).
         T:  float
             Temperature (degC).
+
         Returns
         -------
         float
             dT/dP(const. F) (K GPa-1).
         """
-        dTdPSolidus = self._dTdPSolidus(P)
-        dTdPLiquidus = self._dTdPLiquidus(P)
-        RescaledT = self._RescaledT(T, P)
-        dTdP = RescaledT * (dTdPLiquidus - dTdPSolidus) + 0.5 * (dTdPSolidus + dTdPLiquidus)
+
+        # This finds the temperature at a given pressure for which the melt fraction is eqal to the
+        # value specified. Used for calculating dT/dP (at const. F).
+        def _to_diff_dTdP(P, F, T, kwargs={}):
+            t = root_scalar(_hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
+            return t
+
+        # This method is used to find the P-T curve at which F remains constant, for the
+        # calculation of dT/dP (at const. F).
+        def _hold_constant_F(t, P, F, kwargs={}):
+            return self.F(P, t, **kwargs) - F
+
+        if self.F(P, T, **kwargs) == 0:
+            dTdP = self.alphas / self.rhos / self.CP
+
+        elif self.F(P, T, **kwargs) == 1:
+            dTdP = self.alphas / self.rhos / self.CP
+
+        else:
+            F = self.F(P, T, **kwargs)
+
+            dTdP = derivative(_to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
+
         return dTdP

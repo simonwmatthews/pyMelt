@@ -168,6 +168,7 @@ class mantle:
         bulk_props = self.bulkProperties(P)
         T = ((Tp + 273.15) * np.exp(bulk_props['alpha']
              / (bulk_props['rho'] * bulk_props['CP']) * P) - 273.15)
+
         return T
 
     def F(self, P, T):
