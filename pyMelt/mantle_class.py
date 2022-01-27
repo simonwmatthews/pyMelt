@@ -145,7 +145,11 @@ class mantle:
         """
         intersect = np.zeros(self.number_lithologies)
         for i in range(self.number_lithologies):
-            intersect[i] = self.lithologies[i].TSolidus(P)
+            # Check whether there is actually any of the lithology present:
+            if self.proportions[i] > 0:
+                intersect[i] = self.lithologies[i].TSolidus(P)
+            else:
+                intersect[i] = np.nan
         return intersect
 
     def adiabat(self, P, Tp):
