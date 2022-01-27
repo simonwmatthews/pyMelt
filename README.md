@@ -1,6 +1,14 @@
 
 # pyMelt mantle melting library
-S. Matthews (University of Iceland), K. Wong (University of Leeds), M. Gleeson (University of Cardiff)
+
+[![Python package](https://github.com/simonwmatthews/pyMelt/actions/workflows/python-package.yml/badge.svg)](https://github.com/simonwmatthews/pyMelt/actions/workflows/python-package.yml)
+[![flake8](https://github.com/simonwmatthews/pyMelt/actions/workflows/flake8.yml/badge.svg)](https://github.com/simonwmatthews/pyMelt/actions/workflows/flake8.yml)
+[![Documentation Status](https://readthedocs.org/projects/pymelt/badge/?version=latest)](https://pymelt.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/pyMelt.svg)](https://badge.fury.io/py/pyMelt)
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/simonwmatthews/pyMelt/HEAD?labpath=docs%2Ftutorial%2Ftutorial1.ipynb)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
+
 
 ## Introduction
 

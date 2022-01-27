@@ -19,7 +19,7 @@ from warnings import warn
 
 import pyMelt.chemistry
 
-# Weighting function
+
 def weighting_expdecay(P, weighting_wavelength, weighting_amplitude=1.0):
     """
     Weights melts according to an exponential decay function, with the greatest weighting at the
@@ -41,6 +41,7 @@ def weighting_expdecay(P, weighting_wavelength, weighting_amplitude=1.0):
     w = weighting_amplitude * _np.exp(- 1 / weighting_wavelength * (Pmax - P) / (Pmax - Pmin))
 
     return w
+
 
 class geoSetting(object):
     """
@@ -68,7 +69,7 @@ class geoSetting(object):
         The mantle object from which the melting column was calculated.
     """
 
-    def __init(self, MeltingColumn, weightingFunction = None, **kwargs):
+    def __init(self, MeltingColumn, weightingFunction=None, **kwargs):
         self.MeltingColumn = MeltingColumn
         self.lithologies = MeltingColumn.lithologies
         self.mantle = MeltingColumn.mantle
@@ -76,7 +77,7 @@ class geoSetting(object):
         self.kwargs = kwargs
 
     def crystallisationChemistry(self, mineralProportions, fractionate=True,
-                                  D = pyMelt.chemistry.defaultD):
+                                 D=pyMelt.chemistry.defaultD):
         """
         Calculates the concentrations of elements in the homogenised magma following an interval
         of crystallisation.
@@ -100,7 +101,7 @@ class geoSetting(object):
         """
 
         X = 1 - sum(mineralProportions.values())
-        Dbulk = _pd.Series(index = self.chemistry.index, data = [0]*len(self.chemistry))
+        Dbulk = _pd.Series(index=self.chemistry.index, data=[0] * len(self.chemistry))
         for mineral in mineralProportions:
             Dbulk += mineralProportions[mineral] * D[mineral] / (1 - X)
         if fractionate is True:
@@ -109,8 +110,8 @@ class geoSetting(object):
             evolved_chemistry = self.chemistry / (X * (1 - Dbulk) + Dbulk)
         return evolved_chemistry
 
-    def plotSpider(self, normalisation = 'PM', plot_instantaneous=False, plot_original=True,
-                    crystal_fraction=None, element_order=None, **kwargs):
+    def plotSpider(self, normalisation='PM', plot_instantaneous=False, plot_original=True,
+                   crystal_fraction=None, element_order=None, **kwargs):
         """
         Plot a basic spider diagram of the chemical composition, optionally alongside the
         instantaneous melts and/or an evolved melt.
@@ -167,21 +168,21 @@ class geoSetting(object):
                         hi = lithmax
                     if lithmin < lo:
                         lo = lithmin
-                    normed_hi.append(hi/normalisation[el])
-                    normed_lo.append(lo/normalisation[el])
+                    normed_hi.append(hi / normalisation[el])
+                    normed_lo.append(lo / normalisation[el])
             a.fill_between(range(len(element_order)), normed_lo, normed_hi, alpha=0.2)
 
         if plot_original is True:
             normed = []
             for el in element_order:
-                normed.append(self.chemistry[el]/normalisation[el])
+                normed.append(self.chemistry[el] / normalisation[el])
             a.plot(range(len(element_order)), normed)
 
         if crystal_fraction is not None:
             unnormed = self.crystallisationChemistry(crystal_fraction, **kwargs)
             normed = []
             for el in element_order:
-                normed.append(unnormed[el]/normalisation[el])
+                normed.append(unnormed[el] / normalisation[el])
             a.plot(range(len(element_order)), normed)
 
         a.set_yscale('log')
@@ -191,7 +192,7 @@ class geoSetting(object):
 
         return f, a
 
-    def _weighting_coefficients(self, P, empty_value = 0.0):
+    def _weighting_coefficients(self, P, empty_value=0.0):
         """
         Calculates the weighting coefficients, or returns 0 if no weighting function is supplied.
 
@@ -364,7 +365,7 @@ class spreadingCentre(geoSetting):
         for i in range(_np.shape(P)[0]):
             if i != 0:
                 tc_int[i] = (tc_int[i - 1]
-                             + 0.5 * (tc[i] + tc[i-1]) * (_np.abs(P[i] - P[i - 1]) + weights[i]))
+                             + 0.5 * (tc[i] + tc[i - 1]) * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_lith_int[i] = (tc_lith_int[i - 1]
                                   + 0.5 * tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
@@ -423,10 +424,10 @@ class spreadingCentre(geoSetting):
                         for i in range(_np.shape(c)[0] - 1):
                             if f[i] > 0 and f[i - 1] > 0:
                                 cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1, j] + c[0:i, j])
-                                                     * df[:i], axis=0) / f[i])
+                                                  * df[:i], axis=0) / f[i])
                             elif f[i] > 0:
                                 cnormed[i + 1] = (_np.sum(c[1:i + 1, j]
-                                                     * df[:i], axis=0) / f[i])
+                                                  * df[:i], axis=0) / f[i])
                             else:
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
@@ -556,7 +557,9 @@ class intraPlate(geoSetting):
         # Extract the lithology contributions:
         self.lithology_contributions = _pd.Series({})
         for lith in self.mantle.names:
+            id = self.mantle.names.index(lith)
             self.lithology_contributions[lith] = (_np.nanmax(self.lithologies[lith].F)
+                                                  * self.mantle.proportions[id]
                                                   / _np.nanmax(self.F))
 
         # Calculate the melt flux.
@@ -616,7 +619,7 @@ class intraPlate(geoSetting):
             # Create array to store weighted melt fractions for each lithology:
             weightedF = _np.zeros(len(self.mantle.names))
 
-            for i, lith in zip(range(len(self.mantle.names)),self.mantle.names):
+            for i, lith in zip(range(len(self.mantle.names)), self.mantle.names):
                 f = self.lithologies[lith].F.to_numpy()
                 df = f[1:] - f[:-1]
                 f_normed = (_np.sum(0.5 * df * (w[1:] + w[:-1]), axis=0))
@@ -669,11 +672,11 @@ class intraPlate(geoSetting):
                         for i in range(_np.shape(c)[0] - 1):
                             if f[i] > 0 and f[i - 1] > 0:
                                 cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1, j] + c[0:i, j])
-                                                     * df[:i] * w[1:i + 1], axis=0)
-                                                  / _np.sum(df[:i]*w[1:i + 1]))
+                                                  * df[:i] * w[1:i + 1], axis=0)
+                                                  / _np.sum(df[:i] * w[1:i + 1]))
                             elif f[i] > 0:
                                 cnormed[i + 1] = (_np.sum(c[1:i + 1, j]
-                                                     * df[:i] * w[1:i + 1], axis=0)
+                                                  * df[:i] * w[1:i + 1], axis=0)
                                                   / _np.sum(df[:i] * w[1:i + 1]))
                             else:
                                 cnormed[i + 1] = 0
@@ -683,8 +686,7 @@ class intraPlate(geoSetting):
                     elif self.weightingFunction is not None:
                         warn("Accumulated melts cannot be used with a weighting function for "
                              " an intra-plate melting region.")
-                        c[:, j] = [_np.nan]*np.shape(c)[0]
-
+                        c[:, j] = [_np.nan] * _np.shape(c)[0]
 
                 # Normalise melts for all lithologies
                 cm += c[-1, :] * self.lithology_contributions[lith]

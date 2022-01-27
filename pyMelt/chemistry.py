@@ -355,7 +355,7 @@ plg_D = {'Rb': 0.03,
          'Pr': 0.17,
          'Nd': 0.1400,
          'Sr': 2.0,
-         'Zr':0.01,
+         'Zr': 0.01,
          'Hf': 0.01,
          'Sm': 0.1100,
          'Eu': 0.7300,
@@ -375,12 +375,12 @@ Trace element partition coefficients between plagioclase and melt, compiled by G
 """
 
 defaultD = _pd.DataFrame({'olv': olv_D,
-                         'cpx': cpx_D,
-                         'opx': opx_D,
-                         'plg': plg_D,
-                         'grt': grt_D,
-                         'spn': spn_D,
-                        })
+                          'cpx': cpx_D,
+                          'opx': opx_D,
+                          'plg': plg_D,
+                          'grt': grt_D,
+                          'spn': spn_D,
+                          })
 """
 Dataframe containing the partition coefficients for each phase in INVMEL.
 """
@@ -694,22 +694,22 @@ class invmelSpecies(species):
     """
 
     def __init__(self, name, c0, olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
-             mineralProportions=mo91_MineralProportions, density=3.3,
-             cpxExhaustion=0.18, garnetInCoeffs = [666.7, 400.0],
-             spinelOutCoeffs = [666.7, 533.0], plagioclaseInInterval = [25.0, 35.0], **kwargs):
-                self.calculation_type = "instantaneous"
-                self.name = name
-                self.c0 = c0
-                self._D = {'olv':olv_D, 'cpx':cpx_D, 'opx':opx_D,
-                          'spn':spn_D, 'grt':grt_D, 'plg':plg_D}
-                self.mineralProportions_solid = mineralProportions
-                self.density = density
-                self.modalValue = cpxExhaustion
-                self.garnetInCoeffs = garnetInCoeffs
-                self.spinelOutCoeffs = spinelOutCoeffs
-                self.plagioclaseInInterval = plagioclaseInInterval
-                self._cs = c0
-                self._F_prev = 0.0
+                 mineralProportions=mo91_MineralProportions, density=3.3,
+                 cpxExhaustion=0.18, garnetInCoeffs=[666.7, 400.0],
+                 spinelOutCoeffs=[666.7, 533.0], plagioclaseInInterval=[25.0, 35.0], **kwargs):
+        self.calculation_type = "instantaneous"
+        self.name = name
+        self.c0 = c0
+        self._D = {'olv': olv_D, 'cpx': cpx_D, 'opx': opx_D,
+                   'spn': spn_D, 'grt': grt_D, 'plg': plg_D}
+        self.mineralProportions_solid = mineralProportions
+        self.density = density
+        self.modalValue = cpxExhaustion
+        self.garnetInCoeffs = garnetInCoeffs
+        self.spinelOutCoeffs = spinelOutCoeffs
+        self.plagioclaseInInterval = plagioclaseInInterval
+        self._cs = c0
+        self._F_prev = 0.0
 
     def composition(self, state):
         # Check if this is a new calculation or not:
@@ -728,14 +728,13 @@ class invmelSpecies(species):
                              "You are probably better off calculating it using the "
                              "ContinuousSpecies_accumulated class.")
 
-
         k1 = self._dcsdX(self._F_prev, self._cs, D, Pbar)
         k2 = self._dcsdX(self._F_prev + (state.F - self._F_prev) / 2,
-                   self._cs + k1 * (state.F - self._F_prev) / 2, D, Pbar)
+                         self._cs + k1 * (state.F - self._F_prev) / 2, D, Pbar)
         k3 = self._dcsdX(self._F_prev + (state.F - self._F_prev) / 2,
-                   self._cs + k2 * (state.F - self._F_prev) / 2, D, Pbar)
+                         self._cs + k2 * (state.F - self._F_prev) / 2, D, Pbar)
         k4 = self._dcsdX(self._F_prev + (state.F - self._F_prev),
-                   self._cs + k3 * (state.F - self._F_prev), D, Pbar)
+                         self._cs + k3 * (state.F - self._F_prev), D, Pbar)
         cs = self._cs + (1 / 6) * (state.F - self._F_prev) * (k1 + 2 * k2 + 2 * k3 + k4)
         cl = self._cl(cs, state.F, D, Pbar)
 
@@ -835,18 +834,18 @@ class invmelSpecies(species):
             p['grt'] = mineralProportions['grt'] / modalValue
             p['spn'] = mineralProportions['spn'] / modalValue
             p['plg'] = mineralProportions['plg'] / modalValue
-            p['olv'] = (mineralProportions['olv'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
-                                                     p['plg']))
+            p['olv'] = (mineralProportions['olv'] * (1 - (p['cpx'] + p['grt'] + p['spn']
+                                                     + p['plg']))
                         / (mineralProportions['olv'] + mineralProportions['opx']))
-            p['opx'] = (mineralProportions['opx'] * (1 - (p['cpx'] + p['grt'] + p['spn'] +
-                                                     p['plg']))
+            p['opx'] = (mineralProportions['opx'] * (1 - (p['cpx'] + p['grt'] + p['spn']
+                                                     + p['plg']))
                         / (mineralProportions['olv'] + mineralProportions['opx']))
 
         else:
             p['olv'] = (mineralProportions['olv']
-                    / (mineralProportions['olv'] + mineralProportions['opx']))
+                        / (mineralProportions['olv'] + mineralProportions['opx']))
             p['opx'] = (mineralProportions['opx']
-                    / (mineralProportions['olv'] + mineralProportions['opx']))
+                        / (mineralProportions['olv'] + mineralProportions['opx']))
             p['cpx'] = 0
             p['grt'] = 0
             p['spn'] = 0
@@ -855,7 +854,6 @@ class invmelSpecies(species):
         Pbar = sum([Dminerals[min] * p[min] for min in Dminerals.keys()])
 
         return Pbar
-
 
     def _SpinelPlagioclaseTransition(self, P):
         """
@@ -968,7 +966,8 @@ class invmelSpecies(species):
         Returns
         -------
         float
-            rate of change of REE concentration in point average solid residue with respect to melt fraction
+            rate of change of REE concentration in point average solid residue with respect to
+            melt fraction
 
         """
         dcsdX = cs * ((1 / (1 - X)) - (1 / (Dbar - Pbar * X)))

@@ -3,6 +3,9 @@ exclude =
     __pycache__,
     .git,
     .github,
+    build/
+    docs/
+    setup.py
 
 max-line-length = 99
 
