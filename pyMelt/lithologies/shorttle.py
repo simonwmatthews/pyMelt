@@ -285,12 +285,12 @@ class harzburgite(_lithology):
     """
 
     def __init__(self,
-                 CP=_default_properties['CP'],
-                 alphas=_default_properties['alphas'],
-                 alphaf=_default_properties['alphaf'],
-                 rhos=_default_properties['rhos'],
-                 rhof=_default_properties['rhof'],
-                 DeltaS=_default_properties['DeltaS'],
+                 CP=1000.0,
+                 alphas=30.0,
+                 alphaf=30.0,
+                 rhos=3.25,
+                 rhof=2.9,
+                 DeltaS=300,
                  parameters={}
                  ):
         self.CP = CP
@@ -353,7 +353,8 @@ class harzburgite(_lithology):
         float
             The value will always be 0.0.
         """
-        return 0.0
+        dTdP = self.alphas / self.rhos / self.CP
+        return dTdP
 
     def TSolidus(self, P, **kwargs):
         """

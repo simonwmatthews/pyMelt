@@ -9,7 +9,7 @@ inclusion in pyMelt calculations, alongside default implementations.
 
 import numpy as _np
 import pandas as _pd
-from warnings import warn
+from warnings import warn as _warn
 
 default_methods = {'Rb': 'continuous_instantaneous',
                    'Ba': 'continuous_instantaneous',
@@ -723,10 +723,10 @@ class invmelSpecies(species):
         Pbar = self.P_bulk(state['P'], state['T'], state.F)
 
         if D < 1e-4:
-            warn(self.name + " is extremely incompatible, unless the step size is extremely small"
-                             " its partitioning behaviour is unlikely to be captured correctly. "
-                             "You are probably better off calculating it using the "
-                             "ContinuousSpecies_accumulated class.")
+            _warn(self.name + " is extremely incompatible, unless the step size is extremely small"
+                              " its partitioning behaviour is unlikely to be captured correctly. "
+                              "You are probably better off calculating it using the "
+                              "ContinuousSpecies_accumulated class.")
 
         k1 = self._dcsdX(self._F_prev, self._cs, D, Pbar)
         k2 = self._dcsdX(self._F_prev + (state.F - self._F_prev) / 2,
@@ -740,7 +740,7 @@ class invmelSpecies(species):
 
         # Check if discretisation is too course
         if (k1 + 2 * k2 + 2 * k3 + k4) > 0 and D < 1:
-            warn("Discretisation is too course to capture the behaviour of " + self.name + ".")
+            _warn("Discretisation is too course to capture the behaviour of " + self.name + ".")
             cl = _np.nan
             self._cs = _np.nan
 

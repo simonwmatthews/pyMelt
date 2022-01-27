@@ -12,12 +12,12 @@ at a spreading centre.
 import numpy as _np
 import pandas as _pd
 import matplotlib.pyplot as _plt
-from copy import copy
-from scipy.interpolate import interp1d
-from scipy.integrate import trapz
-from warnings import warn
+from copy import copy as _copy
+from scipy.interpolate import interp1d as _interp1d
+from scipy.integrate import trapz as _trapz
+from warnings import warn as _warn
 
-import pyMelt.chemistry
+import pyMelt.chemistry as _chemistry
 
 
 def weighting_expdecay(P, weighting_wavelength, weighting_amplitude=1.0):
@@ -77,7 +77,7 @@ class geoSetting(object):
         self.kwargs = kwargs
 
     def crystallisationChemistry(self, mineralProportions, fractionate=True,
-                                 D=pyMelt.chemistry.defaultD):
+                                 D=_chemistry.defaultD):
         """
         Calculates the concentrations of elements in the homogenised magma following an interval
         of crystallisation.
@@ -145,9 +145,9 @@ class geoSetting(object):
         """
         f, a = _plt.subplots(dpi=150)
 
-        default_norms = {'PM': pyMelt.chemistry.palme13_pm,
-                         'CI': pyMelt.chemistry.palme13_ci,
-                         'DM': pyMelt.chemistry.workman05_dmm}
+        default_norms = {'PM': _chemistry.palme13_pm,
+                         'CI': _chemistry.palme13_ci,
+                         'DM': _chemistry.workman05_dmm}
 
         if isinstance(normalisation, str):
             normalisation = default_norms[normalisation]
@@ -262,11 +262,11 @@ class spreadingCentre(geoSetting):
     def __init__(self, MeltingColumn, P_lithosphere=0.0, extract_melt=False, steps=10001,
                  weightingFunction=None, **kwargs):
         self.MeltingColumn = MeltingColumn
-        self.lithologies = copy(MeltingColumn.lithologies)
+        self.lithologies = _copy(MeltingColumn.lithologies)
         self.mantle = MeltingColumn.mantle
-        self.P = copy(self.MeltingColumn.P)
-        self.T = copy(self.MeltingColumn.T)
-        self.F = copy(self.MeltingColumn.F)
+        self.P = _copy(self.MeltingColumn.P)
+        self.T = _copy(self.MeltingColumn.T)
+        self.F = _copy(self.MeltingColumn.F)
         self.P_lithosphere = P_lithosphere
         self.weightingFunction = weightingFunction
         self.kwargs = kwargs
@@ -340,10 +340,10 @@ class spreadingCentre(geoSetting):
             P = self.P
             tc_lith = tc_lith.to_numpy()
         else:
-            interp_f = interp1d(self.P, tc)
+            interp_f = _interp1d(self.P, tc)
             interp_lith = []
             for i in range(self.mantle.number_lithologies):
-                interp_lith.append(interp1d(self.P, tc_lith[self.mantle.names[i]]))
+                interp_lith.append(_interp1d(self.P, tc_lith[self.mantle.names[i]]))
             P = _np.linspace(_np.nanmax(self.P), _np.nanmin(self.P), steps)
             tc = _np.zeros(_np.shape(P)[0])
             for i in range(len(P)):
@@ -432,10 +432,10 @@ class spreadingCentre(geoSetting):
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
                 # Normalise melts for this lithology
-                c = trapz((1 + weights[:, None]) * c * f[:, None] / (1.0 - f[:, None]),
-                          self.lithologies[lith]['P'].to_numpy()[:], axis=0)
-                c = c / trapz((1 + weights) * f / (1 - f),
-                              self.lithologies[lith]['P'].to_numpy())
+                c = _trapz((1 + weights[:, None]) * c * f[:, None] / (1.0 - f[:, None]),
+                           self.lithologies[lith]['P'].to_numpy()[:], axis=0)
+                c = c / _trapz((1 + weights) * f / (1 - f),
+                               self.lithologies[lith]['P'].to_numpy())
 
                 # Normalise melts for all lithologies
                 cm += c * self.lithology_contributions[lith]
@@ -538,12 +538,12 @@ class intraPlate(geoSetting):
     def __init__(self, MeltingColumn, P_lithosphere, relative_density=None, viscosity=1e19,
                  radius=1e5, weightingFunction=None, **kwargs):
         self.MeltingColumn = MeltingColumn
-        self.lithologies = copy(MeltingColumn.lithologies)
+        self.lithologies = _copy(MeltingColumn.lithologies)
         self.P_lithosphere = P_lithosphere
         self.mantle = MeltingColumn.mantle
-        self.P = copy(self.MeltingColumn.P)
-        self.T = copy(self.MeltingColumn.T)
-        self.F = copy(self.MeltingColumn.F)
+        self.P = _copy(self.MeltingColumn.P)
+        self.T = _copy(self.MeltingColumn.T)
+        self.F = _copy(self.MeltingColumn.F)
         self.weightingFunction = weightingFunction
         self.kwargs = kwargs
 
@@ -607,8 +607,6 @@ class intraPlate(geoSetting):
 
         Where :math:`F` is the total melt fraction obtained.
         """
-        # if self.weightingFunction is not None:
-        #     warn("The weighting function will not be applied to the melt flux.")
         Qv = _np.pi / 8 * (relative_density * 9.81 * radius**4) / viscosity
 
         if self.weightingFunction is None:
@@ -684,8 +682,8 @@ class intraPlate(geoSetting):
 
                     # If accumulated melts are calculated but a weighting function exists
                     elif self.weightingFunction is not None:
-                        warn("Accumulated melts cannot be used with a weighting function for "
-                             " an intra-plate melting region.")
+                        _warn("Accumulated melts cannot be used with a weighting function for "
+                              " an intra-plate melting region.")
                         c[:, j] = [_np.nan] * _np.shape(c)[0]
 
                 # Normalise melts for all lithologies

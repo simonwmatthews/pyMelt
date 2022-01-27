@@ -8,13 +8,12 @@ Implementation of the anhydrous melting model presented by McKenzie and Bickle (
 """
 
 from pyMelt.lithology_classes import lithology as _lithology
-from pyMelt.lithology_classes import default_properties as _default_properties
-import numpy as np
-from scipy.optimize import fsolve
-from scipy.special import expit
+import numpy as _np
+from scipy.optimize import fsolve as _fsolve
+from scipy.special import expit as _expit
 
-from scipy.misc import derivative
-from scipy.optimize import root_scalar
+from scipy.misc import derivative as _derivative
+from scipy.optimize import root_scalar as _root_scalar
 
 
 class lherzolite(_lithology):
@@ -104,19 +103,19 @@ class lherzolite(_lithology):
 
         def func(TSolidus):
             _func = ((TSolidus - self.parameters['A1']) / self.parameters['A2']
-                     + self.parameters['A3'] * np.exp(self.parameters['A4']
+                     + self.parameters['A3'] * _np.exp(self.parameters['A4']
                      * (TSolidus - self.parameters['A1']))) - Pressure
             return _func
 
-        if isinstance(P, (list, tuple, np.ndarray)) is True:
+        if isinstance(P, (list, tuple, _np.ndarray)) is True:
             TSolidus_solution = []
             for i in range(len(P)):
                 Pressure = P[i]
-                TSolidus_solution.append(fsolve(func, TSolidus_initial_guess, maxfev=50000)[0])
-            TSolidus_solution = np.array(TSolidus_solution)
+                TSolidus_solution.append(_fsolve(func, TSolidus_initial_guess, maxfev=50000)[0])
+            TSolidus_solution = _np.array(TSolidus_solution)
         else:
             Pressure = P
-            TSolidus_solution = fsolve(func, TSolidus_initial_guess, maxfev=50000)[0]
+            TSolidus_solution = _fsolve(func, TSolidus_initial_guess, maxfev=50000)[0]
         return TSolidus_solution
 
     def TLiquidus(self, P):
@@ -134,7 +133,7 @@ class lherzolite(_lithology):
             Solidus temperature (degC).
         """
         TLiquidus = (self.parameters['B1'] + self.parameters['B2'] * P + self.parameters['B3']
-                     * np.arctan(P / self.parameters['B4']))
+                     * _np.arctan(P / self.parameters['B4']))
         return TLiquidus
 
     def _dTdPSolidus(self, P):
@@ -154,7 +153,7 @@ class lherzolite(_lithology):
         """
         TSolidus = self.TSolidus(P)
         dTdPSolidus = (1 / (1 / self.parameters['A2'] + self.parameters['A3']
-                       * self.parameters['A4'] * expit(self.parameters['A4']
+                       * self.parameters['A4'] * _expit(self.parameters['A4']
                        * (TSolidus - self.parameters['A1']))))
         return dTdPSolidus
 
@@ -241,11 +240,18 @@ class lherzolite(_lithology):
         float
             dT/dF(const. P) (K).
         """
-
         def _to_diff(T, P, kwargs={}):
             return self.F(P, T, **kwargs)
 
-        return 1.0 / (derivative(_to_diff, T, dx=0.001, args=(P, kwargs)))
+        F = self.F(P, T, **kwargs)
+
+        if F == 0:
+            dTdF = _np.inf
+        elif F < 1:
+            dTdF = 1.0 / (_derivative(_to_diff, T, dx=0.001, args=(P, kwargs)))
+        else:
+            dTdF = _np.inf
+        return dTdF
 
     def dTdP(self, P, T, **kwargs):
         """
@@ -267,7 +273,7 @@ class lherzolite(_lithology):
         # This finds the temperature at a given pressure for which the melt fraction is eqal to the
         # value specified. Used for calculating dT/dP (at const. F).
         def _to_diff_dTdP(P, F, T, kwargs={}):
-            t = root_scalar(_hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
+            t = _root_scalar(_hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
             return t
 
         # This method is used to find the P-T curve at which F remains constant, for the
@@ -284,6 +290,6 @@ class lherzolite(_lithology):
         else:
             F = self.F(P, T, **kwargs)
 
-            dTdP = derivative(_to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
+            dTdP = _derivative(_to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
 
         return dTdP
