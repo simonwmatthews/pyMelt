@@ -1,6 +1,8 @@
 
 # pyMelt mantle melting library
-S. Matthews (University of Iceland), K. Wong (University of Leeds), M. Gleeson (University of Cardiff)
+
+[![Documentation Status](https://readthedocs.org/projects/pymelt/badge/?version=latest)](https://pymelt.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/pyMelt.svg)](https://badge.fury.io/py/pyMelt)
 
 ## Introduction
 
