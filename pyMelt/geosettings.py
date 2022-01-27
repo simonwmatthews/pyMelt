@@ -683,7 +683,7 @@ class intraPlate(geoSetting):
                     elif self.weightingFunction is not None:
                         warn("Accumulated melts cannot be used with a weighting function for "
                              " an intra-plate melting region.")
-                        c[:, j] = [_np.nan]*np.shape(c)[0]
+                        c[:, j] = [_np.nan]*_np.shape(c)[0]
 
 
                 # Normalise melts for all lithologies
