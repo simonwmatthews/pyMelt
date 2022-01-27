@@ -15,12 +15,10 @@ provided for performing decompression melting calculations.
 
 __version__ = "0.5.1"
 __author__ = "Simon Matthews and Kevin Wong"
-__all__ = ['Mantle', 'hydrous_lithology']
 
-import pyMelt.lithologies
-import pyMelt.geosettings
-# import pyMelt.meltingcolumn_classes
+from pyMelt import lithologies
+from pyMelt import geosettings
 from pyMelt.mantle_class import mantle
 from pyMelt.lithology_classes import hydrousLithology
 
-__all__ = ['hydrousLithology', 'mantle']
+__all__ = ['hydrousLithology', 'mantle', 'lithologies', 'geosettings']

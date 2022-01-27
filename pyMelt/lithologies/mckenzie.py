@@ -52,6 +52,7 @@ class lherzolite(_lithology):
     parameters : dict, default: parameters from McKenzie and Bickle (1988)
         The model parameters described above
     """
+
     def __init__(self,
                  CP=_default_properties['CP'],
                  alphas=_default_properties['alphas'],
@@ -59,16 +60,16 @@ class lherzolite(_lithology):
                  rhos=_default_properties['rhos'],
                  rhof=_default_properties['rhof'],
                  DeltaS=_default_properties['DeltaS'],
-                 parameters={'A1':   1100.0,
-                             'A2':    136.0,
+                 parameters={'A1': 1100.0,
+                             'A2': 136.0,
                              'A3': 4.968e-4,
-                             'A4':   1.2e-2,
-                             'B1':   1736.0,
-                             'B2':    4.343,
-                             'B3':    180.0,
-                             'B4':   2.2169,
-                             'a0':   0.4256,
-                             'a1':    2.988
+                             'A4': 1.2e-2,
+                             'B1': 1736.0,
+                             'B2': 4.343,
+                             'B3': 180.0,
+                             'B4': 2.2169,
+                             'a0': 0.4256,
+                             'a1': 2.988
                              }
                  ):
         self.DeltaS = DeltaS
@@ -166,8 +167,8 @@ class lherzolite(_lithology):
         float
             Solidus temperaure gradient (degC/GPa)
         """
-        dTdPLiquidus = (self.parameters['B2'] + self.parameters['B3'] /
-                        (1 + (P / self.parameters['B4'])**2))
+        dTdPLiquidus = (self.parameters['B2'] + self.parameters['B3']
+                        / (1 + (P / self.parameters['B4'])**2))
         return dTdPLiquidus
 
     def _RescaledT(self, T, P):

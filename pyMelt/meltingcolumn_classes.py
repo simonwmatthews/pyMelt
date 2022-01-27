@@ -13,7 +13,6 @@ from pyMelt.core import InputError
 import matplotlib.pyplot as plt
 import pandas as pd
 import pyMelt.chemistry
-from copy import copy as _copy
 
 
 class meltingColumn():
@@ -196,7 +195,7 @@ class meltingColumn():
             lithologies = list(elements.keys())
             if any(set(elements[lith].keys()) != set(elements[lithologies[0]].keys())
                    for lith in lithologies):
-                       elements = self._tidy_chemistry_inputs(elements)
+                elements = self._tidy_chemistry_inputs(elements)
 
         if elements is not None and any([el in ['P', 'T', 'F']
                                          for el in elements[list(elements.keys())[0]]]):
