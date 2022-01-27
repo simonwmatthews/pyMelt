@@ -4,6 +4,7 @@ import pandas as _pd
 from scipy.optimize import fsolve as _fsolve
 
 from pyMelt.meltingcolumn_classes import meltingColumn as _meltingColumn
+from pyMelt.core import InputError
 
 
 class mantle:
@@ -404,6 +405,10 @@ class mantle:
 
         if Pstart is None:
             solidus_intersect = self.solidusIntersection(Tp)
+            if all(_np.isnan(solidus_intersect)) is True:
+                raise InputError("No solidus intersection found. To model adiabatic "
+                                 "decompression of solid mantle set a starting pressure using "
+                                 "Pstart.")
             Pstart = _np.nanmax(solidus_intersect) + 1e-5
             adjust_pressure = False
 
