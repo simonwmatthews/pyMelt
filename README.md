@@ -1,6 +1,7 @@
 
 # pyMelt mantle melting library
 
+[![Python package](https://github.com/simonwmatthews/pyMelt/actions/workflows/python-package.yml/badge.svg)](https://github.com/simonwmatthews/pyMelt/actions/workflows/python-package.yml)
 [![Documentation Status](https://readthedocs.org/projects/pymelt/badge/?version=latest)](https://pymelt.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/pyMelt.svg)](https://badge.fury.io/py/pyMelt)
 
