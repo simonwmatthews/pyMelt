@@ -557,7 +557,9 @@ class intraPlate(geoSetting):
         # Extract the lithology contributions:
         self.lithology_contributions = _pd.Series({})
         for lith in self.mantle.names:
+            id = self.mantle.names.index(lith)
             self.lithology_contributions[lith] = (_np.nanmax(self.lithologies[lith].F)
+                                                  * self.mantle.proportions[id]
                                                   / _np.nanmax(self.F))
 
         # Calculate the melt flux.
