@@ -97,7 +97,7 @@ class lherzolite(_lithology):
             Pressure (GPa)
         Returns
         -------
-        float
+        float or numpy.Array
             Solidus temperature (degC).
         """
         TSolidus_initial_guess = 1300.0
@@ -113,6 +113,7 @@ class lherzolite(_lithology):
             for i in range(len(P)):
                 Pressure = P[i]
                 TSolidus_solution.append(fsolve(func, TSolidus_initial_guess, maxfev=50000)[0])
+            TSolidus_solution = np.array(TSolidus_solution)
         else:
             Pressure = P
             TSolidus_solution = fsolve(func, TSolidus_initial_guess, maxfev=50000)[0]
@@ -129,7 +130,7 @@ class lherzolite(_lithology):
             Pressure (GPa)
         Returns
         -------
-        float
+        float or numpy.Array
             Solidus temperature (degC).
         """
         TLiquidus = (self.parameters['B1'] + self.parameters['B2'] * P + self.parameters['B3']
