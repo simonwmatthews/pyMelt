@@ -22,7 +22,7 @@ class test_mantle(unittest.TestCase):
                        'shorttle_kg1': m.lithologies.shorttle.kg1()
                        }
 
-    def test_single_lithology_auto(self):
+    def test_single_lithology(self):
         """
         Test adiabtic decompression in pure lithologies using default calculation settings.
         """
@@ -78,6 +78,51 @@ class test_mantle(unittest.TestCase):
             self.assertAlmostEqual(col1500.T.iloc[-1], T_top_1500[lith], places=6,
                                    msg=lith + 'T at Tp=1500')
 
+    def test_melt_steps(self):
+        """
+        Test that steps can be calculated
+        """
+        mantle = m.mantle([self.models['matthews_klb1']], [1.0])
+
+        col = mantle.adiabaticMelt(1300, steps=100)
+        self.assertEqual(np.shape(col.F)[0], 100,
+                         msg="Incorrect number of steps")
+
+        self.assertAlmostEqual(col.P.iloc[0], 1.403882594274345, places=6,
+                               msg="Incorrect starting pressure.")
+
+        self.assertAlmostEqual(col.P.iloc[-1], 0.01, places=6,
+                               msg="Incorrect final pressure.")
+
+    def test_melt_steps_startP(self):
+        """
+        Test that steps with a starting pressure can be calculated.
+        """
+        mantle = m.mantle([self.models['matthews_klb1']], [1.0])
+
+        col = mantle.adiabaticMelt(1300, steps=100, Pstart=5.0)
+        self.assertEqual(np.shape(col.F)[0], 100,
+                         msg="Incorrect number of steps when Pstart specified.")
+
+        self.assertAlmostEqual(col.P.iloc[0], 4.9825594629612135, places=6,
+                               msg="Incorrectly adjusted starting pressure.")
+
+        self.assertEqual(col.P.iloc[-1], 0.0, msg="Incorrectly adjusted final pressure.")
+
+    def test_melt_steps_startP_noAdj(self):
+        """
+        Test that steps with a starting pressure can be calculated without adjustment
+        """
+        mantle = m.mantle([self.models['matthews_klb1']], [1.0])
+
+        col = mantle.adiabaticMelt(1300, steps=100, Pstart=5.0, adjust_pressure=False, Pend=1.0)
+        self.assertEqual(np.shape(col.F)[0], 100,
+                         msg="Incorrect number of steps when Pstart specified.")
+
+        self.assertEqual(col.P.iloc[0], 5.0, msg="Starting pressure not propagated.")
+
+        self.assertEqual(col.P.iloc[-1], 1.0, msg="Final pressure not propagated.")
+
     def test_nonmelting_auto(self):
         """
         Test that a non-melting mantle will return an InputError
@@ -85,3 +130,84 @@ class test_mantle(unittest.TestCase):
         hz = m.lithologies.shorttle.harzburgite()
         mantle = m.mantle([hz], [1.0])
         self.assertRaises(InputError, mantle.adiabaticMelt, 1300.0)
+
+    def test_nonmelting_Prange(self):
+        """
+        Test that a non-melting mantle can produce an adiabat when pressure is specified.
+        """
+        hz = m.lithologies.shorttle.harzburgite()
+        mantle = m.mantle([hz], [1.0])
+        col = mantle.adiabaticMelt(1300, Pstart=5.0)
+
+        self.assertAlmostEqual(col.T.iloc[-1], 1300, places=0,
+                               msg="Tp not returned by non-melting adiabat.")
+
+    def test_adiabat(self):
+        """
+        Test that the adiabat is calculated correctly. Tests two lithologies only, just to check
+        the different constants are propagated properly.
+        """
+        hz = m.lithologies.shorttle.harzburgite()
+        mantle = m.mantle([hz], [1.0])
+        self.assertAlmostEqual(mantle.adiabat(5.0, 1300.0), 1374.308545262, places=6,
+                               msg="Adiabat temperature for Shorttle-Harzburgite is not "
+                                   "predicted correctly.")
+
+        mantle = m.mantle([self.models['matthews_klb1']], [1.0])
+        self.assertAlmostEqual(mantle.adiabat(5.0, 1300), 1398.2908507468187, places=6,
+                               msg="Adiabat temperature for Matthews-KLB1 is not "
+                                   "predicted correctly.")
+
+    def test_superSolidusStart(self):
+        """
+        Check that a super solidus start is identified and calculated correctly.
+        """
+        mantle = m.mantle([self.models['matthews_eclogite']], [1.0])
+
+        self.assertWarns(UserWarning, mantle.adiabaticMelt, Tp=1500, Pstart=3.0)
+
+        col = mantle.adiabaticMelt(Tp=1500, Pstart=3.0, ReportSSS=False)
+
+        self.assertAlmostEqual(col.T.iloc[0], 1393.4183401385737, places=6,
+                               msg="Isobaric melting stop not working correctly.")
+
+    def test_multilithology_auto(self):
+        """
+        Test that multi-lithology melting is calculated correctly.
+        """
+        mantle = m.mantle([self.models['matthews_klb1'], self.models['matthews_kg1']],
+                          [1.0, 0.25],
+                          ['klb1', 'kg1'])
+
+        col = mantle.adiabaticMelt(1350.0)
+
+        self.assertAlmostEqual(col.F.iloc[-1], 0.3031835235468895, places=6,
+                               msg="Total melt fraction is incorrect.")
+
+        self.assertAlmostEqual(col.lithologies['klb1'].F.iloc[-1], 0.16857773509268661, places=6,
+                               msg="KLB1 melt fraction is incorrect.")
+
+        self.assertAlmostEqual(col.lithologies['kg1'].F.iloc[-1], 0.8416066773637008, places=6,
+                               msg="KG1 melt fraction is incorrect.")
+
+        self.assertAlmostEqual(col.T.iloc[-1], 1204.0000266711634, places=6,
+                               msg="The temperature at the top of the column is incorrect.")
+
+    def test_prevent_freezing(self):
+        """
+        Test that pyMelt will prevent freezing
+        """
+        mantle = m.mantle([self.models['matthews_klb1'],
+                           self.models['matthews_kg1']],
+                          [10.0, 1.0],
+                          ['klb1', 'kg1'])
+
+        self.assertWarns(UserWarning, mantle.adiabaticMelt, Tp=1600.0)
+
+        col = mantle.adiabaticMelt(1600.0, warn_prevent_freezing=False)
+        col2 = mantle.adiabaticMelt(1600.0, prevent_freezing=False)
+
+        s1 = np.shape(col.lithologies['klb1'].F[col.lithologies['klb1'].F > 0].unique())[0]
+        s2 = np.shape(col2.lithologies['klb1'].F[col2.lithologies['klb1'].F > 0].unique())[0]
+
+        self.assertTrue(s1 < s2, msg="No evidence of freezing prevention")

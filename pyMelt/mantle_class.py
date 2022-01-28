@@ -228,7 +228,7 @@ class mantle:
             dTdF[i] = self.lithologies[i].dTdF(P, T)
             F[i] = self.lithologies[i].F(P, T)
 
-        lithologies_melting = _np.where((F * self.proportions > 0) & (F * self.proportions < 1))[0]
+        lithologies_melting = _np.where(((F > 0) & (F < 1)) & (self.proportions > 0))[0]
 
         if _np.shape(lithologies_melting)[0] > 0:
             for i in range(_np.shape(lithologies_melting)[0]):
@@ -403,8 +403,9 @@ class mantle:
             crustal thickness may then be performed on this instance, if desired.
         """
 
+        solidus_intersect = self.solidusIntersection(Tp)
+
         if Pstart is None:
-            solidus_intersect = self.solidusIntersection(Tp)
             if all(_np.isnan(solidus_intersect)) is True:
                 raise InputError("No solidus intersection found. To model adiabatic "
                                  "decompression of solid mantle set a starting pressure using "
@@ -423,13 +424,16 @@ class mantle:
         T[0] = self.adiabat(Pstart, Tp)
 
         if (adjust_pressure is True
-                and T[0] < _np.nanmin(self.solidusIntersectionIsobaric(Pstart))):
+                and T[0] < _np.nanmin(self.solidusIntersectionIsobaric(Pstart))
+                and all(_np.isnan(solidus_intersect)) is False):
             p_intersect = _np.nanmax(self.solidusIntersection(Tp))
             diff = _np.abs(P - p_intersect)
             adjustment = P[_np.argmin(diff)] - p_intersect
             if adjustment < 0:
                 adjustment += dP
             P -= adjustment
+            if P[-1] < 0:
+                P[-1] = 0
 
         F = _np.zeros([steps, self.number_lithologies])
 
