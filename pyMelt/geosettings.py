@@ -404,6 +404,8 @@ class spreadingCentre(geoSetting):
                 first_lithology = False
 
         weights = self._weighting_coefficients(self.MeltingColumn.P)
+        if isinstance(weights, _np.ndarray) is False:
+            weights = weights.to_numpy()
 
         cm = _np.zeros([len(species)])
         for lith in self.mantle.names:
@@ -529,7 +531,7 @@ class intraPlate(geoSetting):
         The pressure at the base of the lithosphere.
     melt_flux : float or None
         If the melt flux has been calculated, it will be stored here, in m3 s-1.
-    lithology_contributions : pandas.Series
+    lithology_contributions : dict
         The relative contributions of each lithology to the pooled melt.
     chemistry : pandas.Series
         The homogenised melt composition
@@ -555,7 +557,7 @@ class intraPlate(geoSetting):
         self.P = self.P[self.P > self.P_lithosphere]
 
         # Extract the lithology contributions:
-        self.lithology_contributions = _pd.Series({})
+        self.lithology_contributions = {}
         for lith in self.mantle.names:
             id = self.mantle.names.index(lith)
             self.lithology_contributions[lith] = (_np.nanmax(self.lithologies[lith].F)
@@ -649,6 +651,8 @@ class intraPlate(geoSetting):
 
         # Calculate the weighting for each melt
         w = self._weighting_coefficients(self.MeltingColumn.P, empty_value=1.0)
+        if isinstance(w, _np.ndarray) is False:
+            w = w.to_numpy()
 
         for lith in self.mantle.names:
             if self.lithology_contributions[lith] > 0:
