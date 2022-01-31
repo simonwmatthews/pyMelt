@@ -6,7 +6,6 @@ This module provides testing routines for the GeoSettings classes.
 
 import unittest
 import pyMelt as m
-import numpy as np
 
 
 class test_spreadingCentre(unittest.TestCase):
@@ -64,9 +63,9 @@ class test_spreadingCentre(unittest.TestCase):
                                msg="Pressure at base of crust is incorrect.")
 
     def test_weighting(self):
-        setting = m.geosettings.spreadingCentre(self.column,
-                                        weightingFunction = m.geosettings.weighting_expdecay,
-                                        weighting_wavelength=1.0, weighting_amplitude=0.001)
+        setting = m.geosettings.spreadingCentre(
+            self.column, weightingFunction=m.geosettings.weighting_expdecay,
+            weighting_wavelength=1.0, weighting_amplitude=0.001)
 
         self.assertAlmostEqual(setting.tc, 22.32723842461517, places=6,
                                msg="Crustal thickness is incorrect.")
@@ -76,7 +75,6 @@ class test_spreadingCentre(unittest.TestCase):
         for lith in ['lz', 'px']:
             self.assertAlmostEqual(setting.lithology_contributions[lith], contributions[lith],
                                    places=6, msg="Contribution from " + lith + " is incorrect.")
-
 
 
 class test_intraPlate(unittest.TestCase):

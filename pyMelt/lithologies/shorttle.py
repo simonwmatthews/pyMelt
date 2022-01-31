@@ -8,7 +8,6 @@ Implementation of the new lithologies in Shorttle et al. (2014).
 """
 
 from pyMelt.lithology_classes import lithology as _lithology
-from pyMelt.lithology_classes import default_properties as _default_properties
 
 import numpy as _np
 

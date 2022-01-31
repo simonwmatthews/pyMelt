@@ -34,7 +34,7 @@ class test_mantle(unittest.TestCase):
                       'mckenzie_lherzolite': 0.25189890081706984,
                       'pertermann_g2': 0.46778134851714903,
                       'shorttle_kg1': 0.30985171334907324
-                           }
+                      }
 
         T_top_1300 = {'katz_lherzolite': 1213.1669678349292,
                       'matthews_klb1': 1210.5333533430478,
