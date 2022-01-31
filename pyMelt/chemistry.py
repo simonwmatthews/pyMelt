@@ -994,5 +994,6 @@ class invmelSpecies(species):
             instantaneous melt composition
 
         """
-        cl = cs * (1 - X) / (Dbar - Pbar * X)
+        cl = (cs * (1 - ((X - self._F_prev) / (1 - self._F_prev)))
+              / (Dbar - Pbar * ((X - self._F_prev) / (1 - self._F_prev))))
         return cl
