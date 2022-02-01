@@ -90,7 +90,8 @@ class test_lithology(unittest.TestCase):
                                                 0.7482411, 0.80917489, 0.89638302, 1., 1.]),
                       'shorttle_hz': np.array([0] * 13),
                       'mckenzie_lz': np.array([0., 0., 0., 0., 0., 0., 0., 0.00094576,
-                                               0.30409241]),
+                                               0.30409241, 0.38859097, 0.50095471, 0.88769691,
+                                               1.]),
                       }
 
         self.dTdF_ref = {'katz_lherzolite': np.array([np.inf, np.inf, np.inf, np.inf, np.inf,
