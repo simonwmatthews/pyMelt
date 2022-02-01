@@ -18,6 +18,7 @@ class test_lithology(unittest.TestCase):
                                     'pertermann_g2': m.lithologies.pertermann.g2(),
                                     'shorttle_kg1': m.lithologies.shorttle.kg1(),
                                     'shorttle_hz': m.lithologies.shorttle.harzburgite(),
+                                    'mckenzie_lz': m.lithologies.mckenzie.lherzolite()
                                     }
 
         self.Tsolidus_ref = {'katz_lherzolite': np.array([1085.7, 1213.5, 1331.1, 1438.5, 1535.7,
