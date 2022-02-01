@@ -9,11 +9,16 @@ import pyMelt as m
 
 
 class test_chemistry(unittest.TestCase):
+
     def setUp(self):
         self.lz = m.lithologies.matthews.klb1()
         self.px = m.lithologies.matthews.kg1()
 
     def test_single_lithology_column(self):
+        """
+        Test column chemistry is correctly calculated for La, Dy, and Yb during
+        single lithology melting.
+        """
         mantle = m.mantle([self.lz], [1.0], ['lz'])
         column = mantle.adiabaticMelt(1350.0)
         column.calculateChemistry()
@@ -28,6 +33,10 @@ class test_chemistry(unittest.TestCase):
                                    msg="Single lithology column "+element+" is incorrect.")
 
     def test_single_lithology_spreadingCentre(self):
+        """
+        Test column chemistry is correctly calculated for La, Dy, and Yb during
+        single lithology melting and spreading centre homogenisation.
+        """
         mantle = m.mantle([self.lz], [1.0], ['lz'])
         column = mantle.adiabaticMelt(1350.0)
         column.calculateChemistry()
@@ -40,9 +49,34 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(morb.chemistry[element],
                                    concentrations[element], places=6,
-                                   msg="Single lithology homogenised "+element+" is incorrect.")
+                                   msg="Single lithology homogenised sc "+element+" is incorrect.")
+
+    def test_single_lithology_intraPlate(self):
+        """
+        Test column chemistry is correctly calculated for La, Dy, and Yb during
+        single lithology melting and intraplate homogenisation.
+        """
+        mantle = m.mantle([self.lz], [1.0], ['lz'])
+        column = mantle.adiabaticMelt(1350.0)
+        column.calculateChemistry()
+        oib = m.geosettings.intraPlate(column, 1.0,
+                                       weightingFunction=m.geosettings.weighting_expdecay,
+                                       weighting_wavelength=0.1)
+
+        concentrations = {'La': 7.104201514862648,
+                          'Dy': 6.879161621049682,
+                          'Yb': 3.611603816444381}
+
+        for element in ['La', 'Dy', 'Yb']:
+            self.assertAlmostEqual(oib.chemistry[element],
+                                   concentrations[element], places=6,
+                                   msg="Single lithology homogenised ip "+element+" is incorrect.")
 
     def test_multi_lithology_column(self):
+        """
+        Test column chemistry is correctly calculated for La, Dy, and Yb during
+        multi-lithology melting..
+        """
         mantle = m.mantle([self.lz, self.px], [1.0, 1.0], ['lz', 'px'])
         column = mantle.adiabaticMelt(1350.0)
         column.calculateChemistry(elements={'lz': m.chemistry.workman05_dmm,
@@ -74,7 +108,41 @@ class test_chemistry(unittest.TestCase):
                                    px_conc[element], places=6,
                                    msg="Multi-lithology column px "+element+" is incorrect.")
 
+    def test_multi_lithology_spreadingCentre(self):
+        """
+        Test column chemistry is correctly calculated for La, Dy, and Yb during
+        multi-lithology melting and spreading centre homogenisation.
+        """
+        mantle = m.mantle([self.lz, self.px], [1.0, 1.0], ['lz', 'px'])
+        column = mantle.adiabaticMelt(1350.0)
+        column.calculateChemistry(elements={'lz': m.chemistry.workman05_dmm,
+                                            'px': m.chemistry.stracke03_bsic},
+                                  cpxExhaustion={'lz': 0.18,
+                                                 'px': 0.70},
+                                  garnetInCoeffs={'lz': [666.7, 400.0],
+                                                  'px': [666.7, 400.0]},
+                                  spinelOutCoeffs={'lz': [666.7, 533.0],
+                                                   'px': [666.7, 533.0]},
+                                  mineralProportions={'lz': m.chemistry.klb1_MineralProportions,
+                                                      'px': m.chemistry.kg1_MineralProportions}
+                                  )
+
+        morb = m.geosettings.spreadingCentre(column)
+
+        concentrations = {'La': 4.235660539351117,
+                          'Dy': 8.703630112867264,
+                          'Yb': 5.091522033090427}
+
+        for element in ['La', 'Dy', 'Yb']:
+            self.assertAlmostEqual(morb.chemistry[element],
+                                   concentrations[element], places=6,
+                                   msg="Multi-lithology homogenised sc "+element+" is incorrect.")
+
     def test_multi_lithology_intraPlate(self):
+        """
+        Test column chemistry is correctly calculated for La, Dy, and Yb during
+        multi-lithology melting and intraplate homogenisation.
+        """
         mantle = m.mantle([self.lz, self.px], [1.0, 1.0], ['lz', 'px'])
         column = mantle.adiabaticMelt(1350.0)
         column.calculateChemistry(elements={'lz': m.chemistry.workman05_dmm,
@@ -100,9 +168,12 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(oib.chemistry[element],
                                    concentrations[element], places=6,
-                                   msg="Multi-lithology homogenised "+element+" is incorrect.")
+                                   msg="Multi-lithology homogenised ip "+element+" is incorrect.")
 
     def test_variable_D(self):
+        """
+        Test that distribution coefficients can be changed for all cases.
+        """
         mantle = m.mantle([self.lz, self.px], [1.0, 1.0], ['lz', 'px'])
         column = mantle.adiabaticMelt(1350.0)
 
@@ -141,15 +212,25 @@ class test_chemistry(unittest.TestCase):
                                    px_conc_D_new[element], places=6,
                                    msg="Multi-lithology column px "+element+" (D) is incorrect.")
 
+        morb_new = m.geosettings.spreadingCentre(column)
+
+        concentrations_spreadingCentre = {'La': 3.878965128767849,
+                                          'Dy': 8.118681406036563,
+                                          'Yb': 4.735525468396869}
+
         oib_new = m.geosettings.intraPlate(column, 1.0,
                                            weightingFunction=m.geosettings.weighting_expdecay,
                                            weighting_wavelength=0.1)
 
-        concentrations_D_new = {'La': 6.5793025139526184,
-                                'Dy': 7.777604213908181,
-                                'Yb': 3.7422394633859084}
+        concentrations_intraPlate = {'La': 6.5793025139526184,
+                                     'Dy': 7.777604213908181,
+                                     'Yb': 3.7422394633859084}
 
         for element in ['La', 'Dy', 'Yb']:
+            self.assertAlmostEqual(morb_new.chemistry[element],
+                                   concentrations_spreadingCentre[element], places=6,
+                                   msg="Multi-lithology homogenised sc "+element+" (D) is incorrect.")
+
             self.assertAlmostEqual(oib_new.chemistry[element],
-                                   concentrations_D_new[element], places=6,
-                                   msg="Multi-lithology homogenised "+element+" (D) is incorrect.")
+                                   concentrations_intraPlate[element], places=6,
+                                   msg="Multi-lithology homogenised ip "+element+" (D) is incorrect.")
