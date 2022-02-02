@@ -1,7 +1,7 @@
 import numpy as _np
 from warnings import warn as _warn
 import pandas as _pd
-from scipy.optimize import fsolve as _fsolve
+from scipy.optimize import root_scalar as _root_scalar
 
 from pyMelt.meltingcolumn_classes import meltingColumn as _meltingColumn
 from pyMelt.core import InputError
@@ -122,7 +122,11 @@ class mantle:
             # Check there is actually some of the lithology:
             elif self.proportions[i] > 0:
                 try:
-                    intersect[i] = _fsolve(f_solve, 3.0)[0]
+                    result = _root_scalar(f_solve, x0=3.0, x1=4.0)
+                    if result.converged is True:
+                        intersect[i] = result.root
+                    else:
+                        intersect[i] = _np.nan
                 except Exception:
                     intersect[i] = _np.nan
             else:
