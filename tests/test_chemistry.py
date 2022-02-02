@@ -30,7 +30,7 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(column.lithologies['lz'][element].iloc[1],
                                    concentrations[element], places=6,
-                                   msg="Single lithology column "+element+" is incorrect.")
+                                   msg="Single lithology column " + element + " is incorrect.")
 
     def test_single_lithology_spreadingCentre(self):
         """
@@ -49,7 +49,8 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(morb.chemistry[element],
                                    concentrations[element], places=6,
-                                   msg="Single lithology homogenised sc "+element+" is incorrect.")
+                                   msg=("Single lithology homogenised sc " + element
+                                        + " is incorrect."))
 
     def test_single_lithology_intraPlate(self):
         """
@@ -70,7 +71,8 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(oib.chemistry[element],
                                    concentrations[element], places=6,
-                                   msg="Single lithology homogenised ip "+element+" is incorrect.")
+                                   msg=("Single lithology homogenised ip " + element
+                                        + " is incorrect."))
 
     def test_multi_lithology_column(self):
         """
@@ -102,11 +104,11 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(column.lithologies['lz'][element].iloc[-1],
                                    lz_conc[element], places=6,
-                                   msg="Multi-lithology column lz "+element+" is incorrect.")
+                                   msg="Multi-lithology column lz " + element + " is incorrect.")
 
             self.assertAlmostEqual(column.lithologies['px'][element].iloc[1],
                                    px_conc[element], places=6,
-                                   msg="Multi-lithology column px "+element+" is incorrect.")
+                                   msg="Multi-lithology column px " + element + " is incorrect.")
 
     def test_multi_lithology_spreadingCentre(self):
         """
@@ -136,7 +138,8 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(morb.chemistry[element],
                                    concentrations[element], places=6,
-                                   msg="Multi-lithology homogenised sc "+element+" is incorrect.")
+                                   msg=("Multi-lithology homogenised sc " + element
+                                        + " is incorrect."))
 
     def test_multi_lithology_intraPlate(self):
         """
@@ -168,7 +171,8 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(oib.chemistry[element],
                                    concentrations[element], places=6,
-                                   msg="Multi-lithology homogenised ip "+element+" is incorrect.")
+                                   msg=("Multi-lithology homogenised ip " + element
+                                        + " is incorrect."))
 
     def test_variable_D(self):
         """
@@ -206,11 +210,13 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(column.lithologies['lz'][element].iloc[-1],
                                    lz_conc_D_new[element], places=6,
-                                   msg="Multi-lithology column lz "+element+" (D) is incorrect.")
+                                   msg=("Multi-lithology column lz " + element
+                                        + " (D) is incorrect."))
 
             self.assertAlmostEqual(column.lithologies['px'][element].iloc[1],
                                    px_conc_D_new[element], places=6,
-                                   msg="Multi-lithology column px "+element+" (D) is incorrect.")
+                                   msg=("Multi-lithology column px " + element
+                                        + " (D) is incorrect."))
 
         morb_new = m.geosettings.spreadingCentre(column)
 
@@ -229,8 +235,10 @@ class test_chemistry(unittest.TestCase):
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(morb_new.chemistry[element],
                                    concentrations_spreadingCentre[element], places=6,
-                                   msg="Multi-lithology homogenised sc "+element+" (D) is incorrect.")
+                                   msg=("Multi-lithology homogenised sc " + element
+                                        + " (D) is incorrect."))
 
             self.assertAlmostEqual(oib_new.chemistry[element],
                                    concentrations_intraPlate[element], places=6,
-                                   msg="Multi-lithology homogenised ip "+element+" (D) is incorrect.")
+                                   msg=("Multi-lithology homogenised ip " + element
+                                        + " (D) is incorrect."))

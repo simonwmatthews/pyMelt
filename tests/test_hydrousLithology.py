@@ -7,7 +7,6 @@ This module provides testing routines for the pure lithology classes.
 import unittest
 import pyMelt as m
 import numpy as np
-from pyMelt.core import InputError
 
 
 class test_lithologyProperties(unittest.TestCase):
