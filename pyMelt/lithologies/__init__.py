@@ -13,5 +13,6 @@ from pyMelt.lithologies import katz
 from pyMelt.lithologies import pertermann
 from pyMelt.lithologies import shorttle
 from pyMelt.lithologies import mckenzie
+from pyMelt.lithologies import ball
 
-__all__ = ['matthews', 'katz', 'pertermann', 'shorttle', 'mckenzie']
+__all__ = ['matthews', 'katz', 'pertermann', 'shorttle', 'mckenzie', 'ball']

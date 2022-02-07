@@ -8,11 +8,11 @@ a single melting column- a simple 1D melting column.
 
 """
 
-import numpy as np
+import numpy as _np
 from pyMelt.core import InputError
-import matplotlib.pyplot as plt
-import pandas as pd
-import pyMelt.chemistry
+import matplotlib.pyplot as _plt
+import pandas as _pd
+import pyMelt.chemistry as _chemistry
 
 
 class meltingColumn():
@@ -55,13 +55,13 @@ class meltingColumn():
 
         self.lithologies = {}
         for i in range(self.mantle.number_lithologies):
-            df = pd.DataFrame()
+            df = _pd.DataFrame()
             df['P'] = self.P
             df['T'] = self.T
             df['F'] = self.calculation_results[self.mantle.names[i]]
             self.lithologies[self.mantle.names[i]] = df
 
-        self.F = np.zeros(np.shape(self.P)[0])
+        self.F = _np.zeros(_np.shape(self.P)[0])
 
         for i in range(self.mantle.number_lithologies):
             self.F = (self.F + self.mantle.proportions[i]
@@ -76,17 +76,17 @@ class meltingColumn():
         (matplotlib.figure, matplotlib.axes)
             The generated figure and axes objects.
         """
-        f, a = plt.subplots(1, 2, sharey='row', dpi=100)
+        f, a = _plt.subplots(1, 2, sharey='row', dpi=100)
 
         lith = self.mantle.names
 
-        for i in range(np.shape(lith)[0]):
+        for i in range(_np.shape(lith)[0]):
             a[1].plot(self.lithologies[lith[i]].F, self.P, label=lith[i])
 
         a[0].plot(self.T, self.P, label='Thermal Gradient', c='k')
         a[1].plot(self.F, self.P, label='Total', c='k', ls='--')
 
-        P = np.linspace(np.min(self.P), np.max(self.P), 101)
+        P = _np.linspace(_np.min(self.P), _np.max(self.P), 101)
         for i in range(self.mantle.number_lithologies):
             T = self.mantle.lithologies[i].TSolidus(P)
             a[0].plot(T, P, label=self.mantle.names[i] + ' solidus')
@@ -176,19 +176,19 @@ class meltingColumn():
         """
         # Check if using defaults, and assemble args if so:
         if method == 'default':
-            default_kwargs = {'olv_D': pyMelt.chemistry.olv_D,
-                              'cpx_D': pyMelt.chemistry.cpx_D,
-                              'opx_D': pyMelt.chemistry.opx_D,
-                              'spn_D': pyMelt.chemistry.spn_D,
-                              'grt_D': pyMelt.chemistry.grt_D,
-                              'plg_D': pyMelt.chemistry.plg_D,
-                              'D': pyMelt.chemistry.workman05_D}
+            default_kwargs = {'olv_D': _chemistry.olv_D,
+                              'cpx_D': _chemistry.cpx_D,
+                              'opx_D': _chemistry.opx_D,
+                              'spn_D': _chemistry.spn_D,
+                              'grt_D': _chemistry.grt_D,
+                              'plg_D': _chemistry.plg_D,
+                              'D': _chemistry.workman05_D}
 
             for argname in default_kwargs:
                 if argname not in kwargs:
                     kwargs[argname] = default_kwargs[argname]
 
-            method = pyMelt.chemistry.default_methods
+            method = _chemistry.default_methods
 
         # Check if all elements are provided for each lithology
         if elements is not None and len(elements) > 1:
@@ -206,7 +206,7 @@ class meltingColumn():
             if elements is None and self.mantle.number_lithologies == 1:
                 print("Lithology composition is set to the depleted mantle of Workman & Hart "
                       "(2005).")
-                elements = {self.mantle.names[0]: pyMelt.chemistry.workman05_dmm}
+                elements = {self.mantle.names[0]: _chemistry.workman05_dmm}
             elif elements is None:
                 raise InputError("Either species_objects or elements must be provided.")
 
@@ -247,27 +247,27 @@ class meltingColumn():
             species_names = []
             for j in range(len(species_objects[lith])):
                 species_names.append(species_objects[lith][j].name)
-            results = np.zeros([np.shape(self.P)[0], len(species_objects[lith])])
+            results = _np.zeros([_np.shape(self.P)[0], len(species_objects[lith])])
             for i, row in self.lithologies[lith].iterrows():
                 for j in range(len(species_objects[lith])):
                     if row.F > 1e-15:
                         results[i, j] = species_objects[lith][j].composition(row)
                     else:
-                        results[i, j] = np.nan
+                        results[i, j] = _np.nan
 
-            constructdf = pd.DataFrame(results, columns=species_names)
+            constructdf = _pd.DataFrame(results, columns=species_names)
 
             # Checks if the element exists already, and drops in original if so:
             repeats = [value for value in species_names if value in self.lithologies[lith].columns]
             self.lithologies[lith].drop(repeats, inplace=True, axis=1)
 
-            self.lithologies[lith] = pd.concat([self.lithologies[lith], constructdf], axis=1)
+            self.lithologies[lith] = _pd.concat([self.lithologies[lith], constructdf], axis=1)
 
     def _create_species_objects(self, elements, method, **kwargs):
-        methods = {'batch': pyMelt.chemistry.batchSpecies,
-                   'continuous_instantaneous': pyMelt.chemistry.continuousSpecies_instantaneous,
-                   'continuous_accumulated': pyMelt.chemistry.continuousSpecies_accumulated,
-                   'invmel': pyMelt.chemistry.invmelSpecies}
+        methods = {'batch': _chemistry.batchSpecies,
+                   'continuous_instantaneous': _chemistry.continuousSpecies_instantaneous,
+                   'continuous_accumulated': _chemistry.continuousSpecies_accumulated,
+                   'invmel': _chemistry.invmelSpecies}
         species_objects = []
         for el in elements:
             kwargs_recon = {}

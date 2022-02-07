@@ -77,7 +77,7 @@ class g2(_lithology):
         Calculates melt fraction at a given pressure and temperature using Equation 1:
             a*T'**2 + b*T',
         where T is the normalised temperature (Equation 2):
-            (T-Tsolidus)/(T-Tliquidus).
+            (T-Tsolidus)/(Tliquidus-Tsolidus).
         If P and T are below the the solidus, 0 is returned, if they are above the liquidus, 1 is
         returned.
 

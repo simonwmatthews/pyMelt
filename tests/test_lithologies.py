@@ -17,7 +17,11 @@ class test_lithology(unittest.TestCase):
                                     'matthews_eclogite': m.lithologies.matthews.eclogite(),
                                     'pertermann_g2': m.lithologies.pertermann.g2(),
                                     'shorttle_kg1': m.lithologies.shorttle.kg1(),
-                                    # 'shorttle_harzburgite': m.lithologies.shorttle.harzburgite(),
+                                    'shorttle_hz': m.lithologies.shorttle.harzburgite(),
+                                    'mckenzie_lz': m.lithologies.mckenzie.lherzolite(),
+                                    'ball_depl': m.lithologies.ball.depleted_mantle(),
+                                    'ball_prim': m.lithologies.ball.primitive_mantle(),
+                                    'ball_mixed': m.lithologies.ball.mixed_mantle(),
                                     }
 
         self.Tsolidus_ref = {'katz_lherzolite': np.array([1085.7, 1213.5, 1331.1, 1438.5, 1535.7,
@@ -38,7 +42,19 @@ class test_lithology(unittest.TestCase):
                              'pertermann_g2': np.array([920., 1050., 1180., 1310., 1440., 1570.,
                                                         1700., 1830., 1960.]),
                              'shorttle_kg1': np.array([1095.4, 1214.8, 1324.8, 1425.4, 1516.6,
-                                                       1598.4, 1670.8, 1733.8, 1787.4])
+                                                       1598.4, 1670.8, 1733.8, 1787.4]),
+                             'shorttle_hz': np.array([np.inf] * 9),
+                             'mckenzie_lz': np.array([1099.9324899135006, 1235.6558912187331,
+                                                      1370.2692364054583, 1499.8089711536893,
+                                                      1612.3776612480988, 1694.8871653527426,
+                                                      1750.3691421541535, 1788.9254622582778,
+                                                      1817.4674524991735]),
+                             'ball_depl': np.array([1085.7, 1213.5, 1331.1, 1438.5, 1535.7,
+                                                    1622.7, 1699.5, 1766.1, 1822.5]),
+                             'ball_prim': np.array([1085.7, 1213.5, 1331.1, 1438.5, 1535.7,
+                                                    1622.7, 1699.5, 1766.1, 1822.5]),
+                             'ball_mixed': np.array([1085.7, 1213.5, 1331.1, 1438.5, 1535.7,
+                                                     1622.7, 1699.5, 1766.1, 1822.5]),
                              }
 
         self.Tliquidus_ref = {'katz_lherzolite': np.array([1780., 1823., 1862., 1897., 1928.,
@@ -62,6 +78,17 @@ class test_lithology(unittest.TestCase):
                                                         1859., 1973., 2087.]),
                               'shorttle_kg1': np.array([1780., 1823., 1862., 1897., 1928., 1955.,
                                                         1978., 1997., 2012.]),
+                              'shorttle_hz': np.array([np.inf] * 9),
+                              'mckenzie_lz': np.array([1736., 1816.61835502, 1876.80736135,
+                                                       1917.21992504, 1945.02072556, 1965.33801856,
+                                                       1981.09476852, 1993.93714821, 2004.82809674]
+                                                      ),
+                              'ball_depl': np.array([1780., 1823., 1862., 1897., 1928.,
+                                                     1955., 1978., 1997., 2012.]),
+                              'ball_prim': np.array([1780., 1823., 1862., 1897., 1928.,
+                                                     1955., 1978., 1997., 2012.]),
+                              'ball_mixed': np.array([1780., 1823., 1862., 1897., 1928.,
+                                                      1955., 1978., 1997., 2012.]),
                               }
 
         self.F_ref = {'katz_lherzolite': np.array([0., 0., 0., 0., 0., 0., 0., 0.12371537,
@@ -75,7 +102,17 @@ class test_lithology(unittest.TestCase):
                       'pertermann_g2': np.array([0., 0., 0., 0., 0., 0., 0.25371645, 0.86233368,
                                                  1., 1., 1., 1., 1.]),
                       'shorttle_kg1': np.array([0., 0., 0., 0., 0., 0., 0., 0.35806323,
-                                                0.7482411, 0.80917489, 0.89638302, 1., 1.])
+                                                0.7482411, 0.80917489, 0.89638302, 1., 1.]),
+                      'shorttle_hz': np.array([0] * 13),
+                      'mckenzie_lz': np.array([0., 0., 0., 0., 0., 0., 0., 0.00094576,
+                                               0.30409241, 0.38859097, 0.50095471, 0.88769691,
+                                               1.]),
+                      'ball_depl': np.array([0., 0., 0., 0., 0., 0., 0., 0.0963116, 0.30787662,
+                                             0.51355171, 0.75068663, 1., 1.]),
+                      'ball_prim': np.array([0., 0., 0., 0., 0., 0., 0., 0.0963116, 0.32831251,
+                                             0.52504853, 0.75597379, 1., 1.]),
+                      'ball_mixed': np.array([0., 0., 0., 0., 0., 0., 0., 0.0963116, 0.31866554,
+                                              0.5196054, 0.75345862, 1., 1.])
                       }
 
         self.dTdF_ref = {'katz_lherzolite': np.array([np.inf, np.inf, np.inf, np.inf, np.inf,
@@ -96,8 +133,21 @@ class test_lithology(unittest.TestCase):
                          'shorttle_kg1': np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf,
                                                    np.inf, 158.72747585, 2310.02208704,
                                                    1321.98074238, 1022.21610823, np.inf,
-                                                   np.inf])
-
+                                                   np.inf]),
+                         'shorttle_hz': np.array([np.inf] * 13),
+                         'mckenzie_lz': np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf,
+                                                  np.inf, 202.16649854, 654.7199442,
+                                                  1743.81282364, 479.6912487, 164.98858782,
+                                                  np.inf]),
+                         'ball_depl': np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf,
+                                                np.inf, 425.70158454, 353.49782859, 324.60273319,
+                                                304.7004459, np.inf, np.inf]),
+                         'ball_prim': np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf,
+                                                np.inf, 425.70158454, 335.51022983, 310.2561726,
+                                                291.96842166, np.inf, np.inf]),
+                         'ball_mixed': np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf,
+                                                 np.inf, 425.70158454, 343.53103299, 316.64761066,
+                                                 297.63129235, np.inf, np.inf])
                          }
 
         self.dTdP_ref = {'katz_lherzolite': np.array([1.21212121e-02, 1.21212121e-02,
@@ -132,8 +182,29 @@ class test_lithology(unittest.TestCase):
                          'shorttle_kg1': np.array([1.22227403e+02, 1.18017712e+02, 1.13808022e+02,
                                                    1.09598332e+02, 1.05388642e+02, 1.01178952e+02,
                                                    9.69692613e+01, 9.27595711e+01, 8.24856812e+01,
-                                                   6.58238357e+01, 4.91619902e+01, 1.21212121e-02,
-                                                   1.21212121e-02])
+                                                   6.58238357e+01, 4.91619902e+01, 7.97448166e-03,
+                                                   7.97448166e-03]),
+                         'shorttle_hz': np.array([0.00923077] * 13),
+                         'mckenzie_lz': np.array([1.08225108e-02, 1.08225108e-02, 1.08225108e-02,
+                                                  1.08225108e-02, 1.08225108e-02, 1.08225108e-02,
+                                                  1.08225108e-02, 1.23787035e+02, 1.02032036e+02,
+                                                  8.02770363e+01, 5.85220367e+01, 3.67670371e+01,
+                                                  1.08225108e-02]),
+                         'ball_depl': np.array([7.65872712e-03, 7.65872712e-03, 7.65872712e-03,
+                                                7.65872712e-03, 7.65872712e-03, 7.65872712e-03,
+                                                7.65872712e-03, 9.35803211e+01, 2.33451304e+01,
+                                                2.66925820e+01, 2.99377559e+01, 1.97542341e-02,
+                                                1.97542341e-02]),
+                         'ball_prim': np.array([7.65872712e-03, 7.65872712e-03, 7.65872712e-03,
+                                                7.65872712e-03, 7.65872712e-03, 7.65872712e-03,
+                                                7.65872712e-03, 9.35803211e+01, 2.12907570e+01,
+                                                2.53367412e+01, 2.92732339e+01, 1.97542341e-02,
+                                                1.97542341e-02]),
+                         'ball_mixed': np.array([7.65872712e-03, 7.65872712e-03, 7.65872712e-03,
+                                                 7.65872712e-03, 7.65872712e-03, 7.65872712e-03,
+                                                 7.65872712e-03, 9.35803211e+01, 2.21410794e+01,
+                                                 2.58980616e+01, 2.95484038e+01, 1.97542341e-02,
+                                                 1.97542341e-02])
                          }
 
         self.P = np.linspace(0, 8, 9)

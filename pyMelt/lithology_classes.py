@@ -6,9 +6,9 @@ Lithology classes
 The lithology classes module provides the `lithology` class for implementing melting models, and
 the `hydrous_lithology` class for converting an anhydrous lithology to a hydrous lithology.
 """
-from scipy.misc import derivative
-from scipy.optimize import root_scalar
-import numpy as np
+from scipy.misc import derivative as _derivative
+from scipy.optimize import root_scalar as _root_scalar
+import numpy as _np
 from pyMelt.core import ConvergenceError
 
 # Default constant values taken from Katz et al., 2003:
@@ -134,7 +134,7 @@ class lithology(object):
         def _to_diff(T, P, kwargs={}):
             return self.F(P, T, **kwargs)
 
-        return 1.0 / (derivative(_to_diff, T, dx=0.001, args=(P, kwargs)))
+        return 1.0 / (_derivative(_to_diff, T, dx=0.001, args=(P, kwargs)))
 
     def dTdP(self, P, T, **kwargs):
         """
@@ -157,7 +157,7 @@ class lithology(object):
         # This finds the temperature at a given pressure for which the melt fraction is eqal to the
         # value specified. Used for calculating dT/dP (at const. F).
         def _to_diff_dTdP(P, F, T, kwargs={}):
-            t = root_scalar(self._hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
+            t = _root_scalar(_hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
             return t
 
         # This method is used to find the P-T curve at which F remains constant, for the
@@ -174,7 +174,7 @@ class lithology(object):
         else:
             F = self.F(P, T, **kwargs)
 
-            dTdP = derivative(_to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
+            dTdP = _derivative(_to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
 
         return dTdP
 
@@ -376,11 +376,11 @@ class hydrousLithology(object):
             if anhydrous_F > self.threshold_F:
                 return anhydrous_F
 
-        F = root_scalar(self._f_to_solve, bracket=[0, 1], args=(P, T))
+        F = _root_scalar(self._f_to_solve, bracket=[0, 1], args=(P, T))
 
         if F.flag != 'converged':
             raise ConvergenceError('The melt fraction calculation did not converge.')
-            return np.nan
+            return _np.nan
         else:
             return F.root
 
@@ -401,8 +401,8 @@ class hydrousLithology(object):
             dT/dF(const. P) (K).
         """
         if self.F(P, T, **kwargs) == 0 or self.F(P, T, **kwargs) == 1:
-            return np.inf
-        return 1.0 / (derivative(self._to_diff_dTdF, T, dx=0.001, args=(P, kwargs)))
+            return _np.inf
+        return 1.0 / (_derivative(self._to_diff_dTdF, T, dx=0.001, args=(P, kwargs)))
 
     def dTdP(self, P, T, **kwargs):
         """
@@ -431,7 +431,7 @@ class hydrousLithology(object):
         else:
             F = self.F(P, T, **kwargs)
 
-            dTdP = derivative(self._to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
+            dTdP = _derivative(self._to_diff_dTdP, P, dx=0.001, args=(F, T, kwargs))
 
         return dTdP
 
@@ -451,7 +451,7 @@ class hydrousLithology(object):
     # This finds the temperature at a given pressure for which the melt fraction is eqal to the
     # value specified. Used for calculating dT/dP (at const. F).
     def _to_diff_dTdP(self, P, F, T, kwargs={}):
-        t = root_scalar(self._hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
+        t = _root_scalar(self._hold_constant_F, x0=T, x1=T + 10, args=(P, F, kwargs)).root
         return t
 
     # This provides the misfit function when solving for F (Eqn. 19 of Katz et al., 2003)

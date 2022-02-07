@@ -8,7 +8,6 @@ Implementation of the new lithologies in Shorttle et al. (2014).
 """
 
 from pyMelt.lithology_classes import lithology as _lithology
-from pyMelt.lithology_classes import default_properties as _default_properties
 
 import numpy as _np
 
@@ -42,29 +41,29 @@ class kg1(_lithology):
 
     Parameters
     ----------
-    CP :         float, default: pyMelt.lithology_class.default_properties['CP']
+    CP :         float, default: 1140.0
         The heat capacity (J K-1 kg-1)
-    alphas :     float, default: pyMelt.lithology_class.default_properties['alphas']
+    alphas :     float, default: 30.0
         The thermal expansivity of the solid (1e-6 K-1)
-    alphaf :     float, default: pyMelt.lithology_class.default_properties['alphaf']
+    alphaf :     float, default: 68.0
         The thermal expansivity of the melt (1e-6 K-1)
-    rhos :       float, default: pyMelt.lithology_class.default_properties['rhos']
+    rhos :       float, default: 3.3
         The density of the solid (kg m-3)
-    rhof :       float, default: pyMelt.lithology_class.default_properties['rhof']
+    rhof :       float, default: 2.9
         The density of the melt (kg m-3)
-    DeltaS :     float, default: pyMelt.lithology_class.default_properties['DeltaS']
+    DeltaS :     float, default: 380.0
         The entropy of fusion J K-1 kg-1
     parameters : dict, default: parameters from Shorttle et al. (2014)
         The model parameters described above
     """
 
     def __init__(self,
-                 CP=_default_properties['CP'],
-                 alphas=_default_properties['alphas'],
-                 alphaf=_default_properties['alphaf'],
-                 rhos=_default_properties['rhos'],
-                 rhof=_default_properties['rhof'],
-                 DeltaS=_default_properties['DeltaS'],
+                 CP=1140.0,
+                 alphas=30.0,
+                 alphaf=68.0,
+                 rhos=3.3,
+                 rhof=2.9,
+                 DeltaS=380.0,
                  parameters={'A1': 1095.4,
                              'A2': 124.1,
                              'A3': - 4.7,
@@ -260,37 +259,36 @@ class kg1(_lithology):
 class harzburgite(_lithology):
     """
     Material that does not melt, i.e. Harzburgite in Shorttle et al. (2014) and
-    Matthews et al. (2016). Default thermodynamic constants are those used by
-    Katz et al. (2003).
+    Matthews et al. (2016). Default constants as defined by Shorttle et al. (2014).
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
     be changed during class initialisation.
 
     Parameters
     ----------
-    CP :         float, default: pyMelt._default_properties['CP']
+    CP :         float, default: 1000.0
         The heat capacity (J K-1 kg-1)
-    alphas :     float, default: pyMelt._default_properties['alphas']
+    alphas :     float, default: 30.0
         The thermal expansivity of the solid (1e-6 K-1)
-    alphaf :     float, default: pyMelt._default_properties['alphaf']
+    alphaf :     float, default: 30.0
         Melt thermal expansivity, not used, here for consistency.
-    rhos :       float, default: pyMelt._default_properties['rhos']
+    rhos :       float, default: 3.25
         The density of the solid (kg m-3)
-    rhof :       float, default: pyMelt._default_properties['rhof']
+    rhof :       float, default: 2.9
         Melt density, not used, here for consistency.
-    DeltaS :     float, default: pyMelt._default_properties['DeltaS']
+    DeltaS :     float, default: 300
         The entropy of fusion, not used, here for consistency.
     parameters : dict, default: {}
         This model does not use any parameters, here for consistency.
     """
 
     def __init__(self,
-                 CP=_default_properties['CP'],
-                 alphas=_default_properties['alphas'],
-                 alphaf=_default_properties['alphaf'],
-                 rhos=_default_properties['rhos'],
-                 rhof=_default_properties['rhof'],
-                 DeltaS=_default_properties['DeltaS'],
+                 CP=1000.0,
+                 alphas=30.0,
+                 alphaf=30.0,
+                 rhos=3.25,
+                 rhof=2.9,
+                 DeltaS=300,
                  parameters={}
                  ):
         self.CP = CP
@@ -353,7 +351,8 @@ class harzburgite(_lithology):
         float
             The value will always be 0.0.
         """
-        return 0.0
+        dTdP = self.alphas / self.rhos / self.CP
+        return dTdP
 
     def TSolidus(self, P, **kwargs):
         """

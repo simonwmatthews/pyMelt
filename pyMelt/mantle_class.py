@@ -1,9 +1,10 @@
-import numpy as np
-from warnings import warn
-import pandas as pd
-from scipy.optimize import fsolve
+import numpy as _np
+from warnings import warn as _warn
+import pandas as _pd
+from scipy.optimize import root_scalar as _root_scalar
 
-from pyMelt.meltingcolumn_classes import meltingColumn
+from pyMelt.meltingcolumn_classes import meltingColumn as _meltingColumn
+from pyMelt.core import InputError
 
 
 class mantle:
@@ -43,21 +44,21 @@ class mantle:
     def __init__(self, lithologies, proportions, names=None):
         self.lithologies = lithologies
         if isinstance(proportions, list):
-            proportions = np.array(proportions)
+            proportions = _np.array(proportions)
         self.proportions = proportions / sum(proportions)
-        self.number_lithologies = np.shape(self.lithologies)[0]
+        self.number_lithologies = _np.shape(self.lithologies)[0]
         if names is None:
             names = list()
             for i in range(self.number_lithologies):
                 names.append('default ' + str(i))
         self.names = names
 
-        self.CP = np.zeros(self.number_lithologies)
-        self.alphaf = np.zeros(self.number_lithologies)
-        self.alphas = np.zeros(self.number_lithologies)
-        self.rhof = np.zeros(self.number_lithologies)
-        self.rhos = np.zeros(self.number_lithologies)
-        self.DeltaS = np.zeros(self.number_lithologies)
+        self.CP = _np.zeros(self.number_lithologies)
+        self.alphaf = _np.zeros(self.number_lithologies)
+        self.alphas = _np.zeros(self.number_lithologies)
+        self.rhof = _np.zeros(self.number_lithologies)
+        self.rhos = _np.zeros(self.number_lithologies)
+        self.DeltaS = _np.zeros(self.number_lithologies)
         for i in range(self.number_lithologies):
             self.CP[i] = self.lithologies[i].CP
             self.alphaf[i] = self.lithologies[i].alphaf
@@ -86,7 +87,7 @@ class mantle:
                 The bulk alpha, CP and rho for the mantle at the given P and T, labelled
                 as such.
         """
-        F = np.zeros(self.number_lithologies)
+        F = _np.zeros(self.number_lithologies)
         if T is not None:
             for i in range(self.number_lithologies):
                 F[i] = self.lithologies[i].F(P, T)
@@ -111,21 +112,25 @@ class mantle:
         numpy.array
             The pressure of solidus intersection of each lithology.
         """
-        intersect = np.zeros(self.number_lithologies)
+        intersect = _np.zeros(self.number_lithologies)
         for i in range(self.number_lithologies):
             def f_solve(P):
                 return self.lithologies[i].TSolidus(P) - self.adiabat(P, Tp)
             # Check that the lithology actually melts:
-            if self.lithologies[i].TSolidus(3.0) is np.inf:
-                intersect[i] = np.nan
+            if self.lithologies[i].TSolidus(3.0) is _np.inf:
+                intersect[i] = _np.nan
             # Check there is actually some of the lithology:
             elif self.proportions[i] > 0:
                 try:
-                    intersect[i] = fsolve(f_solve, 3.0)[0]
+                    result = _root_scalar(f_solve, x0=3.0, x1=4.0)
+                    if result.converged is True:
+                        intersect[i] = result.root
+                    else:
+                        intersect[i] = _np.nan
                 except Exception:
-                    intersect[i] = np.nan
+                    intersect[i] = _np.nan
             else:
-                intersect[i] = np.nan
+                intersect[i] = _np.nan
         return intersect
 
     def solidusIntersectionIsobaric(self, P):
@@ -140,16 +145,16 @@ class mantle:
 
         Returns
         -------
-        np.array
+        numpy.Array
             The temperature of solidus intersection of each lithology.
         """
-        intersect = np.zeros(self.number_lithologies)
+        intersect = _np.zeros(self.number_lithologies)
         for i in range(self.number_lithologies):
             # Check whether there is actually any of the lithology present:
             if self.proportions[i] > 0:
                 intersect[i] = self.lithologies[i].TSolidus(P)
             else:
-                intersect[i] = np.nan
+                intersect[i] = _np.nan
         return intersect
 
     def adiabat(self, P, Tp):
@@ -170,8 +175,9 @@ class mantle:
             Temperature of the mantle at the given pressure and Tp.
         """
         bulk_props = self.bulkProperties(P)
-        T = ((Tp + 273.15) * np.exp(bulk_props['alpha']
+        T = ((Tp + 273.15) * _np.exp(bulk_props['alpha']
              / (bulk_props['rho'] * bulk_props['CP']) * P) - 273.15)
+
         return T
 
     def F(self, P, T):
@@ -188,10 +194,10 @@ class mantle:
 
         Returns
         -------
-        np.array
+        numpy.Array
             Array containing the melt fraction of each lithology.
         """
-        F = np.zeros(self.number_lithologies)
+        F = _np.zeros(self.number_lithologies)
         for i in range(self.number_lithologies):
             F[i] = self.lithologies[i].F(P, T)
         return F
@@ -212,24 +218,24 @@ class mantle:
 
         Returns
         -------
-        np.array
+        numpy.Array
             Array of dFdP values for each lithology.
         """
-        dFdP = np.zeros(self.number_lithologies)
+        dFdP = _np.zeros(self.number_lithologies)
 
-        dTdP = np.zeros(self.number_lithologies)
-        dTdF = np.zeros(self.number_lithologies)
-        F = np.zeros(self.number_lithologies)
+        dTdP = _np.zeros(self.number_lithologies)
+        dTdF = _np.zeros(self.number_lithologies)
+        F = _np.zeros(self.number_lithologies)
 
         for i in range(self.number_lithologies):
             dTdP[i] = self.lithologies[i].dTdP(P, T)
             dTdF[i] = self.lithologies[i].dTdF(P, T)
             F[i] = self.lithologies[i].F(P, T)
 
-        lithologies_melting = np.where((F * self.proportions > 0) & (F * self.proportions < 1))[0]
+        lithologies_melting = _np.where(((F > 0) & (F < 1)) & (self.proportions > 0))[0]
 
-        if np.shape(lithologies_melting)[0] > 0:
-            for i in range(np.shape(lithologies_melting)[0]):
+        if _np.shape(lithologies_melting)[0] > 0:
+            for i in range(_np.shape(lithologies_melting)[0]):
                 not_key = [True] * self.number_lithologies
                 key = lithologies_melting[i]
                 not_key[key] = False
@@ -289,7 +295,7 @@ class mantle:
             Pressure in GPa.
         T :    float
             Temperature in degC.
-        dFdP : np.array or None, default: None
+        dFdP : numpy.Array or None, default: None
             The value of dFdP at the same T and P. If None, the dFdP method will be called. In
             most melting calculations the value will already have been calculated, so passing the
             value will save computational time.
@@ -302,10 +308,10 @@ class mantle:
         if dFdP is None:
             dFdP = self.dFdP(P, T)
 
-        melting_lithologies = np.where(dFdP < 0)[0]
+        melting_lithologies = _np.where(dFdP < 0)[0]
 
-        if np.shape(melting_lithologies)[0] > 0:
-            key = np.argmin(dFdP[dFdP < 0])
+        if _np.shape(melting_lithologies)[0] > 0:
+            key = _np.argmin(dFdP[dFdP < 0])
             key = melting_lithologies[key]
             dTdP = self.lithologies[key].dTdP(P, T) + self.lithologies[key].dTdF(P, T) * dFdP[key]
         else:
@@ -342,16 +348,16 @@ class mantle:
 
         # Calculate the entropy lost associated with cooling solid material to the
         # solidus temperature
-        solT = np.nanmin(solidus_intersection)
+        solT = _np.nanmin(solidus_intersection)
         bulk_props = self.bulkProperties(P, solT)
-        DeltaS_cool = - bulk_props['CP'] * np.log((solT + 273.15) / (Tstart + 273.15))
+        DeltaS_cool = - bulk_props['CP'] * _np.log((solT + 273.15) / (Tstart + 273.15))
 
         DeltaS_melt = 0
         T = solT + dT
         while DeltaS_melt < DeltaS_cool and T < Tstart:
             bulk_props = self.bulkProperties(P, T)
-            DeltaS_melt = (np.sum(self.F(P, T) * self.proportions * self.DeltaS) +
-                           - bulk_props['CP'] * np.log((solT + 273.15) / (T + 273.15)))
+            DeltaS_melt = (_np.sum(self.F(P, T) * self.proportions * self.DeltaS) +
+                           - bulk_props['CP'] * _np.log((solT + 273.15) / (T + 273.15)))
             T = T + dT
 
         return T
@@ -401,35 +407,43 @@ class mantle:
             crustal thickness may then be performed on this instance, if desired.
         """
 
+        solidus_intersect = self.solidusIntersection(Tp)
+
         if Pstart is None:
-            solidus_intersect = self.solidusIntersection(Tp)
-            Pstart = np.nanmax(solidus_intersect) + 1e-5
+            if all(_np.isnan(solidus_intersect)) is True:
+                raise InputError("No solidus intersection found. To model adiabatic "
+                                 "decompression of solid mantle set a starting pressure using "
+                                 "Pstart.")
+            Pstart = _np.nanmax(solidus_intersect) + 1e-5
             adjust_pressure = False
 
         if steps is None:
-            P = np.arange(Pstart, Pend, dP)
+            P = _np.arange(Pstart, Pend, dP)
             steps = len(P)
         else:
-            P = np.linspace(Pstart, Pend, steps)
+            P = _np.linspace(Pstart, Pend, steps)
             dP = (Pend - Pstart) / (steps - 1)
 
-        T = np.zeros(steps)
+        T = _np.zeros(steps)
         T[0] = self.adiabat(Pstart, Tp)
 
         if (adjust_pressure is True
-                and T[0] < np.nanmin(self.solidusIntersectionIsobaric(Pstart))):
-            p_intersect = np.nanmax(self.solidusIntersection(Tp))
-            diff = np.abs(P - p_intersect)
-            adjustment = P[np.argmin(diff)] - p_intersect
+                and T[0] < _np.nanmin(self.solidusIntersectionIsobaric(Pstart))
+                and all(_np.isnan(solidus_intersect)) is False):
+            p_intersect = _np.nanmax(self.solidusIntersection(Tp))
+            diff = _np.abs(P - p_intersect)
+            adjustment = P[_np.argmin(diff)] - p_intersect
             if adjustment < 0:
                 adjustment += dP
             P -= adjustment
+            if P[-1] < 0:
+                P[-1] = 0
 
-        F = np.zeros([steps, self.number_lithologies])
+        F = _np.zeros([steps, self.number_lithologies])
 
-        if T[0] > np.nanmin(self.solidusIntersectionIsobaric(Pstart)):
+        if T[0] > _np.nanmin(self.solidusIntersectionIsobaric(Pstart)):
             if ReportSSS is True:
-                warn("Super solidus start")
+                _warn("Super solidus start")
             T[0] = self.isobaricMelt(T[0], Pstart)
 
         for i in range(steps):
@@ -437,13 +451,13 @@ class mantle:
                 F[i] = self.F(P[0], T[0])
             else:
                 # If melting has not started
-                if np.shape(np.where((F[i - 1] * self.proportions > 0))[0])[0] == 0:
+                if _np.shape(_np.where((F[i - 1] * self.proportions > 0))[0])[0] == 0:
                     T[i] = self.adiabat(P[i], Tp)
                     F[i] = self.F(P[i], T[i])
 
                 # If melting has gone to completion
-                elif (np.shape(np.where((F[i - 1] * self.proportions > 0)
-                                        & (F[i - 1] * self.proportions < 1))[0])[0] == 0):
+                elif (_np.shape(_np.where((F[i - 1] * self.proportions > 0)
+                                          & (F[i - 1] * self.proportions < 1))[0])[0] == 0):
                     j1 = self.adiabaticGradient(P[i - 1], T[i - 1])
                     j2 = self.adiabaticGradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1)
                     j3 = self.adiabaticGradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2)
@@ -471,10 +485,10 @@ class mantle:
                             if F[i, j] < F[i - 1, j]:
                                 F[i, j] = F[i - 1, j]
                                 if warn_prevent_freezing is True:
-                                    warn("Freezing prevented.")
+                                    _warn("Freezing prevented.")
 
-        results = pd.DataFrame(F, columns=self.names)
+        results = _pd.DataFrame(F, columns=self.names)
         results['P'] = P
         results['T'] = T
 
-        return meltingColumn(results, self, Tp)
+        return _meltingColumn(results, self, Tp)
