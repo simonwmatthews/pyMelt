@@ -7,8 +7,7 @@
 [![PyPI version](https://badge.fury.io/py/pyMelt.svg)](https://badge.fury.io/py/pyMelt)
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/simonwmatthews/pyMelt/HEAD?labpath=docs%2Ftutorial%2Ftutorial1.ipynb)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
-
+[![DOI](https://zenodo.org/badge/259243892.svg)](https://zenodo.org/badge/latestdoi/259243892)
 
 ## Introduction
 
@@ -44,8 +43,8 @@ For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The u
 Note that the pyMelt_MultiNest library is built for an old version of pyMelt and has not yet been updated.
 
 ## Citing pyMelt
-If pyMelt enables or aids your research please cite the release you used. The latest release is v1.95, but does not yet have a doi. The most recent zenodo release is for v1.915:
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
+If pyMelt enables or aids your research please cite the release you used. The latest release is v1.960, which is archived in a Zenodo repository with DOI:
+[![DOI](https://zenodo.org/badge/259243892.svg)](https://zenodo.org/badge/latestdoi/259243892)
 
 A manuscript describing the module will be released as a preprint soon.
 
