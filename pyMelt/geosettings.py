@@ -292,10 +292,10 @@ class spreadingCentre(geoSetting):
             self.P = self.P[self.P > self.P_base_of_crust]
         else:
             self.F = self.F[self.P > self.P_lithosphere]
-            self.T = self.F[self.P > self.P_lithosphere]
+            self.T = self.T[self.P > self.P_lithosphere]
             for lith in self.lithologies:
                 self.lithologies[lith] = self.lithologies[lith][self.P > self.P_lithosphere]
-            self.P = self.F[self.P > self.P_lithosphere]
+            self.P = self.P[self.P > self.P_lithosphere]
 
     def _integrate_tri(self, P_base_existingLith=0.0, extract_melt=False, steps=1001):
         """
