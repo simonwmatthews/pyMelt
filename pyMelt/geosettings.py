@@ -694,7 +694,7 @@ class intraPlate(geoSetting):
                 cm += c[-1, :] * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)
 
-    def MeltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
+    def meltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
         """
         Identifies the crystallisation temperature of the deepest and shallowest melts,
         according to the technique used by Matthews et al. (2016).
