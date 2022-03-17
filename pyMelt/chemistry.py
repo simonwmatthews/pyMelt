@@ -1066,7 +1066,8 @@ class invmelSpecies(species):
 
     def _dcsdX(self, X, cs, cl, Dbar, Pbar):
         """
-        Rate of change of rare-earth element concentration in point average solid.
+        Rate of change of rare-earth element concentration in point average solid. This
+        expression is only strictly valid in the limit dX->0.
 
         Parameters
         ----------
@@ -1093,7 +1094,8 @@ class invmelSpecies(species):
 
     def _cl(self, cs, X, Dbar, Pbar):
         """
-        Calculates instantaneous melt composition generated from a point average solid.
+        Calculates instantaneous melt composition generated from a point average solid. This
+        expression is only strictly valid in the limit dX->0.
 
         Parameters
         ----------
@@ -1112,5 +1114,5 @@ class invmelSpecies(species):
             instantaneous melt composition
 
         """
-        cl = cs * (1 - X) / (Dbar - Pbar * X)
+        cl = cs / (Dbar - Pbar * X)
         return cl
