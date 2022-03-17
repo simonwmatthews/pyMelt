@@ -696,7 +696,7 @@ class mineralTransition(object):
         float
             Transition pressure (in GPa).
         """
-        return np.nan
+        return _np.nan
 
 
 class mineralTransition_linear(mineralTransition):
@@ -794,8 +794,8 @@ class invmelSpecies(species):
         mineralProportions=mo91_MineralProportions,
         density=3.3,
         cpxExhaustion=0.18,
-        garnetOut=mineralTransition_linear({'gradient': 1/666.7, 'intercept': 400/666.7}),
-        spinelIn=mineralTransition_linear({'gradient': 1/666.7, 'intercept': 533/666.7}),
+        garnetOut=mineralTransition_linear({'gradient': 1 / 666.7, 'intercept': 400 / 666.7}),
+        spinelIn=mineralTransition_linear({'gradient': 1 / 666.7, 'intercept': 533 / 666.7}),
         spinelOut=mineralTransition_isobaric({'transition_pressure': 25.0 * 0.033}),
         plagioclaseIn=mineralTransition_isobaric({'transition_pressure': 35.0 * 0.033}),
         **kwargs
@@ -963,8 +963,8 @@ class invmelSpecies(species):
                      for min in mineralProportions.index])
         else:
             D = ((Dminerals["olv"] * mineralProportions["olv"]
-                  + Dminerals["opx"] * mineralProportions["opx"])
-                  / (mineralProportions["olv"] + mineralProportions["opx"]))
+                 + Dminerals["opx"] * mineralProportions["opx"])
+                 / (mineralProportions["olv"] + mineralProportions["opx"]))
 
         return D
 
