@@ -418,7 +418,9 @@ class mantle:
             adjust_pressure = False
 
         if steps is None:
-            P = _np.arange(Pstart, Pend, -1*abs(dP))
+            if dP >= 0:
+                raise InputError("dP should be less than zero.")
+            P = _np.arange(Pstart, Pend, dP)
             steps = len(P)
         else:
             P = _np.linspace(Pstart, Pend, steps)
