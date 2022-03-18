@@ -820,6 +820,7 @@ class invmelSpecies(species):
         self.plagioclaseIn = plagioclaseIn
         self._cs = c0
         self._F_prev = 0.0
+        self._cl_prev = None
 
     def composition(self, state):
         # Check if this is a new calculation or not:
@@ -827,7 +828,11 @@ class invmelSpecies(species):
             self._cs = self.c0
 
         if state.F == 1:
-            return self._cl_prev
+            # If the lithology is immediately fully molten:
+            if self_cl_prev is None:
+                return self._cs
+            else:
+                return self._cl_prev
 
         D = self.D_bulk(state["P"], state["T"], state.F)
         Pbar = self.P_bulk(state["P"], state["T"], state.F)
@@ -1066,8 +1071,7 @@ class invmelSpecies(species):
 
     def _dcsdX(self, X, cs, cl, Dbar, Pbar):
         """
-        Rate of change of rare-earth element concentration in point average solid. This
-        expression is only strictly valid in the limit dX->0.
+        Rate of change of rare-earth element concentration in point average solid. 
 
         Parameters
         ----------
@@ -1090,12 +1094,12 @@ class invmelSpecies(species):
 
         """
         dcsdX = (cs - cl) / (1 - X)
+
         return dcsdX
 
     def _cl(self, cs, X, Dbar, Pbar):
         """
-        Calculates instantaneous melt composition generated from a point average solid. This
-        expression is only strictly valid in the limit dX->0.
+        Calculates instantaneous melt composition generated from a point average solid.
 
         Parameters
         ----------
@@ -1114,5 +1118,5 @@ class invmelSpecies(species):
             instantaneous melt composition
 
         """
-        cl = cs / (Dbar - Pbar * X)
+        cl = cs * (1 - X) / (Dbar - Pbar * X)
         return cl
