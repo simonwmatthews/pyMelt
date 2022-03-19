@@ -829,7 +829,7 @@ class invmelSpecies(species):
 
         if state.F == 1:
             # If the lithology is immediately fully molten:
-            if self_cl_prev is None:
+            if self._cl_prev is None:
                 return self._cs
             else:
                 return self._cl_prev
