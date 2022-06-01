@@ -11,6 +11,27 @@ import numpy as _np
 import pandas as _pd
 from warnings import warn as _warn
 
+oxide_masses = {'SiO2':  28.085 + 15.999 * 2,
+                'MgO':   24.305 + 15.999,
+                'FeO':   55.845 + 15.999,
+                'CaO':   40.078 + 15.999,
+                'Al2O3': 2 * 26.982 + 15.999 * 3,
+                'Na2O':  22.99 * 2 + 15.999,
+                'K2O':   39.098 * 2 + 15.999,
+                'MnO':   54.938 + 15.999,
+                'TiO2':  79.867,
+                'P2O5':  2 * 30.974 + 5 * 15.999,
+                'Cr2O3': 151.992,
+                'NiO':   58.693 + 16,
+                'CoO':   44.01,
+                'Fe2O3': 55.845 * 2 + 15.999 * 3,
+                'H2O':   18.02,
+                'CO2':   44.01,
+                'O': 15.999}
+"""
+The molecular mass of the oxides.
+"""
+
 default_methods = {
     "Rb": "continuous_instantaneous",
     "Ba": "continuous_instantaneous",
@@ -445,6 +466,93 @@ Mineral proportions (Wt%) for lherzolite in the garnet-, spinel-, and plagioclas
 McKenzie & O'Nions (1991).
 """
 
+ionic_radii = {'Na': 1.18e-10,
+               'P': 0.38e-10,
+               'K': 1.51e-10,
+               'Sc': 0.87e-10,
+               'Ti': 0.74e-10,
+               'V': 0.54e-10,
+               'Cr': 0.615e-10,
+               'Mn': 0.96e-10,
+               'Co': 0.9e-10,
+               'Ni': 0.69e-10,
+               'Ga': 0.62e-10,
+               'Rb': 1.61e-10,
+               'Sr': 1.26e-10,
+               'Y': 1.019e-10,
+               'Nb': 0.64e-10,
+               'Cd': 1.10e-10,
+               'In': 0.92e-10,
+               'Cs': 1.74e-10,
+               'Ba': 1.42e-10,
+               'La': 1.16e-10,
+               'Ce': 1.143e-10,
+               'Pr': 1.126e-10,
+               'Nd': 1.109e-10,
+               'Sm': 1.079e-10,
+               'Eu': 1.066e-10,
+               'Gd': 1.053e-10,
+               'Tb': 1.040e-10,
+               'Dy': 1.027e-10,
+               'Ho': 1.015e-10,
+               'Er': 1.004e-10,
+               'Tm': 0.994e-10,
+               'Yb': 0.985e-10,
+               'Lu': 0.977e-10,
+               'Ta': 0.64e-10,
+               'Ra': 1.48e-10,
+               'Ac': 1.25e-10,
+               'Th': 1.035e-10,
+               'Pa': 0.78e-10,
+               'U': 0.975e-10
+               }
+"""
+The ionic radii (in m) of the trace elements, as compiled in the alphaMELTS input files.
+"""
+
+ionic_charge = {'Na': 1,
+                'P': 5,
+                'K': 1,
+                'Sc': 3,
+                'Ti': 4,
+                'V': 5,
+                'Cr': 3,
+                'Mn': 2,
+                'Co': 2,
+                'Ni': 2,
+                'Ga': 3,
+                'Rb': 1,
+                'Sr': 2,
+                'Y': 3,
+                'Nb': 5,
+                'Cd': 2,
+                'In': 3,
+                'Cs': 1,
+                'Ba': 2,
+                'La': 3,
+                'Ce': 3,
+                'Pr': 3,
+                'Nd': 3,
+                'Sm': 3,
+                'Eu': 3,
+                'Gd': 3,
+                'Tb': 3,
+                'Dy': 3,
+                'Ho': 3,
+                'Er': 3,
+                'Tm': 3,
+                'Yb': 3,
+                'Lu': 3,
+                'Ta': 5,
+                'Ra': 2,
+                'Ac': 3,
+                'Th': 4,
+                'Pa': 5,
+                'U': 4
+                }
+"""
+The charges on the trace element ions, as compiled in the alphaMELTS input files.
+"""
 
 class species(object):
     """
@@ -1071,7 +1179,7 @@ class invmelSpecies(species):
 
     def _dcsdX(self, X, cs, cl, Dbar, Pbar):
         """
-        Rate of change of rare-earth element concentration in point average solid. 
+        Rate of change of rare-earth element concentration in point average solid.
 
         Parameters
         ----------
@@ -1120,3 +1228,803 @@ class invmelSpecies(species):
         """
         cl = cs * (1 - X) / (Dbar - Pbar * X)
         return cl
+
+class phaseDiagramTraceSpecies(species):
+    """
+    Calculates trace element partitioning based on a phase diagram. Needs more info.
+    """
+    def __init__(self, name, c0, phaseDiagram,
+                 olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
+                 porosity=0.0, **kwargs):
+        self.calculation_type = "instantaneous"
+        self.name = name
+        self.c0 = c0
+        self.phaseDiagram = phaseDiagram
+        self._D = {"ol": olv_D,
+                   "cpx": cpx_D,
+                   "opx": opx_D,
+                   "spn": spn_D,
+                   "g": grt_D,
+                   "pl": plg_D}
+        self.porosity = porosity
+        self._cs = c0
+        self._F_prev = 0.0
+        self._cl_prev = None
+        self._kwargs = kwargs
+        self._kwargs['phaseDiagram'] = self.phaseDiagram
+
+
+    def composition(self, state):
+        # Check if this is a new calculation or not:
+        if state.F < self._F_prev:
+            self._cs = self.c0
+
+        if state.F == 1:
+            # If the lithology is immediately fully molten:
+            if self_cl_prev is None:
+                return self._cs
+            else:
+                return self._cl_prev
+
+        D = self.D_bulk(state)
+
+        if D < 1e-4:
+            _warn(
+                self.name
+                + " is extremely incompatible, unless the step size is extremely small"
+                " its partitioning behaviour is unlikely to be captured correctly. "
+                "You are probably better off calculating it using the "
+                "ContinuousSpecies_accumulated class."
+            )
+
+        k1 = self._dcsdX(self._F_prev, self._cs,
+                         self._cl(self._cs, D))
+        k2 = self._dcsdX(
+            self._F_prev + (state.F - self._F_prev) / 2,
+            self._cs + k1 * (state.F - self._F_prev) / 2,
+            self._cl(self._cs + k1 * (state.F - self._F_prev) / 2,
+                     D),
+        )
+        k3 = self._dcsdX(
+            self._F_prev + (state.F - self._F_prev) / 2,
+            self._cs + k2 * (state.F - self._F_prev) / 2,
+            self._cl(self._cs + k2 * (state.F - self._F_prev) / 2,
+                     D),
+        )
+        k4 = self._dcsdX(
+            self._F_prev + (state.F - self._F_prev),
+            self._cs + k3 * (state.F - self._F_prev),
+            self._cl(self._cs + k3 * (state.F - self._F_prev),
+                     D),
+        )
+        cs = self._cs + (1 / 6) * (state.F - self._F_prev) * (k1 + 2 * k2 + 2 * k3 + k4)
+        cl = self._cl(cs, D)
+
+        # Check if discretisation is too course
+        if (k1 + 2 * k2 + 2 * k3 + k4) > 0 and D < 1:
+            _warn(
+                "Discretisation is too course to capture the behaviour of "
+                + self.name
+                + "."
+            )
+            cl = _np.nan
+            self._cs = _np.nan
+
+        # Prevent float errors
+        elif cs < 1e-6:
+            self._cs = 0
+        else:
+            self._cs = cs
+
+        self._F_prev = state.F
+        self._cl_prev = cl
+
+        return cl
+
+    def D(self, state):
+        """
+        The partition coefficient. If a constant partition coefficient is used it will return that
+        value. If a variable coefficient is used it will call the function to calculate it.
+
+        Parameters
+        ----------
+        state : pandas.Series
+            The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+            will most likely be generated automatically by the `MeltingColumn_1D` class.
+
+        Returns
+        -------
+        float
+            The partition coefficient
+        """
+        d = {}
+
+        for min in self._D:
+            if callable(self._D[min]):
+                d[min] = self._D[min](state, **self._kwargs)
+            else:
+                d[min] = self._D[min]
+
+        return d
+
+    def D_bulk(self, state):
+        """
+        """
+        Dminerals = self.D(state)
+        mineralProportions = self.mineralProportions(state)
+
+        D = sum([Dminerals[mineral] * mineralProportions[mineral]
+                 for mineral in Dminerals.keys()])
+
+        D = (1 - self.porosity) * D + self.porosity
+
+        return D
+
+    def mineralProportions(self, state):
+        props = {}
+        for mineral in self._D.keys():
+            props[mineral] = self.phaseDiagram(mineral + '_mass', state)
+        return props
+
+    def _dcsdX(self, X, cs, cl):
+        """
+        Rate of change of rare-earth element concentration in point average solid. This
+        expression is only strictly valid in the limit dX->0.
+
+        Parameters
+        ----------
+        X : float
+            melt fraction
+        cs : float
+            point average solid residue composition
+        cl : float
+            liquid composition
+        Dbar : float
+            bulk distribution coefficient for solid assemblage
+        Pbar : float
+            bulk distribution coefficient for melting package
+
+        Returns
+        -------
+        float
+            rate of change of REE concentration in point average solid residue with respect to
+            melt fraction
+
+        """
+        dcsdX = (cs - cl) / (1 - X)
+
+        return dcsdX
+
+    def _cl(self, cs, Dbar):
+        """
+        Calculates instantaneous melt composition generated from a point average solid.
+
+        Parameters
+        ----------
+        cs : float
+            point average solid residue composition
+        Dbar : float
+            bulk distribution coefficient for solid assemblage
+
+
+        Returns
+        -------
+        float
+            instantaneous melt composition
+
+        """
+        cl = cs / Dbar
+        return cl
+
+class phaseDiagramMajorSpecies(species):
+    """
+    Calculates trace element partitioning based on a phase diagram. Needs more info.
+    """
+    def __init__(self, name, phaseDiagram, prefix='liq_', suffix='_wtpt',
+                 **kwargs):
+        self.calculation_type = "instantaneous"
+        self.name = name
+        self.phaseDiagram = phaseDiagram
+        self.prefix = prefix
+        self.suffix = suffix
+        self._F_prev = 0.0
+
+    def composition(self, state):
+        return self.phaseDiagram(self.prefix + self.name + self.suffix , state)
+
+
+# FUNCTIONS FOR LATTICE STRAIN CALCULATIONS
+
+def lattice_D(state, D0, r0, ri, Em, **kwargs):
+    """
+    Calculates the partition coefficient based on lattice strain parameters.
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    D0 : float
+        The reference partition coefficient
+    r0 : float
+        The reference site ionic radius (in m)
+    ri : float
+        The ionic radius of the element (in m)
+    Em : float
+        The Young's modulus of the lattice site (in Pa)
+
+    Returns
+    -------
+    float
+        The partition coefficient
+    """
+    Na = 6.02214076e23
+    R = 8.31446261815324
+    T = state['T'] + 273.15
+
+    if callable(D0):
+        D0 = D0(state, **kwargs)
+
+    if callable(r0):
+        r0 = r0(state, **kwargs)
+
+    if callable(ri):
+        ri = ri(state, **kwargs)
+
+    if callable(Em):
+        Em = Em(state, **kwargs)
+
+    try:
+        Di = (D0 * _np.exp(-4 * _np.pi * Na * Em *
+                           (0.5 * r0 * (ri - r0)**2 + 1/3 * (ri-r0)**3)
+                           / ( R * T)))
+    except Exception:
+        Di = _np.nan
+    return Di
+
+def lattice_cpx_D(state, cpx_D0, cpx_r0, ri, cpx_Em, **kwargs):
+    """
+    Redefines latticeD with parameters named specifically for cpx.
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    cpx_D0 : float
+        The reference partition coefficient
+    cpx_r0 : float
+        The reference site ionic radius (in m)
+    ri : float
+        The ionic radius of the element (in m)
+    cpx_Em : float
+        The Young's modulus of the lattice site (in Pa)
+
+    Returns
+    -------
+    float
+        The partition coefficient
+    """
+    return lattice_D(state, cpx_D0, cpx_r0, ri, cpx_Em, **kwargs)
+
+def lattice_grt_D(state, grt_D0, grt_r0, ri, grt_Em, **kwargs):
+    """
+    Redefines latticeD with parameters named specifically for garnet.
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    grt_D0 : float
+        The reference partition coefficient
+    grt_r0 : float
+        The reference site ionic radius (in m)
+    ri : float
+        The ionic radius of the element (in m)
+    grt_Em : float
+        The Young's modulus of the lattice site (in Pa)
+
+    Returns
+    -------
+    float
+        The partition coefficient
+    """
+    return lattice_D(state, grt_D0, grt_r0, ri, grt_Em, **kwargs)
+
+def lattice_plg_D(state, plg_D0, plg_r0, ri, plg_Em, **kwargs):
+    """
+    Redefines latticeD with parameters named specifically for plagioclase.
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    plg_D0 : float
+        The reference partition coefficient
+    plg_r0 : float
+        The reference site ionic radius (in m)
+    ri : float
+        The ionic radius of the element (in m)
+    plg_Em : float
+        The Young's modulus of the lattice site (in Pa)
+
+    Returns
+    -------
+    float
+        The partition coefficient
+    """
+    return lattice_D(state, plg_D0, plg_r0, ri, plg_Em, **kwargs)
+
+def lattice_cpx_r0(state, z, cpx_M2_Ca=None, cpx_M1_Al=None, **kwargs):
+    """
+    Calculates cpx reference ionic radius for +3 ions from its composition. From Wood & Blundy
+    (1997).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion. Only 3 is supported currently.
+    cpx_M2_Ca : float, None, or function.
+        The mole fraction of Ca on the M2 site. If None, it will look for a phaseDiagram object in
+        kwargs with a parameter called 'cpx_xCaM2'.
+    cpx_M1_Al : float or None, or function.
+        The mole fraction of Al on the M1 site. If None, it will look for a phaseDiagram object in
+        kwargs with a parameter called 'cpx_xAlM1'.
+
+    Returns
+    -------
+    float
+        The cpx reference ionic radius (in m).
+    """
+    if callable(cpx_M2_Ca):
+        cpx_M2_Ca = cpx_M2_Ca(state, **kwargs)
+    elif cpx_M2_Ca is None and 'phaseDiagram' in kwargs:
+        cpx_M2_Ca = kwargs['phaseDiagram']('cpx_xCaM2',  state)
+
+    if callable(cpx_M1_Al):
+        cpx_M1_Al = cpx_M1_Al(state, **kwargs)
+    elif cpx_M1_Al is None and 'phaseDiagram' in kwargs:
+        cpx_M1_Al = kwargs['phaseDiagram']('cpx_xAlM1',  state)
+
+    if z == 3:
+        r0 = (0.974 + 0.067*cpx_M2_Ca - 0.051*cpx_M1_Al) * 1e-10
+    else:
+        r0 = _np.nan
+    return r0
+
+def lattice_cpx_Em(state, z, **kwargs):
+    """
+    Calculates cpx Young's modulus for +3 ions at specified pressure and temperature.
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion. Only 3 is supported currently.
+
+    Returns
+    -------
+    float
+        The Young's modulus (in Pa).
+    """
+    if z == 3:
+        Em = (318.6 + 6.9*state.P - 0.036*(state['T'] + 273.15))*1e9
+    else:
+        Em = _np.nan
+    return Em
+
+def lattice_cpx_D0(state, z, melt_Mgn=None, cpx_M1_Mg=None, **kwargs):
+    """
+    Calculates cpx reference partition coefficient for +3 ions from its composition. From Wood &
+    Blundy (1997).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion. Only 3 is supported currently.
+    melt_Mgn : float, None, or function.
+        The Mg# of the melt in equilibrium with the crystal. If None, it will look for a
+        phaseDiagram object in kwargs with a parameter called 'liq_Mg#'.
+    cpx_M1_Mg : float, None, or function.
+        The mole fraction of Mg on the M1 site. If None, it will look for a phaseDiagram object in
+        kwargs with a parameter called 'cpx_xMgM1'.
+
+    Returns
+    -------
+    float
+        The reference partition coefficient.
+    """
+    R = 8.31446261815324
+
+    if callable(melt_Mgn):
+        melt_Mgn = melt_Mgn(state, **kwargs)
+    elif melt_Mgn is None and 'phaseDiagram' in kwargs:
+        melt_Mgn = kwargs['phaseDiagram']('liq_Mg#',  state)
+
+    if callable(cpx_M1_Mg):
+        cpx_M1_Mg = cpx_M1_Mg(state, **kwargs)
+    elif cpx_M1_Mg is None and 'phaseDiagram' in kwargs:
+        cpx_M1_Mg = kwargs['phaseDiagram']('cpx_xMgM1',  state)
+
+    if z == 3:
+        if cpx_M1_Mg > 0:
+            D = (melt_Mgn / cpx_M1_Mg
+                 * _np.exp((88750 - 65.644 * (state['T'] + 273.15) + 7050 * state.P
+                            - 770 * (state.P)**2)
+                          / (R * (state['T'] + 273.15))))
+        else:
+            D = 0
+    else:
+        D = _np.nan
+
+    return D
+
+
+def lattice_plg_D0(state, z, plg_an=None, plg_ab=None, **kwargs):
+    """
+    Calculates the reference partition coefficient for plagioclase according to Sun et al. (2017).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion, must be between 1 and 3.
+    plg_an : float or None, default: None
+        The mole fraction of anorthite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'pl_anorthite'.
+    plg_ab : float or None, default: None
+        The mole fraction of albite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'pl_albite'.
+
+    Returns
+    -------
+    float
+        The reference partition coefficient.
+    """
+    R = 8.31446261815324
+
+    if callable(plg_an):
+        plg_an = plg_an(state, **kwargs)
+    elif plg_an is None and 'phaseDiagram' in kwargs:
+        plg_an = kwargs['phaseDiagram']('pl_anorthite',  state)
+
+    if callable(plg_ab):
+        plg_ab = plg_ab(state, **kwargs)
+    elif plg_ab is None and 'phaseDiagram' in kwargs:
+        plg_ab = kwargs['phaseDiagram']('pl_albite',  state)
+
+    if z == 3:
+        lnD = (16.05 - ((19.45 + 1.17 * state.P**2)/(R * (state['T'] + 273.15)) * 1e4)
+               - 5.17 * plg_an**2)
+    elif z == 2:
+        lnD = ((6910 - 2542 * state.P**2) / (R * (state['T'] + 273.15))
+               + 2.39 * plg_ab**2)
+    elif z == 1:
+        lnD = (-9.99 + (11.37 + 0.49 * state['P']) / (R * (state['T'] + 273.15)) * 1e4
+               + 1.7 * plg_an**2)
+    else:
+        return _np.nan
+
+    return _np.exp(lnD)
+
+def lattice_plg_r0(state, z, plg_ab=None, **kwargs):
+    """
+    Calculates the reference ionic radius (in m) in plagioclase for the specified ion charge and
+    plagioclase composition, according to Sun et al. (2017).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion, must be between 1 and 3.
+    plg_ab : float or None, default: None
+        The mole fraction of albite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'pl_albite'.
+
+    Returns
+    -------
+    float
+        The reference ionic radius (in m).
+    """
+
+    if z == 3:
+        r0 = 1.179
+    elif z == 2:
+        if callable(plg_ab):
+            plg_ab = plg_ab(state, **kwargs)
+        elif plg_ab is None and 'phaseDiagram' in kwargs:
+            plg_ab = kwargs['phaseDiagram']('pl_albite',  state)
+
+        r0 = 1.189 + 0.075 * plg_ab
+    elif z == 1:
+        r0 = 1.213
+    else:
+        r0 = _np.nan
+
+    return r0 * 1e-10
+
+def lattice_plg_Em(state, z, plg_ab=None, **kwargs):
+    """
+    Returns the Young's modulus (in Pa) for the plagioclase lattice sites, depending on ion charge
+    and plagioclase composition, according to Sun et al. (2017).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion, must be between 1 and 3.
+    plg_ab : float or None, default: None
+        The mole fraction of albite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'pl_albite'.
+
+    Returns
+    -------
+    float
+        The Young's modulus (in Pa).
+    """
+
+
+    if z == 3:
+        E = 196
+    elif z == 2:
+        if callable(plg_ab):
+            plg_ab = plg_ab(state, **kwargs)
+        elif plg_ab is None and 'phaseDiagram' in kwargs:
+            plg_ab = kwargs['phaseDiagram']('pl_albite',  state)
+
+        E = 719 - 487 * lattice_plg_r0(state, z, plg_ab) * 1e10
+    elif z == 1:
+        E = 47
+    else:
+        E = _np.nan
+
+    return E * 1e9
+
+def lattice_grt_Em(state, z, grt_prp=None, grt_grs=None, grt_alm=None, grt_sps=None, grt_and=None,
+                   grt_uvr=None, **kwargs):
+    """
+    Calculates the Young's modulus (in Pa) for garnet, according to Westrenen & Draperc(2007).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion. Only 3 is currently supported.
+    grt_prp : float, None, or function, default:  None
+        The mole fraction of pyrope. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_pyrope'.
+    grt_grs : float, None, or function, default:  None
+        The mole fraction of grossular. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_grossular'.
+    grt_alm : float, None, or function, default:  None
+        The mole fraction of almandine. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_almandine'.
+    grt_sps : float, None, or function, default:  None
+        The mole fraction of spessartine. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_spessartine'.
+    grt_and : float, None, or function, default:  None
+        The mole fraction of andradite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_andradite'.
+    grt_uvr : float, None, or function, default:  None
+        The mole fraction of uvarovite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_uvarovite'.
+
+    Returns
+    -------
+    float
+        Young's modulus (in Pa).
+    """
+    if callable(grt_prp):
+        grt_prp = grt_prp(state, **kwargs)
+    elif grt_prp is None and 'phaseDiagram' in kwargs:
+        grt_prp = kwargs['phaseDiagram']('g_pyrope',  state)
+
+    if callable(grt_grs):
+        grt_grs = grt_grs(state, **kwargs)
+    elif grt_grs is None and 'phaseDiagram' in kwargs:
+        grt_grs = kwargs['phaseDiagram']('g_grossular',  state)
+
+    if callable(grt_alm):
+        grt_alm = grt_alm(state, **kwargs)
+    elif grt_alm is None and 'phaseDiagram' in kwargs:
+        grt_alm = kwargs['phaseDiagram']('g_almandine',  state)
+
+    if callable(grt_sps):
+        grt_sps = grt_sps(state, **kwargs)
+    elif grt_sps is None and 'phaseDiagram' in kwargs:
+        grt_sps = kwargs['phaseDiagram']('g_spessartine',  state)
+
+    if callable(grt_and):
+        grt_and = grt_and(state, **kwargs)
+    elif grt_and is None and 'phaseDiagram' in kwargs:
+        grt_and = kwargs['phaseDiagram']('g_andradite',  state)
+
+    if callable(grt_uvr):
+        grt_uvr = grt_uvr(state, **kwargs)
+    elif grt_uvr is None and 'phaseDiagram' in kwargs:
+        grt_uvr = kwargs['phaseDiagram']('g_uvarovite',  state)
+
+    if z == 3:
+        r0 = lattice_grt_r0(state, z, grt_prp, grt_grs, grt_alm, grt_sps, grt_and, grt_uvr, **kwargs)
+        al_pfu = 2 * (grt_prp + grt_alm + grt_sps + grt_grs)
+        cr_pfu = 2 * grt_uvr
+        Em = (2826 * (1.38 + r0*1e10)**-3 + 12.4 * state['P'] - 0.072 * (state['T'] + 273.15)
+              + 237 * (al_pfu + cr_pfu))
+    else:
+        Em = _np.nan
+
+    return Em * 1e9
+
+
+
+def lattice_grt_r0(state, z, grt_prp=None, grt_grs=None, grt_alm=None, grt_sps=None, grt_and=None,
+                   grt_uvr=None, **kwargs):
+    """
+    Calculates the reference ionic radius (in m) for garnet, according to Westrenen & Draper
+    (2007).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion. Only 3 is currently supported.
+    grt_prp : float, None, or function, default:  None
+        The mole fraction of pyrope. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_pyrope'.
+    grt_grs : float, None, or function, default:  None
+        The mole fraction of grossular. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_grossular'.
+    grt_alm : float, None, or function, default:  None
+        The mole fraction of almandine. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_almandine'.
+    grt_sps : float, None, or function, default:  None
+        The mole fraction of spessartine. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_spessartine'.
+    grt_and : float, None, or function, default:  None
+        The mole fraction of andradite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_andradite'.
+    grt_uvr : float, None, or function, default:  None
+        The mole fraction of uvarovite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_uvarovite'.
+
+    Returns
+    -------
+    float
+        The reference ionic radius (in m).
+    """
+    if callable(grt_prp):
+        grt_prp = grt_prp(state, **kwargs)
+    elif grt_prp is None and 'phaseDiagram' in kwargs:
+        grt_prp = kwargs['phaseDiagram']('g_pyrope',  state)
+
+    if callable(grt_grs):
+        grt_grs = grt_grs(state, **kwargs)
+    elif grt_grs is None and 'phaseDiagram' in kwargs:
+        grt_grs = kwargs['phaseDiagram']('g_grossular',  state)
+
+    if callable(grt_alm):
+        grt_alm = grt_alm(state, **kwargs)
+    elif grt_alm is None and 'phaseDiagram' in kwargs:
+        grt_alm = kwargs['phaseDiagram']('g_almandine',  state)
+
+    if callable(grt_sps):
+        grt_sps = grt_sps(state, **kwargs)
+    elif grt_sps is None and 'phaseDiagram' in kwargs:
+        grt_sps = kwargs['phaseDiagram']('g_spessartine',  state)
+
+    if callable(grt_and):
+        grt_and = grt_and(state, **kwargs)
+    elif grt_and is None and 'phaseDiagram' in kwargs:
+        grt_and = kwargs['phaseDiagram']('g_andradite',  state)
+
+    if callable(grt_uvr):
+        grt_uvr = grt_uvr(state, **kwargs)
+    elif grt_uvr is None and 'phaseDiagram' in kwargs:
+        grt_uvr = kwargs['phaseDiagram']('g_uvarovite',  state)
+
+    if z == 3:
+        r0 = (0.9302 * grt_prp + 0.993 * grt_grs + 0.916 * grt_alm + 0.946 * grt_sps
+              + 1.05 * (grt_and + grt_uvr) - 0.0044 * (state.P - 3)
+              + 0.000058 * (state['T'] + 273.15 - 1818)
+              )
+    else:
+        r0 = _np.nan
+
+    return r0*1e-10
+
+def lattice_grt_D0(state, z, grt_FeO=None, liq_FeO=None, grt_grs=None, grt_and=None,
+                  grt_uvr=None, **kwargs):
+    """
+    Calculates the reference partition coefficient for garnet, according to Westrenen & Draper
+    (2007).
+
+    Parameters
+    ----------
+    state : pandas.Series
+        The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+        will most likely be generated automatically by the `MeltingColumn_1D` class.
+    z : int
+        The charge on the ion. Only 3 is currently supported.
+    grt_FeO : float, None, or function, default:  None
+        The wt% of FeO in garnet. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_FeO_wtpt'.
+    liq_FeO : float, None, or function, default:  None
+        The wt% of FeO in the melt. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'liq_FeO_wtpt'.
+    grt_grs : float, None, or function, default:  None
+        The mole fraction of grossular. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_grossular'.
+    grt_and : float, None, or function, default:  None
+        The mole fraction of andradite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_andradite'.
+    grt_uvr : float, None, or function, default:  None
+        The mole fraction of uvarovite. If None, it will look for a phaseDiagram object in kwargs
+        with a parameter called 'g_uvarovite'.
+
+    Returns
+    -------
+    float
+        The reference ionic radius (in m).
+    """
+    R = 8.31446261815324
+
+    if callable(grt_FeO):
+        grt_FeO = grt_FeO(state, **kwargs)
+    elif grt_FeO is None and 'phaseDiagram' in kwargs:
+        grt_FeO = kwargs['phaseDiagram']('g_FeO_wtpt',  state)
+
+    if callable(liq_FeO):
+        liq_FeO = liq_FeO(state, **kwargs)
+    elif liq_FeO is None and 'phaseDiagram' in kwargs:
+        liq_FeO = kwargs['phaseDiagram']('liq_FeO_wtpt',  state)
+
+    if callable(grt_grs):
+        grt_grs = grt_grs(state, **kwargs)
+    elif grt_grs is None and 'phaseDiagram' in kwargs:
+        grt_grs = kwargs['phaseDiagram']('g_grossular',  state)
+
+    if callable(grt_and):
+        grt_and = grt_and(state, **kwargs)
+    elif grt_and is None and 'phaseDiagram' in kwargs:
+        grt_and = kwargs['phaseDiagram']('g_andradite',  state)
+
+    if callable(grt_uvr):
+        grt_uvr = grt_uvr(state, **kwargs)
+    elif grt_uvr is None and 'phaseDiagram' in kwargs:
+        grt_uvr = kwargs['phaseDiagram']('g_uvarovite',  state)
+
+    if z == 3:
+        if grt_FeO > 0 and liq_FeO > 0:
+            gamma_Fe = _np.exp((19000 * (grt_grs + grt_and + grt_uvr)**2)
+                               / (R * (state['T'] + 273.15)))
+            DFe = grt_FeO / liq_FeO
+
+            D0 = (_np.exp((400290 + 4586 * state['P'] - 218 * (state['T'] + 273.15))
+                          / (R * (state['T'] + 273.15)))
+                  / (gamma_Fe * DFe)**2)
+        else:
+            D0 = 0.0
+    else:
+        D0 = _np.nan
+
+    return D0

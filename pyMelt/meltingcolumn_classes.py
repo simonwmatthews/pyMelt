@@ -146,9 +146,9 @@ class meltingColumn():
             from the `elements` argument.
         method : string or dict or dict of dicts, default: 'default'
             One of 'default', 'batch', 'continuous_accumulated', 'continuous_instantaneous',
-            'invmel'. If using different models for different elements, specify them as a
-            dictionary. This can be nested within another dictionary if you wish to use different
-            combinations for each lithology.
+            'invmel', 'phase_diagram_trace', 'phase_diagram_major'. If using different models for
+            different elements, specify them as a dictionary. This can be nested within another
+            dictionary if you wish to use different combinations for each lithology.
 
         Notes
         -----
@@ -173,6 +173,12 @@ class meltingColumn():
          - garnetInCoeffs, coefficients controlling the P and T of the garnet in reaction
          - spinelOutCoeffs, coefficients controlling the P and T of the spinel out reaction
          - plagioclaseInInterval, The plagioclase in interval (in km).
+
+        The 'phase_diagram_trace' melting routine uses:
+         - FILL IN THE DOCUMENTATION!
+
+        The 'phase_diagram_major' melting routine uses:
+         - FILL IN THE DOCUMENTATION!
         """
         # Check if using defaults, and assemble args if so:
         if method == 'default':
@@ -267,7 +273,9 @@ class meltingColumn():
         methods = {'batch': _chemistry.batchSpecies,
                    'continuous_instantaneous': _chemistry.continuousSpecies_instantaneous,
                    'continuous_accumulated': _chemistry.continuousSpecies_accumulated,
-                   'invmel': _chemistry.invmelSpecies}
+                   'invmel': _chemistry.invmelSpecies,
+                   'phase_diagram_trace': _chemistry.phaseDiagramTraceSpecies,
+                   'phase_diagram_major': _chemistry.phaseDiagramMajorSpecies}
         species_objects = []
         for el in elements:
             kwargs_recon = {}
