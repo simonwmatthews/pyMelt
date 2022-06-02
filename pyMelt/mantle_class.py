@@ -452,13 +452,9 @@ class mantle:
             if i == 0:
                 F[i] = self.F(P[0], T[0])
             else:
-                # If melting has not started
-                if _np.shape(_np.where((F[i - 1] * self.proportions > 0))[0])[0] == 0:
-                    T[i] = self.adiabat(P[i], Tp)
-                    F[i] = self.F(P[i], T[i])
 
                 # If melting has gone to completion
-                elif (_np.shape(_np.where((F[i - 1] * self.proportions > 0)
+                if (_np.shape(_np.where((F[i - 1] * self.proportions > 0)
                                           & (F[i - 1] * self.proportions < 1))[0])[0] == 0):
                     j1 = self.adiabaticGradient(P[i - 1], T[i - 1])
                     j2 = self.adiabaticGradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1)
