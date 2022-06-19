@@ -5,7 +5,7 @@ pyMelt
 
 A python package for performing mantle melting calculations.
 
-Developed and maintained by Simon Matthews (simonm@hi.is) and Kev Wong.
+Developed and maintained by Simon Matthews (simonm@hi.is), Kevin Wong, and Matthew Gleeson.
 
 This module facilitates calculations for melting of heterogeneous mantle, based on empirical
 parameterisations of the melting functions. The calculations assume complete thermal equilibrium
@@ -13,8 +13,8 @@ and complete chemical disequilibrium between adjacent mantle lithologies. Variou
 provided for performing decompression melting calculations.
 """
 
-__version__ = "0.5.1"
-__author__ = "Simon Matthews and Kevin Wong"
+__version__ = "1.960"
+__author__ = "Simon Matthews, Kevin Wong, Matthew Glesson"
 
 from pyMelt import lithologies
 from pyMelt import geosettings
