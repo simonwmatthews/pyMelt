@@ -10,6 +10,7 @@ from scipy.misc import derivative as _derivative
 from scipy.optimize import root_scalar as _root_scalar
 import numpy as _np
 from pyMelt.core import ConvergenceError
+from warnings import warn as _warn
 
 # Default constant values taken from Katz et al., 2003:
 default_properties = {'CP': 1000.0,  # Heat capacity in J Kg-1 K-1
@@ -306,6 +307,9 @@ class hydrousLithology(object):
         if P is not None:
             H2Osat = self.H2O_saturation(P)
             if H2Osat < Cl:
+                if self.continuous:
+                    _warn("Fluid saturated during continuous melting- you may get bizarre "
+                          "behaviour")
                 Cl = H2Osat
 
         return Cl
