@@ -15,6 +15,7 @@ pyMelt Quickstart
    about
    models
    tutorials
+   examples
    codedoc
    support
    license
