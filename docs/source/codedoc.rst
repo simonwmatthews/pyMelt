@@ -37,3 +37,9 @@ Modules
 
   .. automodule:: pyMelt.lithologies.pertermann
     :members:
+
+  .. automodule:: pyMelt.lithologies.ball
+    :members:
+
+  .. automodule:: pyMelt.lithologies.mckenzie
+    :members:
