@@ -17,7 +17,7 @@ class g2(_lithology):
     """
     Implementation of the Pertermann and Hirschmann (2003, JGR) G2 melting model.
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class, with
+    may be changed. They are provided as a dictionary during initialisation of the object, with
     values:
 
     - a:  Parameter used in calculating melt fraction.
@@ -28,7 +28,7 @@ class g2(_lithology):
     - f:  Parameter used in solidus definition.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------

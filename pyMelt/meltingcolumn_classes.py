@@ -25,7 +25,7 @@ class meltingColumn():
         Dataframe with columns 'P' for Pressure in GPa, 'T' for Temperature in
         degrees C, Remaining columns for melt fraction from each lithology.
     mantle : pyMelt.Mantle
-        The mantle class used to generate the melting column.
+        The mantle object used to generate the melting column.
     Tp : float
         The potential temperature used to generate the melting column, if applicable.
 
@@ -34,7 +34,7 @@ class meltingColumn():
     calculation_results : pandas.DataFrame
         The stored raw calculation results.
     mantle : pyMelt.Mantle
-        The mantle class used to generate the melting column.
+        The mantle object used to generate the melting column.
     Tp : float
         The potential temperature used to generate the melting column, if applicable.
     P : pandas.Series
@@ -69,7 +69,7 @@ class meltingColumn():
 
     def plot(self):
         """
-        Generates a plot showing the thermal gradient and melt fractions ofeach lithology.
+        Generates a plot showing the thermal gradient and melt fractions of each lithology.
 
         Returns
         -------

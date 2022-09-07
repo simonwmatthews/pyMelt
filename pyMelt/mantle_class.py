@@ -9,7 +9,7 @@ from pyMelt.core import InputError
 
 class mantle:
     """
-    The mantle class consists of one or more lithology classes, in a particular proportion. The
+    The mantle class consists of one or more lithology objects, in a particular proportion. The
     mantle class contains the methods used for doing melting calculations and for calculating the
     properties of a heterogeneous mantle.
 

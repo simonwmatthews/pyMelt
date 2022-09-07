@@ -26,20 +26,20 @@ Modules
 .. automodule:: pyMelt.lithologies
   :members:
 
-  .. automodule:: pyMelt.lithologies.matthews
-    :members:
-
-  .. automodule:: pyMelt.lithologies.shorttle
+  .. automodule:: pyMelt.lithologies.ball
     :members:
 
   .. automodule:: pyMelt.lithologies.katz
     :members:
 
-  .. automodule:: pyMelt.lithologies.pertermann
-    :members:
-
-  .. automodule:: pyMelt.lithologies.ball
+  .. automodule:: pyMelt.lithologies.matthews
     :members:
 
   .. automodule:: pyMelt.lithologies.mckenzie
+    :members:
+
+  .. automodule:: pyMelt.lithologies.pertermann
+    :members:
+
+  .. automodule:: pyMelt.lithologies.shorttle
     :members:

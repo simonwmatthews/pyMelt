@@ -182,7 +182,7 @@ class lithology(object):
 
 class hydrousLithology(object):
     r"""
-    The hydrous lithology class modifies the melting expressions in a given lithology class so
+    The hydrous lithology class modifies the melting expressions in a given lithology object so
     that water-present melting can be modelled.
 
     Parameters
@@ -340,6 +340,7 @@ class hydrousLithology(object):
     def TLiquidus(self, P, **kwargs):
         """
         Returns the temperature of the liquidus at any given pressure.
+
         Parameters
         ----------
         P:  float

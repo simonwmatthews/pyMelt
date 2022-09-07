@@ -17,7 +17,7 @@ class kg1(_lithology):
     Implementation of the KG1 parameterisation by Shorttle et al. (2014).
 
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class, with
+    may be changed. They are provided as a dictionary during initialisation of the object, with
     values:
 
     - A1:     Constant used in solidus expression.
@@ -37,7 +37,7 @@ class kg1(_lithology):
     - beta:   Exponent used in the cpx-absent melt fraction expression.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------
@@ -262,7 +262,7 @@ class harzburgite(_lithology):
     Matthews et al. (2016). Default constants as defined by Shorttle et al. (2014).
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    be changed during class initialisation.
+    be changed during object initialisation.
 
     Parameters
     ----------
