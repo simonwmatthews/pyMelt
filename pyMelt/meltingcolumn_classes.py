@@ -214,8 +214,8 @@ class meltingColumn():
             for lith in elements:
                 method_recon = {}
                 kwargs_recon = {}
-                if(isinstance(method, dict) 
-                   and any(item in method.keys() for item in elements.keys())):
+                if (isinstance(method, dict)
+                    and any(item in method.keys() for item in elements.keys())):
                     method_recon = method[lith]
                 else:
                     method_recon = method
