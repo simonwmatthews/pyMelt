@@ -44,10 +44,10 @@ For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The u
 Note that the pyMelt_MultiNest library is built for an old version of pyMelt and has not yet been updated.
 
 ## Citing pyMelt
-If pyMelt enables or aids your research please cite the release you used. The latest release is v1.95, but does not yet have a doi. The most recent zenodo release is for v1.915:
+If pyMelt enables or aids your research please cite the release you used. The latest release is v2.00, but does not yet have a doi. The most recent zenodo release is for v1.915:
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
 
-A manuscript describing the module will be released as a preprint soon.
+A manuscript describing the module has been submitted to Volcanica. A pre-print is available on [EarthArxiv](https://doi.org/10.31223/X5JP7X).
 
 You should also cite the relevant publications for the pure-lithology melting models. If you use our models, you should cite:
 

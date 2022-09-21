@@ -13,7 +13,7 @@ and complete chemical disequilibrium between adjacent mantle lithologies. Variou
 provided for performing decompression melting calculations.
 """
 
-__version__ = "1.960"
+__version__ = "2.00"
 __author__ = "Simon Matthews, Kevin Wong, Matthew Glesson"
 
 from pyMelt import lithologies

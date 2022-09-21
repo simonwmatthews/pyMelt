@@ -454,13 +454,15 @@ class mantle:
             if i == 0:
                 F[i] = self.F(P[0], T[0])
             else:
-                k1 = self.dFdP(P[i - 1], T[i - 1], prevent_freezing, F[i-1])
+                k1 = self.dFdP(P[i - 1], T[i - 1], prevent_freezing, F[i - 1])
                 j1 = self.dTdP(P[i - 1], T[i - 1], k1)
-                k2 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, prevent_freezing, F[i-1])
+                k2 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, prevent_freezing,
+                               F[i - 1])
                 j2 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, k2)
-                k3 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, prevent_freezing, F[i-1])
+                k3 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, prevent_freezing,
+                               F[i - 1])
                 j3 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, k3)
-                k4 = self.dFdP(P[i], T[i - 1] + dP * j3, prevent_freezing, F[i-1])
+                k4 = self.dFdP(P[i], T[i - 1] + dP * j3, prevent_freezing, F[i - 1])
                 j4 = self.dTdP(P[i], T[i - 1] + dP * j3, k4)
 
                 T[i] = T[i - 1] + dP / 6 * (j1 + 2 * j2 + 2 * j3 + j4)

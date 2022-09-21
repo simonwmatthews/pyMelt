@@ -1071,7 +1071,7 @@ class invmelSpecies(species):
 
     def _dcsdX(self, X, cs, cl, Dbar, Pbar):
         """
-        Rate of change of rare-earth element concentration in point average solid. 
+        Rate of change of rare-earth element concentration in point average solid.
 
         Parameters
         ----------
