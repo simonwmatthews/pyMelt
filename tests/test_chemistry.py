@@ -23,9 +23,9 @@ class test_chemistry(unittest.TestCase):
         column = mantle.adiabaticMelt(1350.0)
         column.calculateChemistry()
 
-        concentrations = {'La': 25.966120238876435,
-                          'Dy': 9.611454235124366,
-                          'Yb': 4.496720428496521}
+        concentrations = {'La': 26.029913793159484,
+                          'Dy': 9.613940884597207,
+                          'Yb': 4.497467642416129}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(column.lithologies['lz'][element].iloc[1],
@@ -42,9 +42,9 @@ class test_chemistry(unittest.TestCase):
         column.calculateChemistry()
         morb = m.geosettings.spreadingCentre(column)
 
-        concentrations = {'La': 1.4722236338647683,
-                          'Dy': 2.8617962509280677,
-                          'Yb': 1.97280007634921}
+        concentrations = {'La': 1.5115734212608263,
+                          'Dy': 3.37049583704782,
+                          'Yb': 2.1831968869748395}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(morb.chemistry[element],
@@ -64,9 +64,9 @@ class test_chemistry(unittest.TestCase):
                                        weightingFunction=m.geosettings.weighting_expdecay,
                                        weighting_wavelength=0.1)
 
-        concentrations = {'La': 7.104201514862648,
-                          'Dy': 6.879161621049682,
-                          'Yb': 3.611603816444381}
+        concentrations = {'La': 7.247433001514023,
+                          'Dy': 7.339268956958773,
+                          'Yb': 3.764364568503429}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(oib.chemistry[element],
@@ -93,13 +93,13 @@ class test_chemistry(unittest.TestCase):
                                                       'px': m.chemistry.kg1_MineralProportions}
                                   )
 
-        lz_conc = {'La': 0.29052786488937843,
-                   'Dy': 1.7951039754820055,
-                   'Yb': 1.9519669624938756}
+        lz_conc = {'La': 0.41640981547719697,
+                   'Dy': 2.486516755289274,
+                   'Yb': 2.271169662741649}
 
-        px_conc = {'La': 78.5201430023945,
-                   'Dy': 4.929521209273142,
-                   'Yb': 1.1017855590754706}
+        px_conc = {'La': 78.64457868423119,
+                   'Dy': 4.92944558747092,
+                   'Yb': 1.101745291927927}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(column.lithologies['lz'][element].iloc[-1],
@@ -131,9 +131,9 @@ class test_chemistry(unittest.TestCase):
 
         morb = m.geosettings.spreadingCentre(column)
 
-        concentrations = {'La': 4.235660539351117,
-                          'Dy': 8.703630112867264,
-                          'Yb': 5.091522033090427}
+        concentrations = {'La': 4.281535100966795,
+                          'Dy': 9.692041695712126,
+                          'Yb': 5.603085296135785}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(morb.chemistry[element],
@@ -164,9 +164,9 @@ class test_chemistry(unittest.TestCase):
                                        weightingFunction=m.geosettings.weighting_expdecay,
                                        weighting_wavelength=0.1)
 
-        concentrations = {'La': 22.57146561994308,
-                          'Dy': 10.474179181111653,
-                          'Yb': 4.954627191741076}
+        concentrations = {'La': 22.731167287563885,
+                          'Dy': 10.841739275444112,
+                          'Yb': 5.126314925222699}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(oib.chemistry[element],
@@ -199,13 +199,13 @@ class test_chemistry(unittest.TestCase):
                                                       'px': m.chemistry.kg1_MineralProportions}
                                   )
 
-        lz_conc_D_new = {'La': 0.22039527545369597,
-                         'Dy': 0.571489745287995,
-                         'Yb': 0.4076187542115444}
+        lz_conc_D_new = {'La': 0.2110498664868391,
+                         'Dy': 0.5497607395120011,
+                         'Yb': 0.39177925047563783}
 
-        px_conc_D_new = {'La': 6.546043921246597,
-                         'Dy': 4.004231815822892,
-                         'Yb': 1.0151094027031582}
+        px_conc_D_new = {'La': 6.547065097730284,
+                         'Dy': 4.004202514670137,
+                         'Yb': 1.0150774093931085}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(column.lithologies['lz'][element].iloc[-1],
@@ -220,17 +220,17 @@ class test_chemistry(unittest.TestCase):
 
         morb_new = m.geosettings.spreadingCentre(column)
 
-        concentrations_spreadingCentre = {'La': 3.878965128767849,
-                                          'Dy': 8.118681406036563,
-                                          'Yb': 4.735525468396869}
+        concentrations_spreadingCentre = {'La': 3.3944776138412607,
+                                          'Dy': 7.8304433811896805,
+                                          'Yb': 4.520023486233671}
 
         oib_new = m.geosettings.intraPlate(column, 1.0,
                                            weightingFunction=m.geosettings.weighting_expdecay,
                                            weighting_wavelength=0.1)
 
-        concentrations_intraPlate = {'La': 6.5793025139526184,
-                                     'Dy': 7.777604213908181,
-                                     'Yb': 3.7422394633859084}
+        concentrations_intraPlate = {'La': 6.296271631975634,
+                                     'Dy': 7.725888101870476,
+                                     'Yb': 3.7066095658285123}
 
         for element in ['La', 'Dy', 'Yb']:
             self.assertAlmostEqual(morb_new.chemistry[element],

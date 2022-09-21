@@ -9,7 +9,7 @@ from pyMelt.core import InputError
 
 class mantle:
     """
-    The mantle class consists of one or more lithology classes, in a particular proportion. The
+    The mantle class consists of one or more lithology objects, in a particular proportion. The
     mantle class contains the methods used for doing melting calculations and for calculating the
     properties of a heterogeneous mantle.
 
@@ -202,7 +202,7 @@ class mantle:
             F[i] = self.lithologies[i].F(P, T)
         return F
 
-    def dFdP(self, P, T, prevent_freezing=False):
+    def dFdP(self, P, T, prevent_freezing=False, F_prev=None):
         """
         Calculates the value of dFdP for each lithology at the given pressure
         and temperature, using Eq(26) of Phipps Morgan (2001).
@@ -215,6 +215,9 @@ class mantle:
             Temperature in degC.
         prevent_freezing : bool, default: False
             If set to True, any dFdP values > 0 will be set to 0.
+        F_prev : numpy.Array or None, default:None
+            If preventing freezing, this is the melt fraction on the previous step to use when
+            checking for freezing.
 
         Returns
         -------
@@ -255,7 +258,7 @@ class mantle:
 
                 dFdP[key] = - top / bottom
 
-                if prevent_freezing is True and dFdP[key] > 0:
+                if prevent_freezing and F[i] < F_prev[i]:
                     dFdP[key] = 0.0
 
         return dFdP
@@ -308,15 +311,14 @@ class mantle:
         if dFdP is None:
             dFdP = self.dFdP(P, T)
 
-        melting_lithologies = _np.where(dFdP < 0)[0]
+        melting_lithologies = _np.where(dFdP != 0)[0]
 
         if _np.shape(melting_lithologies)[0] > 0:
-            key = _np.argmin(dFdP[dFdP < 0])
+            key = _np.argmax(_np.abs(dFdP[dFdP != 0]))
             key = melting_lithologies[key]
             dTdP = self.lithologies[key].dTdP(P, T) + self.lithologies[key].dTdF(P, T) * dFdP[key]
         else:
             dTdP = self.adiabaticGradient(P, T)
-
         return dTdP
 
     def isobaricMelt(self, Tstart, P, dT=0.1):
@@ -418,6 +420,8 @@ class mantle:
             adjust_pressure = False
 
         if steps is None:
+            if dP >= 0:
+                raise InputError("dP should be less than zero.")
             P = _np.arange(Pstart, Pend, dP)
             steps = len(P)
         else:
@@ -450,42 +454,26 @@ class mantle:
             if i == 0:
                 F[i] = self.F(P[0], T[0])
             else:
-                # If melting has not started
-                if _np.shape(_np.where((F[i - 1] * self.proportions > 0))[0])[0] == 0:
-                    T[i] = self.adiabat(P[i], Tp)
-                    F[i] = self.F(P[i], T[i])
+                k1 = self.dFdP(P[i - 1], T[i - 1], prevent_freezing, F[i - 1])
+                j1 = self.dTdP(P[i - 1], T[i - 1], k1)
+                k2 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, prevent_freezing,
+                               F[i - 1])
+                j2 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, k2)
+                k3 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, prevent_freezing,
+                               F[i - 1])
+                j3 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, k3)
+                k4 = self.dFdP(P[i], T[i - 1] + dP * j3, prevent_freezing, F[i - 1])
+                j4 = self.dTdP(P[i], T[i - 1] + dP * j3, k4)
 
-                # If melting has gone to completion
-                elif (_np.shape(_np.where((F[i - 1] * self.proportions > 0)
-                                          & (F[i - 1] * self.proportions < 1))[0])[0] == 0):
-                    j1 = self.adiabaticGradient(P[i - 1], T[i - 1])
-                    j2 = self.adiabaticGradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1)
-                    j3 = self.adiabaticGradient(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2)
-                    j4 = self.adiabaticGradient(P[i], T[i - 1] + dP * j3)
+                T[i] = T[i - 1] + dP / 6 * (j1 + 2 * j2 + 2 * j3 + j4)
+                F[i] = self.F(P[i], T[i])
 
-                    T[i] = T[i - 1] + dP / 6 * (j1 + 2 * j2 + 2 * j3 + j4)
-                    F[i] = self.F(P[i], T[i])
-
-                # If melting is ongoing
-                else:
-                    k1 = self.dFdP(P[i - 1], T[i - 1], prevent_freezing)
-                    j1 = self.dTdP(P[i - 1], T[i - 1], k1)
-                    k2 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, prevent_freezing)
-                    j2 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j1, k2)
-                    k3 = self.dFdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, prevent_freezing)
-                    j3 = self.dTdP(P[i - 1] + dP / 2, T[i - 1] + dP / 2 * j2, k3)
-                    k4 = self.dFdP(P[i], T[i - 1] + dP * j3, prevent_freezing)
-                    j4 = self.dTdP(P[i], T[i - 1] + dP * j3, k4)
-
-                    T[i] = T[i - 1] + dP / 6 * (j1 + 2 * j2 + 2 * j3 + j4)
-                    F[i] = self.F(P[i], T[i])
-
-                    if prevent_freezing is True:
-                        for j in range(self.number_lithologies):
-                            if F[i, j] < F[i - 1, j]:
-                                F[i, j] = F[i - 1, j]
-                                if warn_prevent_freezing is True:
-                                    _warn("Freezing prevented.")
+                if prevent_freezing is True:
+                    for j in range(self.number_lithologies):
+                        if F[i, j] < F[i - 1, j]:
+                            F[i, j] = F[i - 1, j]
+                            if warn_prevent_freezing is True:
+                                _warn("Freezing prevented.")
 
         results = _pd.DataFrame(F, columns=self.names)
         results['P'] = P

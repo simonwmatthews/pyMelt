@@ -292,10 +292,10 @@ class spreadingCentre(geoSetting):
             self.P = self.P[self.P > self.P_base_of_crust]
         else:
             self.F = self.F[self.P > self.P_lithosphere]
-            self.T = self.F[self.P > self.P_lithosphere]
+            self.T = self.T[self.P > self.P_lithosphere]
             for lith in self.lithologies:
                 self.lithologies[lith] = self.lithologies[lith][self.P > self.P_lithosphere]
-            self.P = self.F[self.P > self.P_lithosphere]
+            self.P = self.P[self.P > self.P_lithosphere]
 
     def _integrate_tri(self, P_base_existingLith=0.0, extract_melt=False, steps=1001):
         """
@@ -369,8 +369,8 @@ class spreadingCentre(geoSetting):
                 tc_lith_int[i] = (tc_lith_int[i - 1]
                                   + 0.5 * tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
-                if(extract_melt is False and tc_intP[i] + P_base_existingLith > P[i]
-                   and tc_found is False):
+                if (extract_melt is False and tc_intP[i] + P_base_existingLith > P[i]
+                        and tc_found is False):
                     tc_found = tc_int[i]
                     P_basecrust = P[i]
                     tc_lith_found = tc_lith_int[i]
@@ -694,7 +694,7 @@ class intraPlate(geoSetting):
                 cm += c[-1, :] * self.lithology_contributions[lith]
             self.chemistry = _pd.Series(cm, species)
 
-    def MeltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
+    def meltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
         """
         Identifies the crystallisation temperature of the deepest and shallowest melts,
         according to the technique used by Matthews et al. (2016).

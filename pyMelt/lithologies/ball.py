@@ -16,7 +16,7 @@ class primitive_mantle(_lherzolite):
     melting primitive mantle
 
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class.
+    may be changed. They are provided as a dictionary during initialisation of the object.
 
     - Mcpx:   Mass fraction of cpx in the source. Controls the transition to low-productivity
       harzburgite-type melting.
@@ -35,7 +35,7 @@ class primitive_mantle(_lherzolite):
     - r2:     Parameter used to define cpx reaction coefficient.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------
@@ -92,7 +92,7 @@ class depleted_mantle(_lherzolite):
     melting depleted mantle
 
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class.
+    may be changed. They are provided as a dictionary during initialisation of the object.
 
     - Mcpx:   Mass fraction of cpx in the source. Controls the transition to low-productivity
       harzburgite-type melting.
@@ -111,7 +111,7 @@ class depleted_mantle(_lherzolite):
     - r2:     Parameter used to define cpx reaction coefficient.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------
@@ -168,7 +168,7 @@ class mixed_mantle(_lherzolite):
     melting 50% depleted and 50% primitive mantle
 
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class.
+    may be changed. They are provided as a dictionary during initialisation of the object.
 
     - Mcpx:   Mass fraction of cpx in the source. Controls the transition to low-productivity
       harzburgite-type melting.
@@ -187,7 +187,7 @@ class mixed_mantle(_lherzolite):
     - r2:     Parameter used to define cpx reaction coefficient.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------

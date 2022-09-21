@@ -19,10 +19,10 @@ class test_spreadingCentre(unittest.TestCase):
     def test_default_sc(self):
         setting = m.geosettings.spreadingCentre(self.column)
 
-        self.assertAlmostEqual(setting.tc, 11.164687478434844, places=6,
+        self.assertAlmostEqual(setting.tc, 11.161347340791947, places=6,
                                msg="Crustal thickness is incorrect.")
 
-        contributions = {'lz': 0.05985641132963442, 'px': 0.9401435886703656}
+        contributions = {'lz': 0.059825894651427555, 'px': 0.9401741053485725}
 
         for lith in ['lz', 'px']:
             self.assertAlmostEqual(setting.lithology_contributions[lith], contributions[lith],
@@ -31,7 +31,7 @@ class test_spreadingCentre(unittest.TestCase):
         self.assertAlmostEqual(setting.P_base_of_crust, 0.3610456279634042, places=6,
                                msg="Pressure at base of crust is incorrect.")
 
-        self.assertAlmostEqual(setting.T.iloc[-1], 1224.183027, places=4,
+        self.assertAlmostEqual(setting.T.iloc[-1], 1224.1722449731217, places=4,
                                msg="Temperature probably not truncated correctly.")
 
         self.assertAlmostEqual(setting.F.iloc[-1], 0.273574, places=4,
@@ -40,23 +40,23 @@ class test_spreadingCentre(unittest.TestCase):
         self.assertAlmostEqual(setting.lithologies['lz'].F.iloc[-1], 0.072851, places=4,
                                msg="Lz F probably not truncated correctly.")
 
-        self.assertAlmostEqual(setting.lithologies['px'].F.iloc[-1], 0.675019, places=4,
+        self.assertAlmostEqual(setting.lithologies['px'].F.iloc[-1], 0.6749656950797016, places=4,
                                msg="Px F probably not truncated correctly.")
 
     def test_Tcrys(self):
         setting = m.geosettings.spreadingCentre(self.column)
         Tcryslo, Tcryshi = setting.meltCrystallisationT()
 
-        self.assertAlmostEqual(Tcryslo, 1224.0990681375988, places=6,
+        self.assertAlmostEqual(Tcryslo, 1224.0882859331216, places=6,
                                msg="Tcrys not calculated correctly")
 
-        self.assertAlmostEqual(Tcryshi, 1306.3335694054647, places=6,
+        self.assertAlmostEqual(Tcryshi, 1306.304503376189, places=6,
                                msg="Tcrys not calculated correctly")
 
     def test_continentalRift(self):
         setting = m.geosettings.spreadingCentre(self.column, P_lithosphere=1.0, extract_melt=True)
 
-        self.assertAlmostEqual(setting.tc, 5.455312885346313, places=6,
+        self.assertAlmostEqual(setting.tc, 5.453207375896644, places=6,
                                msg="Crustal thickness is incorrect.")
 
         self.assertAlmostEqual(setting.P_base_of_crust, 0.9998344279634046, places=6,
@@ -67,10 +67,10 @@ class test_spreadingCentre(unittest.TestCase):
             self.column, weightingFunction=m.geosettings.weighting_expdecay,
             weighting_wavelength=1.0, weighting_amplitude=0.001)
 
-        self.assertAlmostEqual(setting.tc, 22.32723842461517, places=6,
+        self.assertAlmostEqual(setting.tc, 22.318982017056516, places=6,
                                msg="Crustal thickness is incorrect.")
 
-        contributions = {'lz': 0.017701315986741767, 'px': 0.9822986840132583}
+        contributions = {'lz': 0.017680817581380612, 'px': 0.9823191824186193}
 
         for lith in ['lz', 'px']:
             self.assertAlmostEqual(setting.lithology_contributions[lith], contributions[lith],
@@ -91,7 +91,7 @@ class test_intraPlate(unittest.TestCase):
         self.assertAlmostEqual(setting.F.iloc[-1], 0.175816, places=4,
                                msg="F probably not truncated correctly.")
 
-        contributions = {'lz': 0.028759, 'px': 0.971241}
+        contributions = {'lz': 0.028690931456415023, 'px': 0.971309068543585}
 
         for lith in ['lz', 'px']:
             self.assertAlmostEqual(setting.lithology_contributions[lith], contributions[lith],
@@ -102,7 +102,7 @@ class test_intraPlate(unittest.TestCase):
     def test_bouyancy(self):
         setting = m.geosettings.intraPlate(self.column, 1.0, relative_density=0.1)
 
-        self.assertAlmostEqual(setting.melt_flux, 0.677310692605866, places=6,
+        self.assertAlmostEqual(setting.melt_flux, 0.6771734157796051, places=6,
                                msg="Melt flux not calculated correctly.")
 
     def test_weighting(self):
@@ -110,10 +110,10 @@ class test_intraPlate(unittest.TestCase):
                                            weightingFunction=m.geosettings.weighting_expdecay,
                                            weighting_wavelength=1.0)
 
-        self.assertAlmostEqual(setting.melt_flux, 0.4017655494238036, places=6,
+        self.assertAlmostEqual(setting.melt_flux, 0.4016489976425273, places=6,
                                msg="Melt flux not calculated correctly.")
 
-        contributions = {'lz': 0.028759, 'px': 0.971241}
+        contributions = {'lz': 0.028690931456415023, 'px': 0.971309068543585}
 
         for lith in ['lz', 'px']:
             self.assertAlmostEqual(setting.lithology_contributions[lith], contributions[lith],

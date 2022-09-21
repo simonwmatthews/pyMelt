@@ -25,7 +25,7 @@ class meltingColumn():
         Dataframe with columns 'P' for Pressure in GPa, 'T' for Temperature in
         degrees C, Remaining columns for melt fraction from each lithology.
     mantle : pyMelt.Mantle
-        The mantle class used to generate the melting column.
+        The mantle object used to generate the melting column.
     Tp : float
         The potential temperature used to generate the melting column, if applicable.
 
@@ -34,7 +34,7 @@ class meltingColumn():
     calculation_results : pandas.DataFrame
         The stored raw calculation results.
     mantle : pyMelt.Mantle
-        The mantle class used to generate the melting column.
+        The mantle object used to generate the melting column.
     Tp : float
         The potential temperature used to generate the melting column, if applicable.
     P : pandas.Series
@@ -69,7 +69,7 @@ class meltingColumn():
 
     def plot(self):
         """
-        Generates a plot showing the thermal gradient and melt fractions ofeach lithology.
+        Generates a plot showing the thermal gradient and melt fractions of each lithology.
 
         Returns
         -------
@@ -214,14 +214,14 @@ class meltingColumn():
             for lith in elements:
                 method_recon = {}
                 kwargs_recon = {}
-                if(isinstance(method, dict)
-                   and any(item in method.keys() for item in elements.keys())):
+                if (isinstance(method, dict)
+                        and any(item in method.keys() for item in elements.keys())):
                     method_recon = method[lith]
                 else:
                     method_recon = method
                 for kw in kwargs:
-                    if(isinstance(kwargs[kw], dict)
-                       and any(item in kwargs[kw].keys() for item in elements.keys())):
+                    if (isinstance(kwargs[kw], dict)
+                            and any(item in kwargs[kw].keys() for item in elements.keys())):
                         kwargs_recon[kw] = kwargs[kw][lith]
                     else:
                         kwargs_recon[kw] = kwargs[kw]
@@ -272,8 +272,8 @@ class meltingColumn():
         for el in elements:
             kwargs_recon = {}
             for arg in kwargs:
-                if(isinstance(kwargs[arg], dict)
-                   and any(item in kwargs[arg].keys() for item in elements.keys())):
+                if (isinstance(kwargs[arg], dict)
+                        and any(item in kwargs[arg].keys() for item in elements.keys())):
                     if el in kwargs[arg].keys():
                         kwargs_recon[arg] = kwargs[arg][el]
                     else:
