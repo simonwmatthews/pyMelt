@@ -2,7 +2,7 @@
 MIT Licence
 ###########
 
-Copyright (c) 2021 Simon Matthews and Kevin Wong
+Copyright (c) 2021 Simon Matthews, Kevin Wong, and Matthew Gleeson.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
