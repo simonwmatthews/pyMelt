@@ -879,10 +879,10 @@ class invmelSpecies(species):
         cs = self._cs + (1 / 6) * (state.F - self._F_prev) * (k1 + 2 * k2 + 2 * k3 + k4)
         cl = self._cl(cs, state.F, D, Pbar)
 
-        # Check if discretisation is too course
+        # Check if discretisation is too coarse
         if (k1 + 2 * k2 + 2 * k3 + k4) > 0 and D < 1:
             _warn(
-                "Discretisation is too course to capture the behaviour of "
+                "Discretisation is too coarse to capture the behaviour of "
                 + self.name
                 + "."
             )
