@@ -168,8 +168,8 @@ class geoSetting(object):
                         hi = lithmax
                     if lithmin < lo:
                         lo = lithmin
-                    normed_hi.append(hi / normalisation[el])
-                    normed_lo.append(lo / normalisation[el])
+                normed_hi.append(hi / normalisation[el])
+                normed_lo.append(lo / normalisation[el])
             a.fill_between(range(len(element_order)), normed_lo, normed_hi, alpha=0.2)
 
         if plot_original is True:
