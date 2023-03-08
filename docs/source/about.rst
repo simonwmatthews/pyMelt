@@ -9,14 +9,10 @@ for lherzolite and pyroxenite lithologies.
 
 How to Cite pyMelt
 ^^^^^^^^^^^^^^^^^^
-A manuscript is in preparation and a preprint will be posted soon. Until then, it is important to
-cite the release of pyMelt that you have used in your project. The zenodo archive of the current
-stable release is:
-
-   Simon Matthews, Oliver Shorttle, & Kevin Wong. (2020). simonwmatthews/pyMelt: First Release (v1.0). Zenodo. https://doi.org/10.5281/zenodo.4011814
-
-   .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg
-      :target: https://doi.org/10.5281/zenodo.5513675
+If you have used pyMelt in your research please cite the 
+`pyMelt paper <https://doi.org/10.30909/vol.05.02.469475>`_ published by Volcanica.
+To ensure reproducibility, please also note the version of the library you have
+used in your calculations.
 
 You should also cite the individual pure-lithology melting models used in the calculation. See the
 models page for more information.

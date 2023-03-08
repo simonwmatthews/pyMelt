@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyMelt",
-    version="1.960",
+    version="2.01", # REMEMBER TO UPDATE __INIT__.PY
     author="Simon Matthews, Kevin Wong, Matthew Gleeson",
     author_email="simonwmatthews@gmail.com",
     description=("A python library for calculating the melting behaviour of Earth's mantle."),
@@ -14,10 +14,10 @@ setuptools.setup(
     url="https://github.com/simonwmatthews/pyMelt",
     packages=setuptools.find_packages(),
     install_requires=[
-            'pandas',
-            'numpy',
-            'matplotlib',
-            'scipy',
+            'pandas>=1.3.5',
+            'numpy>=1.21.5',
+            'matplotlib>=3.5.1',
+            'scipy>=1.7.3',
             ],
     classifiers=[
         "Programming Language :: Python :: 3",

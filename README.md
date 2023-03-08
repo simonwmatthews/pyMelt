@@ -7,8 +7,7 @@
 [![PyPI version](https://badge.fury.io/py/pyMelt.svg)](https://badge.fury.io/py/pyMelt)
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/simonwmatthews/pyMelt/HEAD?labpath=docs%2Ftutorial%2Ftutorial1.ipynb)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
-
+[![DOI](https://zenodo.org/badge/259243892.svg)](https://zenodo.org/badge/latestdoi/259243892)
 
 ## Introduction
 
@@ -44,11 +43,11 @@ For pyMelt_MultiNest to work, MultiNest and pyMultinest must be installed. The u
 Note that the pyMelt_MultiNest library is built for an old version of pyMelt and has not yet been updated.
 
 ## Citing pyMelt
-If pyMelt enables or aids your research please cite the release you used. The latest release is v1.95, but does not yet have a doi. The most recent zenodo release is for v1.915:
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5513675.svg)](https://doi.org/10.5281/zenodo.5513675)
-
-A manuscript describing the module will be released as a preprint soon.
+If pyMelt enables or aids your research please cite the [pyMelt paper](https://doi.org/10.30909/vol.05.02.469475), published in Volcanica. To ensure reproducibility please also state the version of pyMelt that you used. The latest release is v2.00, which is archived in a Zenodo repository with DOI:
+[![DOI](https://zenodo.org/badge/259243892.svg)](https://zenodo.org/badge/latestdoi/259243892)
 
 You should also cite the relevant publications for the pure-lithology melting models. If you use our models, you should cite:
 
 Matthews, S., Wong, K., Shorttle, O., Edmonds, M., & Maclennan, J. (2021). Do olivine crystallization temperatures faithfully record mantle temperature variability?. Geochemistry, Geophysics, Geosystems, 22(4), e2020GC009157. https://doi.org/10.1029/2020GC009157
+
+See the documentation for the citations for the other models included in pyMelt.

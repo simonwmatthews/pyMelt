@@ -18,7 +18,7 @@ class kg1(_lithology):
     Implementation of the KG1 melting model from Matthews et al. (2021).
 
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class.
+    may be changed. They are provided as a dictionary during initialisation of the object.
 
     - Mcpx:   Mass fraction of cpx in the source. Controls the transition to
       low-productivity harzburgite-type melting.
@@ -37,7 +37,7 @@ class kg1(_lithology):
     - r2:     Parameter used to define cpx reaction coefficient.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------
@@ -502,7 +502,7 @@ class klb1:
     Implementation of the KLB1 melting model from Matthews et al. (2021).
 
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class.
+    may be changed. They are provided as a dictionary during initialisation of the object.
 
     - Mcpx:   Mass fraction of cpx in the source. Controls the transition to low-productivity
       harzburgite-type melting.
@@ -521,7 +521,7 @@ class klb1:
     - r2:     Parameter used to define cpx reaction coefficient.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------
@@ -984,7 +984,7 @@ class eclogite(_lithology):
     Matthews et al. (2021).
 
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class.
+    may be changed. They are provided as a dictionary during initialisation of the object.
 
     - C1:     Parameter used in solidus definition.
     - C2:     Parameter used in solidus definition.
@@ -997,7 +997,7 @@ class eclogite(_lithology):
     - beta:   Parameter used in melt fraction definition.
 
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
 
     Parameters
     ----------

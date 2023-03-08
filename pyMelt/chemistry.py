@@ -434,8 +434,8 @@ klb1_MineralProportions = _pd.DataFrame(
     index=["grt_field", "spn_field", "plg_field"],
 )
 """
-Mineral proportions (Wt%) for KLB1 in the garnet-, spinel-, and plagioclase-field. NEED TO CONFIRM
-SOURCE.
+Mineral proportions (Wt%) for KLB1 in the garnet-, spinel-, and plagioclase-field (estimated
+from Jennings and Holland, 2015).
 """
 
 kg1_MineralProportions = _pd.DataFrame(
@@ -448,8 +448,8 @@ kg1_MineralProportions = _pd.DataFrame(
     index=["grt_field", "spn_field", "plg_field"],
 )
 """
-Mineral proportions (Wt%) for KG1 in the garnet-, spinel-, and plagioclase-field. NEED TO CONFIRM
-SOURCE.
+Mineral proportions (Wt%) for KG1 in the garnet-, spinel-, and plagioclase-field (estimated
+from Matthews et al., 2021).
 """
 
 mo91_MineralProportions = _pd.DataFrame(

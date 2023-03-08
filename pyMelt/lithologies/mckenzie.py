@@ -23,7 +23,7 @@ class lherzolite(_lithology):
     scipt.optimize.fsolve and scipy.special.expit are required to numerically find
     solidus temperature as a function of pressure.
     To use the same format of parameterisation for another lithology, the parameter values
-    may be changed. They are provided as a dictionary during initialisation of the class, with
+    may be changed. They are provided as a dictionary during initialisation of the object, with
     values:
     - A1:  Parameter used in solidus definition.
     - A2:  Parameter used in solidus definition.
@@ -36,7 +36,7 @@ class lherzolite(_lithology):
     - a0:  Parameter used in calculating melt fraction.
     - a1:  Parameter used in calculating melt fraction.
     The thermal expansivities, the heat capacity, the densities, and the entropy of fusion may
-    also be changed during class initialisation.
+    also be changed during object initialisation.
     Parameters
     ----------
     CP :         float, default: 1120.0

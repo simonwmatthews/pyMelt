@@ -6,6 +6,15 @@ The presently available stable version of pyMelt represents a largescale reorgan
 previous version of the module. The syntax has remained similar, but lithologies are now stored
 in separate sub-modules.
 
+v2.01
+-----
+* Fixed a bug when calculating the crustal thickness in spreadingCentre geosetting if the
+  column has a weighting function applied to it. The calculated chemistry is unaffected.
+
+v2.00
+-----
+* Bug fixes related to preventing magma freezing and H2O exsolution.
+
 v1.95
 -----
 * Hydrous melting is now supported via the `hydrousLithology` class
@@ -14,7 +23,7 @@ v1.95
   pressure decrement.
 * This is essentially a move to v2.0, which is reserved for the version of pyMelt that coincides
   with manuscript publication.
-  
+
 v1.93
 -----
 * The `MeltingColumn` class has been condensed and all geological-setting specific functionality
