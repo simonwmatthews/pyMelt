@@ -6,6 +6,11 @@ The presently available stable version of pyMelt represents a largescale reorgan
 previous version of the module. The syntax has remained similar, but lithologies are now stored
 in separate sub-modules.
 
+v2.01
+-----
+* Fixed a bug when calculating the crustal thickness in spreadingCentre geosetting if the
+  column has a weighting function applied to it. The calculated chemistry is unaffected.
+
 v2.00
 -----
 * Bug fixes related to preventing magma freezing and H2O exsolution.

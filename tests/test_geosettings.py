@@ -65,12 +65,12 @@ class test_spreadingCentre(unittest.TestCase):
     def test_weighting(self):
         setting = m.geosettings.spreadingCentre(
             self.column, weightingFunction=m.geosettings.weighting_expdecay,
-            weighting_wavelength=1.0, weighting_amplitude=0.001)
+            weighting_wavelength=2.0, weighting_amplitude=0.1)
 
-        self.assertAlmostEqual(setting.tc, 22.318982017056516, places=6,
+        self.assertAlmostEqual(setting.tc, 11.744518088013182, places=6,
                                msg="Crustal thickness is incorrect.")
 
-        contributions = {'lz': 0.017680817581380612, 'px': 0.9823191824186193}
+        contributions = {'lz': 0.05714747169325495, 'px': 0.9428525283067452}
 
         for lith in ['lz', 'px']:
             self.assertAlmostEqual(setting.lithology_contributions[lith], contributions[lith],

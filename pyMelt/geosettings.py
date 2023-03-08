@@ -324,6 +324,7 @@ class spreadingCentre(geoSetting):
         """
         rho = self.mantle.bulkProperties()['rho']
         g = 9.81
+        
 
         # Calculate the contributions to tc (without additional weighting)
         tc = 1.0 / (rho * g * 1e3) * self.MeltingColumn.F / (1.0 - self.MeltingColumn.F)
@@ -333,7 +334,7 @@ class spreadingCentre(geoSetting):
         for i in range(self.mantle.number_lithologies):
             Flith[self.mantle.names[i]] = self.lithologies[self.mantle.names[i]].F
 
-        tc_lith = (1.0 / (rho * g * 1e3) * Flith * self.mantle.proportions
+        tc_lith = (1.0 / (rho * g * 1e3) * Flith * self.mantle.proportions 
                    / (1.0 - _np.tile(self.F, [self.mantle.number_lithologies, 1]).T))
 
         if steps is None:
@@ -365,9 +366,9 @@ class spreadingCentre(geoSetting):
         for i in range(_np.shape(P)[0]):
             if i != 0:
                 tc_int[i] = (tc_int[i - 1]
-                             + 0.5 * (tc[i] + tc[i - 1]) * (_np.abs(P[i] - P[i - 1]) + weights[i]))
+                             + 0.5 * (tc[i] + tc[i - 1]) * (_np.abs(P[i] - P[i - 1])) * (1 + weights[i]))
                 tc_lith_int[i] = (tc_lith_int[i - 1]
-                                  + 0.5 * tc_lith[i] * (_np.abs(P[i] - P[i - 1]) + weights[i]))
+                                  + 0.5 * tc_lith[i] * (_np.abs(P[i] - P[i - 1])) * (1+weights[i]))
                 tc_intP[i] = tc_int[i] * rho * g * 1e3
                 if (extract_melt is False and tc_intP[i] + P_base_existingLith > P[i]
                         and tc_found is False):
