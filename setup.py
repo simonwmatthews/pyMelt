@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyMelt",
-    version="2.01", # REMEMBER TO UPDATE __INIT__.PY
+    version="3.dev0", # REMEMBER TO UPDATE __INIT__.PY
     author="Simon Matthews, Kevin Wong, Matthew Gleeson",
     author_email="simonwmatthews@gmail.com",
     description=("A python library for calculating the melting behaviour of Earth's mantle."),
@@ -13,6 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/simonwmatthews/pyMelt",
     packages=setuptools.find_packages(),
+    package_data={'pyMelt':['phaseDiagrams/*', 'phaseDiagrams/build/*']},
     install_requires=[
             'pandas>=1.3.5',
             'numpy>=1.21.5',

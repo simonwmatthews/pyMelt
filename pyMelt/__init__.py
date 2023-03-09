@@ -15,7 +15,7 @@ and complete chemical disequilibrium between adjacent mantle lithologies. Variou
 provided for performing decompression melting calculations.
 """
 
-__version__ = "2.01"
+__version__ = "3.dev0"
 __author__ = "Simon Matthews, Kevin Wong, Matthew Glesson"
 
 
@@ -23,5 +23,6 @@ from pyMelt import lithologies
 from pyMelt import geosettings
 from pyMelt.mantle_class import mantle
 from pyMelt.lithology_classes import hydrousLithology
+from pyMelt.phaseDiagramTools import phaseDiagram, load_phaseDiagram
 
 __all__ = ['hydrousLithology', 'mantle', 'lithologies', 'geosettings']

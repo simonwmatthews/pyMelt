@@ -51,7 +51,7 @@ class meltingColumn():
         self.P = calculation_results.P
         self.T = calculation_results['T']
         self.chemistry_output = None
-        self._species_calc_type = None
+        self._species_calc_type = {}
 
         self.lithologies = {}
         for i in range(self.mantle.number_lithologies):
@@ -235,12 +235,15 @@ class meltingColumn():
                                                                      method_recon,
                                                                      **kwargs_recon)
 
-        self._species_calc_type = {}
         for lith in species_objects:
             species_calc_type = []
             for species in species_objects[lith]:
                 species_calc_type.append(species.calculation_type)
-            self._species_calc_type[lith] = species_calc_type
+            # Check whether calculations have been performed previously
+            if lith in self._species_calc_type:
+                self._species_calc_type[lith] += species_calc_type
+            else:
+                self._species_calc_type[lith] = species_calc_type
 
         # Check that the lithology names are correct
         for lith in species_objects:

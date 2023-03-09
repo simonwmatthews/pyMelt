@@ -281,7 +281,6 @@ class spreadingCentre(geoSetting):
 
         # Do the integrations for a spreading centre
         self._integrate_tri(P_lithosphere, extract_melt, steps=steps)
-        self._homogenise_chemistry()
 
         # Remove melts from the column that would have never been produced
         if extract_melt is False:
@@ -296,6 +295,8 @@ class spreadingCentre(geoSetting):
             for lith in self.lithologies:
                 self.lithologies[lith] = self.lithologies[lith][self.P > self.P_lithosphere]
             self.P = self.P[self.P > self.P_lithosphere]
+
+        self._homogenise_chemistry()
 
     def _integrate_tri(self, P_base_existingLith=0.0, extract_melt=False, steps=1001):
         """
@@ -405,7 +406,7 @@ class spreadingCentre(geoSetting):
                 species = list(self.lithologies[lith].columns)[3:]
                 first_lithology = False
 
-        weights = self._weighting_coefficients(self.MeltingColumn.P)
+        weights = self._weighting_coefficients(self.P)
         if isinstance(weights, _np.ndarray) is False:
             weights = weights.to_numpy()
 
@@ -428,22 +429,22 @@ class spreadingCentre(geoSetting):
                         for i in range(_np.shape(c)[0] - 1):
                             if f[i] > 0 and f[i - 1] > 0:
                                 cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1, j] + c[0:i, j])
-                                                  * df[:i], axis=0) / f[i])
+                                                  * df[:i], axis=0) / _np.sum(df[:i])) #f[i])
                             elif f[i] > 0:
                                 cnormed[i + 1] = (_np.sum(c[1:i + 1, j]
-                                                  * df[:i], axis=0) / f[i])
+                                                  * df[:i], axis=0) / _np.sum(df[:i])) #f[i])
                             else:
                                 cnormed[i + 1] = 0
                         c[:, j] = cnormed
                 # Normalise melts for this lithology
-                c = _trapz((1 + weights[:, None]) * c * f[:, None] / (1.0 - f[:, None]),
-                           self.lithologies[lith]['P'].to_numpy()[:], axis=0)
-                c = c / _trapz((1 + weights) * f / (1 - f),
-                               self.lithologies[lith]['P'].to_numpy())
+                c = _trapz((1 + weights[:, None]) * c * f[:, None] / (1.0 - f[:, None]),axis=0)
+                           # self.lithologies[lith]['P'].to_numpy()[:], axis=0)
+                c = c / _trapz((1 + weights) * f / (1 - f),)
+                               # self.lithologies[lith]['P'].to_numpy())
 
                 # Normalise melts for all lithologies
                 cm += c * self.lithology_contributions[lith]
-            self.chemistry = _pd.Series(cm, species)
+        self.chemistry = _pd.Series(cm, species)
 
     def meltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
         """

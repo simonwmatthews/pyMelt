@@ -1268,14 +1268,14 @@ class phaseDiagramTraceSpecies(species):
 
         D = self.D_bulk(state)
 
-        if D < 1e-4:
-            _warn(
-                self.name
-                + " is extremely incompatible, unless the step size is extremely small"
-                " its partitioning behaviour is unlikely to be captured correctly. "
-                "You are probably better off calculating it using the "
-                "ContinuousSpecies_accumulated class."
-            )
+        # if D < 1e-4:
+        #     _warn(
+        #         self.name
+        #         + " is extremely incompatible, unless the step size is extremely small"
+        #         " its partitioning behaviour is unlikely to be captured correctly. "
+        #         "You are probably better off calculating it using the "
+        #         "ContinuousSpecies_accumulated class."
+        #     )
 
         k1 = self._dcsdX(self._F_prev, self._cs,
                          self._cl(self._cs, D))
@@ -1362,8 +1362,12 @@ class phaseDiagramTraceSpecies(species):
 
     def mineralProportions(self, state):
         props = {}
+        total = 0.0
         for mineral in self._D.keys():
             props[mineral] = self.phaseDiagram(mineral + '_mass', state)
+            total += props[mineral] 
+        for mineral in self._D.keys():
+            props[mineral] = props[mineral] / total
         return props
 
     def _dcsdX(self, X, cs, cl):
