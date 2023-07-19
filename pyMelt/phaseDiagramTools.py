@@ -15,10 +15,11 @@ import pandas as _pd
 import os
 import pickle
 from json import load
+import matplotlib.pyplot as _plt
 
 class gridsMelts(object):
     """
-    Methods for processing thermocalc input.
+    Methods for processing MELTS input.
     """
     def __init__(self,
                  df,
@@ -72,6 +73,7 @@ class gridsMelts(object):
                 ynew[1:] = y
                 ynew[0] = _np.nan
                 y = _pd.Series(ynew, index=ind)
+
 
             # To ensure smoothness to zero, we will artificially overshoot F=0:
             first_finite_ind = x[(_np.isnan(x) == False)].index[0]
@@ -131,7 +133,7 @@ class gridsThermocalc(object):
     """
     def __init__(self,
                  df,
-                 phases=['ol', 'cpx', 'opx', 'g', 'spn', 'liq', 'pl'],
+                 phases=['olv', 'cpx', 'opx', 'grt', 'spn', 'liq', 'plg'],
                  oxides={'SiO2':  28.085 + 15.999 * 2,
                          'MgO':   24.305 + 15.999,
                          'FeO':   55.845 + 15.999,
@@ -154,8 +156,13 @@ class gridsThermocalc(object):
         self.phases  = phases
         self.oxides = oxides
 
+        # Copying the dataframe will prevent fragmentation warnings and improve performance.
         self.calculate_mass_fractions()
-        self.calculate_liquid_wtpt()
+        self.df = self.df.copy()
+        self.calculate_phase_wtpt()
+        self.df = self.df.copy()
+        self.calculate_phase_Mgn()
+        self.df = self.df.copy()
 
         # Thermocalc uses kbar as the pressure unit. pyMelt uses GPa, convert:
         self.df['pressure'] = self.df['pressure'] / 10
@@ -189,24 +196,58 @@ class gridsThermocalc(object):
             self.df[ph+'_mass'] = self.df[ph+'_mass']/self.df['total_mass']
         self.df['total_mass'] = self.df['total_mass']/self.df['total_mass']
 
-    def calculate_liquid_wtpt(self):
+        # Save the phases found:
+        self.phases = phases_found
+    
+    def calculate_phase_wtpt(self):
         """
-        Method for converting mole fraction oxides to wtpt oxides.
+        Method for calculating the wtpt oxides of each phase.
         """
-        # First, convert FeO + O into FeO + Fe2O3:
-        self.df['liq_Fe2O3'] = self.df['liq_O']
-        self.df['liq_FeO'] = self.df['liq_FeO'] - 2*self.df['liq_O']
-        self.df.drop('liq_O', axis=1, inplace=True)
+        for ph in self.phases:
+            if ph + '_O' in self.df.columns:
+                # First, convert FeO + O into FeO + Fe2O3:
+                self.df[ph+'_Fe2O3'] = self.df[ph+'_O']
+                self.df[ph+'_FeO'] = self.df[ph+'_FeO'] - 2*self.df[ph+'_O']
+                self.df.drop(ph+'_O', axis=1, inplace=True)
+        
+            self.df[ph+'_total_mass'] = _np.zeros(self.df.shape[0])
+            for ox in self.oxides:
+                if ph + '_' + ox in self.df.columns:
+                    self.df[ph + '_' + ox + '_wtpt'] = self.df[ph + '_' + ox] * self.oxides[ox]
+                    self.df[ph + '_total_mass'] += self.df[ph + '_' + ox] * self.oxides[ox]
+            
+            for ox in self.oxides:
+                if ph + '_' + ox in self.df.columns:
+                    self.df[ph + '_' + ox + '_wtpt'] = self.df[ph + '_' + ox + '_wtpt'] / self.df[ph + '_total_mass'] * 100
+            
+            self.df.drop(ph + '_total_mass', axis=1, inplace=True)
+    
+    def calculate_phase_Mgn(self):
+        """
+        Calculate the Mg# of each phase from the mole fractions
+        """
+        for ph in self.phases:
+            if ph + '_MgO' in self.df.columns and ph + '_FeO' in self.df.columns:
+                self.df[ph + '_Mg#'] = self.df[ph + '_MgO'] / (self.df[ph + '_MgO'] + self.df[ph + '_FeO'])
 
-        self.df['liq_total_mass'] = _np.zeros(self.df.shape[0])
-        for ox in self.oxides:
-            if 'liq_' + ox in self.df.columns:
-                self.df['liq_' + ox + '_wtpt'] = self.df['liq_' + ox] * self.oxides[ox]
-                self.df['liq_total_mass'] += self.df['liq_' + ox] * self.oxides[ox]
+    # def calculate_liquid_wtpt(self):
+    #     """
+    #     Method for converting mole fraction oxides to wtpt oxides.
+    #     """
+    #     # First, convert FeO + O into FeO + Fe2O3:
+    #     self.df['liq_Fe2O3'] = self.df['liq_O']
+    #     self.df['liq_FeO'] = self.df['liq_FeO'] - 2*self.df['liq_O']
+    #     self.df.drop('liq_O', axis=1, inplace=True)
 
-        for ox in self.oxides:
-            if 'liq_' + ox in self.df.columns:
-                self.df['liq_' + ox + '_wtpt'] = self.df['liq_' + ox + '_wtpt'] / self.df['liq_total_mass'] * 100
+    #     self.df['liq_total_mass'] = _np.zeros(self.df.shape[0])
+    #     for ox in self.oxides:
+    #         if 'liq_' + ox in self.df.columns:
+    #             self.df['liq_' + ox + '_wtpt'] = self.df['liq_' + ox] * self.oxides[ox]
+    #             self.df['liq_total_mass'] += self.df['liq_' + ox] * self.oxides[ox]
+
+    #     for ox in self.oxides:
+    #         if 'liq_' + ox in self.df.columns:
+    #             self.df['liq_' + ox + '_wtpt'] = self.df['liq_' + ox + '_wtpt'] / self.df['liq_total_mass'] * 100
 
     def make_f_grid(self, variable, deltaf=0.01, fill_value=[0.0, 0.0], use_edge_values=False):
         """
@@ -246,6 +287,19 @@ class gridsThermocalc(object):
             x = dfp.liq_mass.copy()
             y = dfp[variable].copy()
 
+            # Check that there's a liq=1 value, if not create one:
+            if _np.isnan(x.iloc[len(x)-1]) == False and x.iloc[len(x)-1] < 1:
+                ind = list(x.index)
+                ind = ind + [ind[len(x)-1]+1]
+                xnew = _np.zeros(_np.shape(x)[0]+1)
+                xnew[:-1] = x
+                xnew[-1] = 1.0
+                x = _pd.Series(xnew, index=ind)
+                ynew = _np.zeros(_np.shape(y)[0]+1)
+                ynew[:-1] = y
+                ynew[-1] = _np.nan
+                y = _pd.Series(ynew, index=ind)
+
             # To ensure smoothness to zero, we will artificially overshoot F=0:
             first_finite_ind = x[(_np.isnan(x) == False)].index[0]
             dfdi0 = x.loc[first_finite_ind + 1] - x.loc[first_finite_ind]
@@ -273,7 +327,7 @@ class gridsThermocalc(object):
                 if _np.isnan(y.iloc[len(y)-1]):
                     last_finite_ind = y[(_np.isnan(y) == False)].index[-1]
                     dydx = (y.loc[last_finite_ind] - y.loc[last_finite_ind - 1])/(x.loc[last_finite_ind] - x.loc[last_finite_ind - 1])
-                    y.loc[last_finite_ind + 1] = y.loc[last_finite_ind] + dydx*(x.loc[last_finite_ind + 1] - x.loc[last_finite_ind]) * dfdi_multiplier
+                    y.loc[last_finite_ind + 1] = y.loc[last_finite_ind] + dydx*(x.loc[last_finite_ind + 1] - x.loc[last_finite_ind]) #* dfdi_multiplier
                     if use_edge_values is True:
                         fill_value[1] = y.loc[last_finite_ind + 1]
 
@@ -315,9 +369,30 @@ class interpolate_grid(object):
 class phaseDiagram(object):
     """
     Reads in a phase diagram grid and sets up the spline interpolation functions.
+    Access the interpolated functions by calling the class with the variable name
+    and state as arguments.
+
+    Parameters
+    ----------
+    grids : gridsThermocalc or gridsMelts instance
+        The phaseDiagram grid, read in using either the gridsThermocalc or
+        gridsMelts classes.
+    variables : list or None, default: None
+        The variables to add to the phaseDiagram. If None then all the columns
+        in the grid will be added.
+    extrapolate_to_zero : list, default: []
+        Variables to extrapolate to zero. Phase mass fractions are always included
+        in addition to the variables named in the list.
     """
-    def __init__(self, grids, variables=None, vars_edge_vals=[]):
+    def __init__(self, grids, variables=None, extrapolate_to_zero=[]):
         self._interpolated_functions = {}
+
+        self.P_range = [_np.nanmin(grids.df['pressure'].unique()),
+                        _np.nanmax(grids.df['pressure'].unique())]
+
+        for ph in grids.phases:
+            extrapolate_to_zero.append(ph + '_mass')
+
         if variables is None:
             self.variables = grids.df.columns
         else:
@@ -325,7 +400,7 @@ class phaseDiagram(object):
 
         for col in self.variables:
             if col not in ['pressure', 'X', 'liq', 'liq_mass']:
-                if col in vars_edge_vals:
+                if col not in extrapolate_to_zero:
                     grid = grids.make_f_grid(col, use_edge_values=True)
                 else:
                     grid = grids.make_f_grid(col)
@@ -333,6 +408,40 @@ class phaseDiagram(object):
 
     def __call__(self, variable, state):
         return self._interpolated_functions[variable](state.P, state.F)[0]
+    
+    def plot_TxSection(self, parameter, F_range=[0,1], P_range=None, F_steps=100, P_steps=100,
+                       mask_mineral_out=False):
+
+        if P_range is None:
+            P_range = self.P_range
+        
+        p = _np.linspace(P_range[0], P_range[1], P_steps)
+        f = _np.linspace(F_range[0], F_range[1], F_steps)
+
+        pp, ff, = _np.meshgrid(p, f)
+        cc = _np.zeros(_np.shape(pp))
+
+        f, a =_plt.subplots(figsize=(4.5,3.5))
+
+        for i in range(_np.shape(pp)[0]):
+            for j in range(_np.shape(pp)[1]):
+                state = _pd.Series({'P': pp[i,j],'F': ff[i,j]})
+                if mask_mineral_out is True and self(parameter[:3] + '_mass', state) < 1e-10:
+                    cc[i,j] = _np.nan
+                else:
+                    cc[i,j] = self(parameter, state)
+
+        cs = a.contourf(pp, ff, cc, levels=25, cmap=_plt.cm.Reds)
+
+        cbar = f.colorbar(cs)
+        cbar.set_label(parameter)
+
+        a.set_xlabel('Pressure (GPa)')
+        a.set_ylabel('Melt Fraction')
+
+
+        return f, a
+
 
 
 def load_phaseDiagram(name='thermocalc_klb1'):
