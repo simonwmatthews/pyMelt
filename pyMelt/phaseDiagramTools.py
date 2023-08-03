@@ -69,7 +69,7 @@ class gridsMelts(object):
         self.df = self.df.copy()
 
         # Calculate Mg# for every phase:
-        self.calculate_phase_Mgn
+        self.calculate_phase_Mgn()
         self.df = self.df.copy()
     
     def calculate_phase_Mgn(self):
