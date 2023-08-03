@@ -292,9 +292,9 @@ class meltingColumn():
                 else:
                     kwargs_recon[arg] = kwargs[arg]
             if isinstance(method, dict) and any(item in method.keys() for item in elements.keys()):
-                species_objects.append(methods[method[el]](el, elements[el], **kwargs_recon))
+                species_objects.append(methods[method[el]](el, c0=elements[el], **kwargs_recon))
             else:
-                species_objects.append(methods[method](el, elements[el], **kwargs_recon))
+                species_objects.append(methods[method](el, c0=elements[el], **kwargs_recon))
         return species_objects
 
     def _tidy_chemistry_inputs(self, elements):

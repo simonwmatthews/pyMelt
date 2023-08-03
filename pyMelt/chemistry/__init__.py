@@ -1244,12 +1244,12 @@ class phaseDiagramTraceSpecies(species):
         self.name = name
         self.c0 = c0
         self.phaseDiagram = phaseDiagram
-        self._D = {"ol": olv_D,
+        self._D = {"olv": olv_D,
                    "cpx": cpx_D,
                    "opx": opx_D,
                    "spn": spn_D,
-                   "g": grt_D,
-                   "pl": plg_D}
+                   "grt": grt_D,
+                   "plg": plg_D}
         self.porosity = porosity
         self._cs = c0
         self._F_prev = 0.0
