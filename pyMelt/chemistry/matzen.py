@@ -75,40 +75,40 @@ def D(state, mineral, element,
         kd_olv = kd_olvliq_Mn(state, liq_MgO, **kwargs)
         if mineral == 'olv':
             kd_min = 1.0
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'opx':
             kd_min = kd_olvopx_Mn(state, **kwargs)
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'cpx':
-            Dolv = D_from_kd(1.0, kd_olv, liq_MgO, olv_MgO, **kwargs)
+            Dolv = D_from_kd(1.0, kd_olv, liq_MgO, olv_MgO, state, mineral, **kwargs)
             Dolvcpx = D_olvcpx_Mn(state, cpx_CaO)
             D = Dolv / Dolvcpx
         elif mineral == 'spn':
             kd_min = kd_olvspn_Mn(state, spn_Cr2O3, spn_Al2O3, spn_Fe2O3, **kwargs)
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'grt':
             kd_min = kd_olvgrt_Mn(state, **kwargs)
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         else:
             raise InputError("Mineral " + mineral + " not recognised.")
         
     elif element == 'Ni':
-        kd_olv = kd_olvliq_Ni(state, liq_MgO, **kwargs)
+        kd_olv = kd_olvliq_Ni(state, **kwargs)
         if mineral == 'olv':
             kd_min = 1.0
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'opx':
             kd_min = kd_olvopx_Ni(state, **kwargs)
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'cpx':
             kd_min = kd_olvcpx_Ni(state, **kwargs)
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'spn':
             kd_min = kd_olvspn_Ni(state, spn_Cr2O3, spn_Al2O3, spn_Fe2O3, **kwargs)
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'grt':
             kd_min = kd_olvgrt_Ni(state, **kwargs)
-            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, **kwargs)
+            D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         else:
             raise InputError("Mineral " + mineral + " not recognised.")
     else:
