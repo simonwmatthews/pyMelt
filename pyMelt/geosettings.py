@@ -153,7 +153,11 @@ class geoSetting(object):
             normalisation = default_norms[normalisation]
 
         if element_order is None:
-            element_order = list(self.chemistry.keys())
+            element_order = []
+            # Need this otherwise if there are major elements it will break!
+            for el in self.chemistry.keys():
+                if el in normalisation:
+                    element_order.append(el)
 
         if plot_instantaneous is True:
             normed_hi = []
