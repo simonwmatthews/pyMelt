@@ -8,6 +8,8 @@ by Matzen et al. (2017). In most use cases the function `D` is most useful.
 """
 
 import numpy as _np
+# Phantom divide by 0 error appears
+_np.seterr(divide = 'ignore') 
 from pyMelt.core import InputError
 
 def D(state, mineral, element,
@@ -81,7 +83,7 @@ def D(state, mineral, element,
             D = D_from_kd(kd_min, kd_olv, liq_MgO, mineral_MgO, state, mineral, **kwargs)
         elif mineral == 'cpx':
             Dolv = D_from_kd(1.0, kd_olv, liq_MgO, olv_MgO, state, mineral, **kwargs)
-            Dolvcpx = D_olvcpx_Mn(state, cpx_CaO)
+            Dolvcpx = D_olvcpx_Mn(state, cpx_CaO, **kwargs)
             D = Dolv / Dolvcpx
         elif mineral == 'spn':
             kd_min = kd_olvspn_Mn(state, spn_Cr2O3, spn_Al2O3, spn_Fe2O3, **kwargs)
@@ -114,8 +116,6 @@ def D(state, mineral, element,
     else:
         raise InputError("Element " + element + " not recognised. It must be one of Ni or Mn "
                          "to be compatible with the Matzen expressions.")
-    
-    
 
     return D
 
@@ -406,6 +406,10 @@ def kd_olvspn_Mn(state, spn_Cr2O3, spn_Al2O3, spn_Fe2O3,
     elif spn_Fe2O3 is None and 'phaseDiagram' in kwargs:
         spn_Fe2O3 = kwargs['phaseDiagram']('spn_Fe2O3_wtpt',  state)
 
+    # Avoid NAN returns from edges of spinel field in phase diagrams
+    if (spn_Al2O3 + spn_Cr2O3 + spn_Fe2O3) < 1e-15:
+        return 1.0
+
     Crn = spn_Cr2O3 / (spn_Cr2O3 + spn_Al2O3 + spn_Fe2O3)
 
     return _np.exp(matzen_olvspn_Mn_A * Crn / (state['T'] + 273.15) + matzen_olvspn_Mn_B)
@@ -468,10 +472,13 @@ def kd_olvspn_Ni(state, spn_Cr2O3, spn_Al2O3, spn_Fe2O3,
     elif spn_Fe2O3 is None and 'phaseDiagram' in kwargs:
         spn_Fe2O3 = kwargs['phaseDiagram']('spn_Fe2O3_wtpt',  state)
 
+    # Avoid NAN returns from edges of spinel field in phase diagrams
+    if (spn_Al2O3 + spn_Cr2O3 + spn_Fe2O3) < 1e-15:
+        return 1.0
+
     Crn = spn_Cr2O3 / 151.9904 / (spn_Cr2O3 / 151.9904 + spn_Al2O3 / 101.961276 + spn_Fe2O3 / 159.69)
 
     return _np.exp(matzen_olvspn_Ni_A * Crn / (state['T'] + 273.15) + matzen_olvspn_Ni_B)
-
 
 def kd_olvgrt_Mn(state, matzen_olvgrt_Mn_A=-4171.0, matzen_olvgrt_Mn_B=1.11,
                  **kwargs):

@@ -1265,7 +1265,7 @@ class phaseDiagramTraceSpecies(species):
 
         if state.F == 1:
             # If the lithology is immediately fully molten:
-            if self_cl_prev is None:
+            if self._cl_prev is None:
                 return self._cs
             else:
                 return self._cl_prev
@@ -1345,7 +1345,7 @@ class phaseDiagramTraceSpecies(species):
 
         for min in self._D:
             if callable(self._D[min]):
-                d[min] = self._D[min](state, **self._kwargs)
+                d[min] = self._D[min](state, mineral=min, element=self.name, **self._kwargs)
             else:
                 d[min] = self._D[min]
 
@@ -1357,8 +1357,10 @@ class phaseDiagramTraceSpecies(species):
         Dminerals = self.D(state)
         mineralProportions = self.mineralProportions(state)
 
-        D = sum([Dminerals[mineral] * mineralProportions[mineral]
-                 for mineral in Dminerals.keys()])
+        D = 0.0
+        for mineral in Dminerals.keys():
+            if mineralProportions[mineral] > 1e-10:
+                D += Dminerals[mineral] * mineralProportions[mineral]
 
         D = (1 - self.porosity) * D + self.porosity
 
