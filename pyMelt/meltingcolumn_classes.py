@@ -13,6 +13,7 @@ from pyMelt.core import InputError
 import matplotlib.pyplot as _plt
 import pandas as _pd
 import pyMelt.chemistry as _chemistry
+from dataclasses import asdict
 
 
 class meltingColumn():
@@ -162,11 +163,11 @@ class meltingColumn():
 
         The 'invmel' melting routine uses:
          - olv_D, the olivine-melt partition coefficient
-         - cpx_D, the olivine-melt partition coefficient
-         - opx_D, the olivine-melt partition coefficient
-         - spn_D, the olivine-melt partition coefficient
-         - grt_D, the olivine-melt partition coefficient
-         - plg_D, the olivine-melt partition coefficient
+         - cpx_D, the clinopyroxene-melt partition coefficient
+         - opx_D, the orthopyroxene-melt partition coefficient
+         - spn_D, the spinel-melt partition coefficient
+         - grt_D, the garnet-melt partition coefficient
+         - plg_D, the plagioclase-melt partition coefficient
          - MineralProportions, the mass fraction of each mineral present (prior to melting) in the
            spinel, plagioclase, and garnet field.
          - cpxExhaustion, the melt fraction at which cpx (and grt/plg/spn) are exhausted.
@@ -182,13 +183,13 @@ class meltingColumn():
         """
         # Check if using defaults, and assemble args if so:
         if method == 'default':
-            default_kwargs = {'olv_D': _chemistry.olv_D,
-                              'cpx_D': _chemistry.cpx_D,
-                              'opx_D': _chemistry.opx_D,
-                              'spn_D': _chemistry.spn_D,
-                              'grt_D': _chemistry.grt_D,
-                              'plg_D': _chemistry.plg_D,
-                              'D': _chemistry.workman05_D}
+            default_kwargs = {'olv_D': _chemistry.data.olv_D,
+                              'cpx_D': _chemistry.data.cpx_D,
+                              'opx_D': _chemistry.data.opx_D,
+                              'spn_D': _chemistry.data.spn_D,
+                              'grt_D': _chemistry.data.grt_D,
+                              'plg_D': _chemistry.data.plg_D,
+                              'D': _chemistry.data.workman05_D}
 
             for argname in default_kwargs:
                 if argname not in kwargs:
@@ -212,7 +213,7 @@ class meltingColumn():
             if elements is None and self.mantle.number_lithologies == 1:
                 print("Lithology composition is set to the depleted mantle of Workman & Hart "
                       "(2005).")
-                elements = {self.mantle.names[0]: _chemistry.workman05_dmm}
+                elements = {self.mantle.names[0]: asdict(_chemistry.data.workman05_dmm())}
             elif elements is None:
                 raise InputError("Either species_objects or elements must be provided.")
 
