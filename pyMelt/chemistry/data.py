@@ -7,6 +7,7 @@ This module provides some useful data for calculating magma compositions.
 """
 
 from dataclasses import dataclass
+import pandas as _pd
 
 
 @dataclass
@@ -390,3 +391,145 @@ class plg_D:
     Yb: float = 0.031
     Lu: float = 0.0250
 
+
+@dataclass
+class klb1_MineralProportions:
+    """
+    Mineral proportions (Wt%) for KLB1 in the garnet-, spinel-, and plagioclase-field (estimated
+    from Jennings and Holland, 2015).
+    """
+    df: _pd.DataFrame = _pd.DataFrame(
+            [
+                [0.609, 0.125, 0.119, 0.147, 0.000, 0.000],
+                [0.597, 0.233, 0.158, 0.000, 0.012, 0.000],
+                [0.646, 0.208, 0.076, 0.000, 0.000, 0.070],
+            ],
+            columns=["olv", "opx", "cpx", "grt", "spn", "plg"],
+            index=["grt_field", "spn_field", "plg_field"],
+        )
+
+
+@dataclass
+class kg1_MineralProportions:
+    """
+    Mineral proportions (Wt%) for KG1 in the garnet-, spinel-, and plagioclase-field (estimated
+    from Matthews et al., 2021).
+    """
+    df: _pd.DataFrame = _pd.DataFrame(
+            [
+                [0.181, 0.012, 0.422, 0.385, 0.000, 0.000],
+                [0.110, 0.178, 0.641, 0.000, 0.071, 0.000],
+                [0.118, 0.150, 0.655, 0.000, 0.000, 0.067],
+            ],
+            columns=["olv", "opx", "cpx", "grt", "spn", "plg"],
+            index=["grt_field", "spn_field", "plg_field"],
+        )
+
+
+@dataclass
+class mo91_MineralProportions:
+    """
+    Mineral proportions (Wt%) for lherzolite in the garnet-, spinel-, and plagioclase-field, from
+    McKenzie & O'Nions (1991).
+    """
+    df : _pd.DataFrame = _pd.DataFrame(
+            [
+                [0.598, 0.221, 0.076, 0.115, 0.000, 0.000],
+                [0.578, 0.270, 0.119, 0.000, 0.033, 0.000],
+                [0.636, 0.263, 0.012, 0.000, 0.000, 0.089],
+            ],
+            columns=["olv", "opx", "cpx", "grt", "spn", "plg"],
+            index=["grt_field", "spn_field", "plg_field"],
+        )
+
+
+@dataclass
+class ionic_radii:
+    """
+    The ionic radii (in m) of the trace elements, as compiled in the alphaMELTS input files.
+    """
+    Na: float =  1.18e-10
+    P: float =  0.38e-10
+    K: float =  1.51e-10
+    Sc: float =  0.87e-10
+    Ti: float =  0.74e-10
+    V: float =  0.54e-10
+    Cr: float =  0.615e-10
+    Mn: float =  0.96e-10
+    Co: float =  0.9e-10
+    Ni: float =  0.69e-10
+    Ga: float =  0.62e-10
+    Rb: float =  1.61e-10
+    Sr: float =  1.26e-10
+    Y: float =  1.019e-10
+    Nb: float =  0.64e-10
+    Cd: float =  1.10e-10
+    In: float =  0.92e-10
+    Cs: float =  1.74e-10
+    Ba: float =  1.42e-10
+    La: float =  1.16e-10
+    Ce: float =  1.143e-10
+    Pr: float =  1.126e-10
+    Nd: float =  1.109e-10
+    Sm: float =  1.079e-10
+    Eu: float =  1.066e-10
+    Gd: float =  1.053e-10
+    Tb: float =  1.040e-10
+    Dy: float =  1.027e-10
+    Ho: float =  1.015e-10
+    Er: float =  1.004e-10
+    Tm: float =  0.994e-10
+    Yb: float =  0.985e-10
+    Lu: float =  0.977e-10
+    Ta: float =  0.64e-10
+    Ra: float =  1.48e-10
+    Ac: float =  1.25e-10
+    Th: float =  1.035e-10
+    Pa: float =  0.78e-10
+    U: float =  0.975e-10
+
+
+@dataclass
+class ionic_charge:
+    """
+    The charges on the trace element ions, as compiled in the alphaMELTS input files.
+    """
+    Na: int = 1
+    P: int = 5
+    K: int = 1
+    Sc: int = 3
+    Ti: int = 4
+    V: int = 5
+    Cr: int = 3
+    Mn: int = 2
+    Co: int = 2
+    Ni: int = 2
+    Ga: int = 3
+    Rb: int = 1
+    Sr: int = 2
+    Y: int = 3
+    Nb: int = 5
+    Cd: int = 2
+    In: int = 3
+    Cs: int = 1
+    Ba: int = 2
+    La: int = 3
+    Ce: int = 3
+    Pr: int = 3
+    Nd: int = 3
+    Sm: int = 3
+    Eu: int = 3
+    Gd: int = 3
+    Tb: int = 3
+    Dy: int = 3
+    Ho: int = 3
+    Er: int = 3
+    Tm: int = 3
+    Yb: int = 3
+    Lu: int = 3
+    Ta: int = 5
+    Ra: int = 2
+    Ac: int = 3
+    Th: int = 4
+    Pa: int = 5
+    U: int = 4
