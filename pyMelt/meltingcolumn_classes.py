@@ -54,6 +54,9 @@ class meltingColumn():
         self.chemistry_output = None
         self._species_calc_type = {}
 
+        # New structure for storing composition information (solid + liquid)
+        self.composition = {}
+
         self.lithologies = {}
         for i in range(self.mantle.number_lithologies):
             df = _pd.DataFrame()
@@ -261,7 +264,12 @@ class meltingColumn():
             for i, row in self.lithologies[lith].iterrows():
                 for j in range(len(species_objects[lith])):
                     if row.F > 1e-15:
-                        results[i, j] = species_objects[lith][j].composition(row)
+                        calc_return = species_objects[lith][j].composition(row)
+                        if isinstance(calc_return, dict):
+                            results[i, j] = calc_return['liq']
+                            print('need to write code to record mineral comps')
+                        else:
+                            results[i, j] = calc_return
                     else:
                         results[i, j] = _np.nan
 

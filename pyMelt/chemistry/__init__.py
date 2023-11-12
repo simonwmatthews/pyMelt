@@ -780,15 +780,6 @@ class phaseDiagramTraceSpecies(species):
 
         D = self.D_bulk(state)
 
-        # if D < 1e-4:
-        #     _warn(
-        #         self.name
-        #         + " is extremely incompatible, unless the step size is extremely small"
-        #         " its partitioning behaviour is unlikely to be captured correctly. "
-        #         "You are probably better off calculating it using the "
-        #         "ContinuousSpecies_accumulated class."
-        #     )
-
         k1 = self._dcsdX(self._F_prev, self._cs,
                          self._cl(self._cs, D))
         k2 = self._dcsdX(
@@ -812,6 +803,7 @@ class phaseDiagramTraceSpecies(species):
         cs = self._cs + (1 / 6) * (state.F - self._F_prev) * (k1 + 2 * k2 + 2 * k3 + k4)
         cl = self._cl(cs, D)
 
+
         # Check if discretisation is too course
         if (k1 + 2 * k2 + 2 * k3 + k4) > 0 and D < 1:
             _warn(
@@ -827,6 +819,11 @@ class phaseDiagramTraceSpecies(species):
             self._cs = 0
         else:
             self._cs = cs
+        
+        # Calculate mineral compositions
+        c = {'liq': cl}
+        for min in D:
+            c[min] = cl * D[min]
 
         self._F_prev = state.F
         self._cl_prev = cl
