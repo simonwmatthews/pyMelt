@@ -12,416 +12,53 @@ import pandas as _pd
 from warnings import warn as _warn
 from pyMelt.core import InputError
 from pyMelt.chemistry import matzen
+from pyMelt.chemistry import data
+from dataclasses import dataclass, asdict
 
-__all__ = ['matzen']
+__all__ = ['matzen', 'data']
 
-oxide_masses = {'SiO2':  28.085 + 15.999 * 2,
-                'MgO':   24.305 + 15.999,
-                'FeO':   55.845 + 15.999,
-                'CaO':   40.078 + 15.999,
-                'Al2O3': 2 * 26.982 + 15.999 * 3,
-                'Na2O':  22.99 * 2 + 15.999,
-                'K2O':   39.098 * 2 + 15.999,
-                'MnO':   54.938 + 15.999,
-                'TiO2':  79.867,
-                'P2O5':  2 * 30.974 + 5 * 15.999,
-                'Cr2O3': 151.992,
-                'NiO':   58.693 + 16,
-                'CoO':   44.01,
-                'Fe2O3': 55.845 * 2 + 15.999 * 3,
-                'H2O':   18.02,
-                'CO2':   44.01,
-                'O': 15.999}
-"""
-The molecular mass of the oxides.
-"""
+@dataclass
+class default_methods:
+    """
+    The method to use for each element when a method isn't otherwise specified.
+    """
+    Rb: str = "continuous_instantaneous"
+    Ba: str = "continuous_instantaneous"
+    Th: str = "invmel"
+    U: str = "invmel"
+    Nb: str = "invmel"
+    Ta: str = "invmel"
+    La: str = "invmel"
+    Ce: str = "invmel"
+    Pb: str = "invmel"
+    Pr: str = "invmel"
+    Nd: str = "invmel"
+    Sr: str = "invmel"
+    Zr: str = "invmel"
+    Hf: str = "invmel"
+    Sm: str = "invmel"
+    Eu: str = "invmel"
+    Ti: str = "invmel"
+    Gd: str = "invmel"
+    Tb: str = "invmel"
+    Dy: str = "invmel"
+    Ho: str = "invmel"
+    Y: str = "invmel"
+    Er: str = "invmel"
+    Yb: str = "invmel"
+    Lu: str = "invmel"
 
-default_methods = {
-    "Rb": "continuous_instantaneous",
-    "Ba": "continuous_instantaneous",
-    "Th": "invmel",
-    "U": "invmel",
-    "Nb": "invmel",
-    "Ta": "invmel",
-    "La": "invmel",
-    "Ce": "invmel",
-    "Pb": "invmel",
-    "Pr": "invmel",
-    "Nd": "invmel",
-    "Sr": "invmel",
-    "Zr": "invmel",
-    "Hf": "invmel",
-    "Sm": "invmel",
-    "Eu": "invmel",
-    "Ti": "invmel",
-    "Gd": "invmel",
-    "Tb": "invmel",
-    "Dy": "invmel",
-    "Ho": "invmel",
-    "Y": "invmel",
-    "Er": "invmel",
-    "Yb": "invmel",
-    "Lu": "invmel",
-}
-"""
-The method to use for each element when a method isn't otherwise specified.
-"""
 
-workman05_dmm = {
-    "Rb": 0.05,
-    "Ba": 0.563,
-    "Th": 0.0079,
-    "U": 0.0032,
-    "Nb": 0.1485,
-    "Ta": 0.0096,
-    "La": 0.192,
-    "Ce": 0.550,
-    "Pb": 0.018,
-    "Pr": 0.107,
-    "Nd": 0.581,
-    "Sr": 7.664,
-    "Zr": 5.082,
-    "Hf": 0.157,
-    "Sm": 0.239,
-    "Eu": 0.096,
-    "Ti": 716.3,
-    "Gd": 0.358,
-    "Tb": 0.070,
-    "Dy": 0.505,
-    "Ho": 0.115,
-    "Y": 3.328,
-    "Er": 0.348,
-    "Yb": 0.365,
-    "Lu": 0.058,
-}
-"""
-The trace element concentrations in the depleted MORB mantle from Workman & Hart (2005). All
-concentrations are in ppmw.
-"""
 
-workman05_D = {
-    "Rb": 1e-5,
-    "Ba": 0.00012,
-    "Th": 0.001,
-    "U": 0.0011,
-    "Nb": 0.0034,
-    "Ta": 0.0034,
-    "La": 0.01,
-    "Ce": 0.022,
-    "Pb": 0.014,
-    "Pr": 0.027,
-    "Nd": 0.031,
-    "Sr": 0.025,
-    "Zr": 0.033,
-    "Hf": 0.035,
-    "Sm": 0.045,
-    "Eu": 0.050,
-    "Ti": 0.058,
-    "Gd": 0.056,
-    "Tb": 0.068,
-    "Dy": 0.079,
-    "Ho": 0.084,
-    "Y": 0.088,
-    "Er": 0.097,
-    "Yb": 0.115,
-    "Lu": 0.120,
-}
-"""
-The bulk partition coefficients for MORB production from Workman & Hart (2005).
-"""
-
-stracke03_bsic = {
-    "Rb": 0.57,
-    "Ba": 6.59,
-    "Th": 0.088,
-    "U": 0.027,
-    "Nb": 1.95,
-    "Ta": 0.124,
-    "La": 1.68,
-    "Ce": 5.89,
-    "Pb": 0.09,
-    "Nd": 7.45,
-    "Sr": 81.0,
-    "Zr": 64.0,
-    "Hf": 1.78,
-    "Sm": 2.69,
-    "Eu": 1.04,
-    "Ti": 7735.0,
-    "Gd": 4.03,
-    "Dy": 5.01,
-    "Y": 28.5,
-    "Er": 3.13,
-    "Yb": 2.99,
-    "Lu": 0.45,
-}
-"""
-The trace element concentrations (ppmw) in bulk subducted igneous crust from Stracke et al. (2003).
-"""
-
-palme13_pm = {
-    "Rb": 0.605,
-    "Ba": 6.85,
-    "Th": 0.0849,
-    "U": 0.0229,
-    "Nb": 0.595,
-    "Ta": 0.043,
-    "La": 0.6832,
-    "Ce": 1.7529,
-    "Pb": 0.185,
-    "Pr": 0.2657,
-    "Nd": 1.341,
-    "Sr": 22.0,
-    "Zr": 10.3,
-    "Hf": 0.3014,
-    "Sm": 0.4347,
-    "Eu": 0.1665,
-    "Ti": 1265.0,
-    "Gd": 0.5855,
-    "Tb": 0.1075,
-    "Dy": 0.7239,
-    "Ho": 0.1597,
-    "Y": 4.13,
-    "Er": 0.4684,
-    "Yb": 0.4774,
-    "Lu": 0.07083,
-}
-"""
-The composition of the primitive mantle (ppmw) from Palme & O'Neill (2013).
-"""
-
-palme13_ci = {
-    "Rb": 2.32,
-    "Ba": 2.42,
-    "Th": 0.03,
-    "U": 0.00810,
-    "Nb": 0.283,
-    "Ta": 0.015,
-    "La": 0.2414,
-    "Ce": 0.6194,
-    "Pb": 2.62,
-    "Pr": 0.09390,
-    "Nd": 0.4737,
-    "Sr": 7.79,
-    "Zr": 3.63,
-    "Hf": 0.1065,
-    "Sm": 0.1536,
-    "Eu": 0.05883,
-    "Ti": 447.0,
-    "Gd": 0.2069,
-    "Tb": 0.03797,
-    "Dy": 0.2558,
-    "Ho": 0.05644,
-    "Y": 1.46,
-    "Er": 0.1655,
-    "Yb": 0.1687,
-    "Lu": 0.02503,
-}
-"""
-Trace element concentrations in a CI chondrite (ppmw) from Palme & O'Neill (2013).
-"""
-
-# From Gibson & Geist compilation
-olv_D = {
-    "Rb": 0.0003,
-    "Ba": 0.000005,
-    "Th": 0.00005,
-    "U": 0.00038,
-    "Nb": 0.0005,
-    "Ta": 0.0005,
-    "La": 0.0005,
-    "Ce": 0.0005,
-    "Pb": 0.003,
-    "Pr": 0.0008,
-    "Nd": 0.00042,
-    "Sr": 0.00004,
-    "Zr": 0.0033,
-    "Hf": 0.0022,
-    "Sm": 0.0011,
-    "Eu": 0.0016,
-    "Ti": 0.015,
-    "Gd": 0.0011,
-    "Tb": 0.0015,
-    "Dy": 0.0027,
-    "Ho": 0.0016,
-    "Y": 0.0099,
-    "Er": 0.013,
-    "Yb": 0.020,
-    "Lu": 0.020,
-}
-"""
-Trace element partition coefficients between olivine and melt, compiled by Gibson & Geist (2010).
-"""
-
-# From Gibson & Geist compilation
-opx_D = {
-    "Rb": 0.0002,
-    "Ba": 0.000006,
-    "Th": 0.002,
-    "U": 0.002,
-    "Nb": 0.004,
-    "Ta": 0.004,
-    "La": 0.0031,
-    "Ce": 0.0040,
-    "Pb": 0.009,
-    "Pr": 0.0048,
-    "Nd": 0.01200,
-    "Sr": 0.0007,
-    "Zr": 0.013,
-    "Hf": 0.03,
-    "Sm": 0.0200,
-    "Eu": 0.0130,
-    "Ti": 0.086,
-    "Gd": 0.0130,
-    "Tb": 0.0190,
-    "Dy": 0.0110,
-    "Ho": 0.0065,
-    "Y": 0.052,
-    "Er": 0.045,
-    "Yb": 0.080,
-    "Lu": 0.120,
-}
-"""
-Trace element partition coefficients between orthopyroxene and melt, compiled by Gibson & Geist
-(2010).
-"""
-
-# From Gibson & Geist compilation
-cpx_D = {
-    "Rb": 0.0004,
-    "Ba": 0.0004,
-    "Th": 0.0059,
-    "U": 0.0094,
-    "Nb": 0.015,
-    "Ta": 0.015,
-    "La": 0.0490,
-    "Ce": 0.0800,
-    "Pb": 0.012,
-    "Pr": 0.126,
-    "Nd": 0.17800,
-    "Sr": 0.091,
-    "Zr": 0.119,
-    "Hf": 0.284,
-    "Sm": 0.2930,
-    "Eu": 0.3350,
-    "Ti": 0.350,
-    "Gd": 0.3500,
-    "Tb": 0.4030,
-    "Dy": 0.4000,
-    "Ho": 0.4270,
-    "Y": 0.426,
-    "Er": 0.420,
-    "Yb": 0.400,
-    "Lu": 0.376,
-}
-"""
-Trace element partition coefficients between clinopyroxene and melt, compiled by Gibson & Geist
-(2010).
-"""
-
-# From Gibson & Geist compilation
-grt_D = {
-    "Rb": 0.0002,
-    "Ba": 0.00007,
-    "Th": 0.009,
-    "U": 0.028,
-    "Nb": 0.015,
-    "Ta": 0.015,
-    "La": 0.0010,
-    "Ce": 0.0050,
-    "Pb": 0.005,
-    "Pr": 0.014,
-    "Nd": 0.05200,
-    "Sr": 0.0007,
-    "Zr": 0.270,
-    "Hf": 0.400,
-    "Sm": 0.2500,
-    "Eu": 0.4960,
-    "Ti": 0.600,
-    "Gd": 0.84800,
-    "Tb": 1.4770,
-    "Dy": 2.2000,
-    "Ho": 3.3150,
-    "Y": 3.100,
-    "Er": 4.400,
-    "Yb": 6.600,
-    "Lu": 7.100,
-}
-"""
-Trace element partition coefficients between garnet and melt, compiled by Gibson & Geist (2010).
-"""
-
-# alphaMELTS defaults
-spn_D = {
-    "Rb": 0.0001,
-    "Ba": 0.0001,
-    "Th": 0.0,
-    "U": 0.0,
-    "Nb": 0.0,
-    "Ta": 0.0,
-    "La": 0.0100,
-    "Ce": 0.0100,
-    "Pb": 0.0,
-    "Pr": 0.01,
-    "Nd": 0.0100,
-    "Sr": 0.0,
-    "Zr": 0.0,
-    "Hf": 0.0,
-    "Sm": 0.0100,
-    "Eu": 0.0100,
-    "Ti": 0.15,
-    "Gd": 0.0100,
-    "Tb": 0.0100,
-    "Dy": 0.0100,
-    "Ho": 0.0100,
-    "Y": 0.01,
-    "Er": 0.0100,
-    "Yb": 0.0100,
-    "Lu": 0.0100,
-}
-"""
-Trace element partition coefficients between spinel and melt, compiled by Gibson & Geist (2010).
-"""
-
-plg_D = {
-    "Rb": 0.03,
-    "Ba": 0.33,
-    "Th": 0.05,
-    "U": 0.11,
-    "Nb": 0.01,
-    "Ta": 0.0,
-    "La": 0.2700,
-    "Ce": 0.200,
-    "Pb": 0.36,
-    "Pr": 0.17,
-    "Nd": 0.1400,
-    "Sr": 2.0,
-    "Zr": 0.01,
-    "Hf": 0.01,
-    "Sm": 0.1100,
-    "Eu": 0.7300,
-    "Ti": 0.04,
-    "Gd": 0.0660,
-    "Tb": 0.0600,
-    "Dy": 0.0550,
-    "Ho": 0.0480,
-    "Y": 0.03,
-    "Er": 0.0100,
-    "Yb": 0.031,
-    "Lu": 0.0250,
-}
-"""
-Trace element partition coefficients between plagioclase and melt, compiled by Gibson & Geist
-(2010).
-"""
 
 defaultD = _pd.DataFrame(
     {
-        "olv": olv_D,
-        "cpx": cpx_D,
-        "opx": opx_D,
-        "plg": plg_D,
-        "grt": grt_D,
-        "spn": spn_D,
+        "olv": asdict(data.olv_D()),
+        "cpx": asdict(data.cpx_D()),
+        "opx": asdict(data.opx_D()),
+        "plg": asdict(data.plg_D()),
+        "grt": asdict(data.grt_D()),
+        "spn": asdict(data.spn_D()),
     }
 )
 """
@@ -1265,7 +902,7 @@ class phaseDiagramTraceSpecies(species):
 
         if state.F == 1:
             # If the lithology is immediately fully molten:
-            if self_cl_prev is None:
+            if self._cl_prev is None:
                 return self._cs
             else:
                 return self._cl_prev
@@ -1345,7 +982,7 @@ class phaseDiagramTraceSpecies(species):
 
         for min in self._D:
             if callable(self._D[min]):
-                d[min] = self._D[min](state, **self._kwargs)
+                d[min] = self._D[min](state, mineral=min, element=self.name, **self._kwargs)
             else:
                 d[min] = self._D[min]
 
@@ -1357,8 +994,10 @@ class phaseDiagramTraceSpecies(species):
         Dminerals = self.D(state)
         mineralProportions = self.mineralProportions(state)
 
-        D = sum([Dminerals[mineral] * mineralProportions[mineral]
-                 for mineral in Dminerals.keys()])
+        D = 0.0
+        for mineral in Dminerals.keys():
+            if mineralProportions[mineral] > 1e-10:
+                D += Dminerals[mineral] * mineralProportions[mineral]
 
         D = (1 - self.porosity) * D + self.porosity
 
