@@ -411,7 +411,7 @@ class invmelSpecies(species):
         spn_D,
         grt_D,
         plg_D,
-        mineralProportions=mo91_MineralProportions,
+        mineralProportions=data.mo91_MineralProportions,
         density=3.3,
         cpxExhaustion=0.18,
         garnetOut=mineralTransition_linear({'gradient': 1 / 666.7, 'intercept': 400 / 666.7}),
@@ -828,7 +828,7 @@ class phaseDiagramTraceSpecies(species):
         self._F_prev = state.F
         self._cl_prev = cl
 
-        return cl
+        return c
 
     def D(self, state):
         """
@@ -935,17 +935,24 @@ class phaseDiagramMajorSpecies(species):
     """
     Calculates trace element partitioning based on a phase diagram. Needs more info.
     """
-    def __init__(self, name, phaseDiagram, prefix='liq_', suffix='_wtpt',
+    def __init__(self, name, phaseDiagram, suffix='_wtpt',
                  **kwargs):
         self.calculation_type = "instantaneous"
         self.name = name
         self.phaseDiagram = phaseDiagram
-        self.prefix = prefix
         self.suffix = suffix
         self._F_prev = 0.0
 
     def composition(self, state):
-        return self.phaseDiagram(self.prefix + self.name + self.suffix , state)
+        c = {'liq': self.phaseDiagram((self.phaseDiagram.liquid_name + '_' 
+                                      + self.name + self.suffix), state)}
+        for mineral in self.phaseDiagram.minerals:
+            try:
+                c[mineral] = self.phaseDiagram(mineral + '_' + self.name + self.suffix, 
+                                               state)
+            except Exception:
+                _warn('The ' + self.name + ' of ' + mineral + ' could not be found.')
+        return c
 
 
 # FUNCTIONS FOR LATTICE STRAIN CALCULATIONS

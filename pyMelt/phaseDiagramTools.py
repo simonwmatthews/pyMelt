@@ -432,14 +432,20 @@ class phaseDiagram(object):
     grids : gridsThermocalc or gridsMelts instance
         The phaseDiagram grid, read in using either the gridsThermocalc or
         gridsMelts classes.
+    minerals : list of str
+        The mineral names that are included in the phase diagram
     variables : list or None, default: None
         The variables to add to the phaseDiagram. If None then all the columns
         in the grid will be added.
     extrapolate_to_zero : list, default: []
         Variables to extrapolate to zero. Phase mass fractions are always included
         in addition to the variables named in the list.
+    liquid_name : str, default: 'liq'
+        The name of the magma/liquid phase. Using something other than 'liq' will
+        likely cause failures elsewhere in the code right now.
     """
-    def __init__(self, grids, variables=None, extrapolate_to_zero=[]):
+    def __init__(self, grids, minerals, variables=None, extrapolate_to_zero=[],
+                 liquid_name='liq'):
         self._interpolated_functions = {}
 
         self.P_range = [_np.nanmin(grids.df['pressure'].unique()),
@@ -447,6 +453,9 @@ class phaseDiagram(object):
 
         for ph in grids.phases:
             extrapolate_to_zero.append(ph + '_mass')
+        
+        self.minerals = minerals
+        self.liquid_name = liquid_name
 
         if variables is None:
             self.variables = grids.df.columns

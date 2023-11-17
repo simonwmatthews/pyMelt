@@ -14,6 +14,7 @@ import matplotlib.pyplot as _plt
 import pandas as _pd
 import pyMelt.chemistry as _chemistry
 from dataclasses import asdict
+from copy import copy as _copy
 
 
 class meltingColumn():
@@ -64,6 +65,7 @@ class meltingColumn():
             df['T'] = self.T
             df['F'] = self.calculation_results[self.mantle.names[i]]
             self.lithologies[self.mantle.names[i]] = df
+            self.composition[self.mantle.names[i]] = _copy(df)
 
         self.F = _np.zeros(_np.shape(self.P)[0])
 
@@ -257,22 +259,53 @@ class meltingColumn():
 
         # Iterate through calculations for each lithology:
         for lith in species_objects:
+
+            # Prepare the storage for liquid compositions
             species_names = []
             for j in range(len(species_objects[lith])):
                 species_names.append(species_objects[lith][j].name)
             results = _np.zeros([_np.shape(self.P)[0], len(species_objects[lith])])
+
+            # Prepare the storage for solid + liquid compositions
+            solidcomp = None
+            mineral_element_labels = []
+
             for i, row in self.lithologies[lith].iterrows():
                 for j in range(len(species_objects[lith])):
                     if row.F > 1e-15:
                         calc_return = species_objects[lith][j].composition(row)
+
+                        # Check if method returns mineral compositions too:
                         if isinstance(calc_return, dict):
                             results[i, j] = calc_return['liq']
-                            print('need to write code to record mineral comps')
+                            
+                            # Check if the solid + liquid comp table needs to be initialised:
+                            if solidcomp is None:
+                                solidcomp = _np.full([_np.shape(self.P)[0], 
+                                                       len(calc_return) * len(species_names)],
+                                                       _np.NaN)
+                                mineral_names = list(calc_return.keys())
+                                for k in range(len(species_names)):
+                                    mineral_element_labels += [mn + '_' + species_names[k] for mn in mineral_names]
+                            
+                            solidcomp[i, j*len(mineral_names) : (j+1)*len(mineral_names)] = list(calc_return.values())
+
+                        # If the method just returns the liquid composition:
                         else:
                             results[i, j] = calc_return
                     else:
                         results[i, j] = _np.nan
+                
+            # Need to store this lithology's solid compositions, if generated:
+            if solidcomp is not None:
+                constructdf = _pd.DataFrame(solidcomp, columns=mineral_element_labels)
+            # Check if the element exists already:
+            repeats = [value for value in mineral_element_labels if value in self.composition[lith].columns]
+            self.composition[lith].drop(repeats, inplace=True, axis=1)
+            self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
 
+
+            # Store the liquid compositions
             constructdf = _pd.DataFrame(results, columns=species_names)
 
             # Checks if the element exists already, and drops in original if so:
