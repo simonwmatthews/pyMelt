@@ -90,6 +90,29 @@ class species(object):
         """
         Returns the concentration of the species in the melt for the specified state.
         This function should be redefined according to the chemical model being used.
+        It can also return a dict with the compositions of the liquid plus each solid
+        phase included.
+
+        Parameters
+        ----------
+        state : pandas.Series
+            The state of the system, e.g. temperature (T), pressure (P), melt fraction (F). This
+            will most likely be generated automatically by the `MeltingColumn_1D` class.
+
+        Returns
+        -------
+        float
+            The concentration of the species in the melt.
+        """
+        return _np.nan
+    
+    def mineralProportions(self, state):
+        """
+        Returns the proportions of mineral phases in the solid residue for the specified
+        state. This function may be redefined according to the chemical model being used.
+        The simplest models (e.g., batchSpecies or fractionalSpecies) do not imply any 
+        particular residue composition, so this method need not be redefined, and NaN can
+        be returned.
 
         Parameters
         ----------
@@ -401,16 +424,18 @@ class invmelSpecies(species):
         The density of the mantle (g cm-3)
     """
 
+    # The defaults are set to None so that the class can be used for calculating minineral
+    # proportions without having to provide fake information.
     def __init__(
         self,
-        name,
-        c0,
-        olv_D,
-        cpx_D,
-        opx_D,
-        spn_D,
-        grt_D,
-        plg_D,
+        name=None,
+        c0=None,
+        olv_D=None,
+        cpx_D=None,
+        opx_D=None,
+        spn_D=None,
+        grt_D=None,
+        plg_D=None,
         mineralProportions=data.mo91_MineralProportions,
         density=3.3,
         cpxExhaustion=0.18,
@@ -546,7 +571,9 @@ class invmelSpecies(species):
 
         return d
 
-    def mineralProportions(self, P, T):
+    def mineralProportions(self, state):
+        P = state['P']
+        T = state['T']
         GarnetSpinel = self._GarnetSpinelTransition(P, T)
         SpinelPlagioclase = self._SpinelPlagioclaseTransition(P, T)
         if GarnetSpinel == 1 and SpinelPlagioclase == 1:
@@ -578,7 +605,7 @@ class invmelSpecies(species):
         return mineralProportions
 
     def D_bulk(self, P, T, F=0.0):
-        mineralProportions = self.mineralProportions(P, T)
+        mineralProportions = self.mineralProportions(_pd.Series({"P": P, "T": T}))
         Dminerals = self.D(_pd.Series({"P": P, "T": T}))
 
         cpxExhaustion = self.cpxExhaustion
@@ -594,7 +621,7 @@ class invmelSpecies(species):
         return D
 
     def P_bulk(self, P, T, F=0.0):
-        mineralProportions = self.mineralProportions(P, T)
+        mineralProportions = self.mineralProportions(_pd.Series({"P": P, "T": T}))
         Dminerals = self.D(_pd.Series({"P": P, "T": T}))
 
         cpxExhaustion = self.cpxExhaustion
@@ -745,8 +772,10 @@ class phaseDiagramTraceSpecies(species):
     """
     Calculates trace element partitioning based on a phase diagram. Needs more info.
     """
-    def __init__(self, name, c0, phaseDiagram,
-                 olv_D, cpx_D, opx_D, spn_D, grt_D, plg_D,
+    # The defaults are set to None so that the class can be used for calculating minineral
+    # proportions without having to provide fake information.
+    def __init__(self, name=None, c0=None, phaseDiagram=None,
+                 olv_D=None, cpx_D=None, opx_D=None, spn_D=None, grt_D=None, plg_D=None,
                  porosity=0.0, **kwargs):
         self.calculation_type = "instantaneous"
         self.name = name
@@ -935,7 +964,9 @@ class phaseDiagramMajorSpecies(species):
     """
     Calculates trace element partitioning based on a phase diagram. Needs more info.
     """
-    def __init__(self, name, phaseDiagram, suffix='_wtpt',
+    # The defaults are set to None so that the class can be used for calculating minineral
+    # proportions without having to provide fake information.
+    def __init__(self, name=None, phaseDiagram=None, suffix='_wtpt',
                  **kwargs):
         self.calculation_type = "instantaneous"
         self.name = name
@@ -953,6 +984,16 @@ class phaseDiagramMajorSpecies(species):
             except Exception:
                 _warn('The ' + self.name + ' of ' + mineral + ' could not be found.')
         return c
+
+    def mineralProportions(self, state):
+        props = {}
+        total = 0.0
+        for mineral in self.phaseDiagram.minerals:
+            props[mineral] = self.phaseDiagram(mineral + '_mass', state)
+            total += props[mineral] 
+        for mineral in self.phaseDiagram.minerals:
+            props[mineral] = props[mineral] / total
+        return props
 
 
 # FUNCTIONS FOR LATTICE STRAIN CALCULATIONS

@@ -116,6 +116,64 @@ class meltingColumn():
         a[1].xaxis.set_label_position('top')
 
         return f, a
+    
+    def calculateMineralProportions(self, method='invmel', species_objects=None, **kwargs):
+        """
+        Calculate the mineral proportions in the residue at each stage using one of the
+        chemistry models. 
+
+        NEED TO FINISH WRITING THIS DOCUMENTATION.
+        """
+
+        # Assemble the species_objects dictionary if not provided
+        if species_objects is None:
+            species_objects = {}
+            for lith in self.mantle.names:
+                method_recon = {}
+                kwargs_recon = {}
+                if isinstance(method, dict):
+                    method_recon = method[lith]
+                else:
+                    method_recon = method
+                for kw in kwargs:
+                    if isinstance(kwargs[kw], dict):
+                        kwargs_recon[kw] = kwargs[kw][lith]
+                    else:
+                        kwargs_recon[kw] = kwargs[kw]
+                
+                species_objects[lith] = self._create_species_objects({'Fake': _np.nan},
+                                                                      method_recon,
+                                                                      **kwargs_recon)
+        
+        for lith in self.mantle.names:
+
+            # Prepare the variables for storage:
+            mineralProps = None
+
+            for i, row in self.lithologies[lith].iterrows():
+                if row.F > 1e-15:
+                    calc_return = species_objects[lith][0].mineralProportions(row)
+
+                    if isinstance(calc_return, dict) is False:
+                        raise InputError("This model does not support mineral proportion calculations")
+                    
+                    # Check if the table needs to be initialised:
+                    if mineralProps is None:
+                        mineralProps = _np.full([_np.shape(self.P)[0], len(calc_return)], _np.nan)
+                        mineralNames = list(calc_return.keys())
+                    
+                    mineralProps[i, :] = list(calc_return.values())
+            
+            # Store this lithology's phase fractions:
+            constructdf = _pd.DataFrame(mineralProps, columns=mineralNames)
+
+            # Check if these phase fractions exist already:
+            repeats = [value for value in mineralNames if value in self.composition[lith].columns]
+            self.composition[lith].drop(repeats, inplace=True, axis=1)
+            self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
+            
+            
+
 
     def calculateChemistry(self, elements=None, species_objects=None, method='default', **kwargs):
         """
