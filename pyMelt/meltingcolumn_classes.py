@@ -15,6 +15,7 @@ import pandas as _pd
 import pyMelt.chemistry as _chemistry
 from dataclasses import asdict
 from copy import copy as _copy
+import warnings as _warnings
 
 
 class meltingColumn():
@@ -371,6 +372,216 @@ class meltingColumn():
             self.lithologies[lith].drop(repeats, inplace=True, axis=1)
 
             self.lithologies[lith] = _pd.concat([self.lithologies[lith], constructdf], axis=1)
+    
+    def calculateStableIsotopes(self, species, fractionationFactors, isotopeRatioLabel, 
+                                bulk=0.0, fractionalExtraction=False, porosity=0.0, 
+                                **kwargs):
+        """
+        Write some documentation here...
+
+        Parameters
+        ----------
+        species: str 
+            The species to calculate the stable isotope fractionation for. E.g., MgO.
+            Must correspond to a species that has been calculated in the liquid and
+            solid already.
+        fractionationFactors : dict
+            The mineral-liquid fractionation factors (1000 ln beta) for each mineral 
+            in the calculation. The mineral name should be given as the key. A number 
+            or a function may be given as the value. 
+        isotopeRatioLabel : str
+            The label to be applied to the results, e.g., 'd57Fe'.
+        bulk : float or dict, default: 0
+            The bulk isotope ratio, in the units of the calculation. If the calculation
+            is simulating fractional melt extraction this number corresponds to the
+            bulk value before melting. Use a dictionary to provide different bulk
+            compositions for each lithology (with the lithology name as the key).
+        fractionalExtraction : bool, default: False
+            Controls wether calculation assumes batch or fractional melting for the
+            purposes of the isotope fractionation calculation.
+        porosity : float, default: 0.0
+            If doing a fractional melting calculation, phi allows some residual melt to be
+            retained at each step (i.e., continuous melting). Perfect fractional melting
+            is assumed by default. If modelling a trace element system then this should
+            be set to the same value used during the calculation of trace element
+            concentrations.
+        """
+
+        _warnings.warn("Isotope ratios for solid phases where their phase fraction "
+                       "goes < 0.01 are masked as a temporary fix to problematic "
+                       "imports.")
+        
+        # Prepare the columns for results, and check the fractionationFactors input is correct
+        if isinstance(fractionationFactors, dict):
+            phases = list(fractionationFactors.keys())
+            colnames = ['liq_' + isotopeRatioLabel]
+            for ph in phases:
+                colnames.append(ph + '_' + isotopeRatioLabel)
+        else:
+            raise InputError("fractionationFactors must be a dict. If you want to use a single "
+                            "fractionation factor for solid-liquid fractionation then specify "
+                            "the same value for each mineral.")
+        
+        # Check the bulk composition input
+        if isinstance(bulk, float): 
+            if len(self.mantle.names) > 1:
+                _warnings.warn("A single bulk isotope ratio is being applied to every lithology. "
+                               "Unless there is no isotopic heterogeneity this means the calculation "
+                               "will only be indicative of general behaviour.")
+            bulkval = bulk
+            bulk = {}
+            for lith in self.mantle.names:
+                bulk[lith] = bulkval
+        else:
+            for bn in bulk:
+                if bn not in self.mantle.names:
+                    raise InputError("The lithology {} was not recognised.".format(bn))
+        
+        # Check the species exists for each of the phases:
+        for lith in self.mantle.names:
+            for ph in phases + ['liq']:
+                if ph + '_' + species not in self.composition[lith].columns:
+                    raise InputError("{0} was not found in {1} for {2}. The composition of each "
+                                    "phase must have already been calculated.".format(species, ph, lith))
+
+        for lith in self.mantle.names:
+
+            results = _np.full([_np.shape(self.P)[0], len(phases) + 1], _np.nan)
+            
+            for i, row in self.composition[lith].iterrows():
+
+                if row['F'] > 1e-15:
+                    cliq = row['liq_' + species]
+                    xliq = row['F']
+
+                    # Assemble arrays for the summations:
+                    x = _np.zeros(len(fractionationFactors))
+                    c = _np.zeros(len(fractionationFactors))
+                    a = _np.zeros(len(fractionationFactors))
+                    
+                    for n in range(len(phases)):
+                        x[n] = row[phases[n]] * (1.0-xliq)
+                        c[n] = row[phases[n] + '_' + species]
+                        if callable(fractionationFactors[phases[n]]):
+                            a[n] = fractionationFactors[phases[n]](row)
+                        else:
+                            a[n] = fractionationFactors[phases[n]]
+                    a = _np.exp(a/1000)
+                                            
+                
+                    if fractionalExtraction is False:
+
+                        cbulk = _np.sum(c * x) + cliq * xliq
+
+                        # delta_melt = (
+                        #     (cbulk * (bulk[lith]/1e3 + 1) 
+                        #     / (np.sum(x*c*a) + xliq * cliq)
+                        #     - 1) *1e3
+                        # )
+
+                        delta_melt = (
+                                (cbulk * bulk[lith] - 1e3 * (_np.sum(x*c*a) - _np.sum(x*c)))
+                                / (_np.sum(x*c*a) + xliq * cliq)
+                            )
+                        
+                        results[i, 0] = delta_melt
+                        results[i, 1:] = a * (delta_melt + 1e3) - 1e3
+
+                        for j in range(len(x)):
+                            if x[j] < 1e-2:
+                                results[i, j+1] = _np.nan
+                    
+                    else:
+                    
+                        row_prev = self.composition[lith].iloc[i-1]
+                        F_prev = row_prev['F']
+
+                        if F_prev > 1e-15:
+
+                            bulk_a = (_np.sum(x * c * a) + porosity * cliq) / (_np.sum(x * c) + porosity * cliq)
+
+                            # We might expect this block should be calculated in the previous step, and so we should
+                            # be able to use it, except when I tried it completely broke the code. I think this is
+                            # because what we need in this step is the final composition of melt extracted, rather
+                            # than the aggregate, which is what is calculated in the previous step.
+                            cs_prev_denom = 0.0
+                            for ph in phases:
+                                cs_prev_denom += row_prev[ph + '_' + species] * row_prev[ph]
+                            cs_prev_numer = cs_prev_denom * (bulk[lith] / 1e3 + 1)
+                            D_prev_denom = cs_prev_denom / row_prev['liq_' + species]
+                            D_prev_numer = D_prev_denom * bulk_a
+                            
+                            cs_denom = 0.0
+                            for ph in phases:
+                                cs_denom += row[ph + '_' + species] * row[ph]
+                            D_denom = cs_denom / row['liq_' + species]
+
+                            D_numer = D_denom * bulk_a
+
+                            cl_prev_denom = cs_prev_denom / D_prev_denom 
+                            cl_prev_numer = cs_prev_numer / D_prev_numer
+                            # End of block of maybe repeated/redundant code.
+                            
+                            norm = 0.0
+                            pbar_numer = _np.zeros(len(phases))
+                            pbar_denom = _np.zeros(len(phases))
+                            for j in range(len(phases)):
+                                ph = phases[j]
+                                norm += (row_prev[ph] * (1-F_prev) - row[ph] * (1-row['F']))
+                                pbar_numer[j] = (row_prev[ph] * (1-F_prev) - row[ph] * (1-row['F'])) * row[ph+'_'+species] / cliq * a[j]
+                                pbar_denom[j] = (row_prev[ph] * (1-F_prev) - row[ph] * (1-row['F'])) * row[ph+'_'+species] / cliq
+                            Pbar_numer = _np.sum(pbar_numer) / norm
+                            Pbar_denom = _np.sum(pbar_denom) / norm
+
+
+                            # Calculate dcs/dX over integration range (Shaw eqns)
+                            k1_numer = (cs_prev_numer - cl_prev_numer) / (1 - F_prev)
+                            k1_denom = (cs_prev_denom - cl_prev_denom) / (1 - F_prev)
+
+                            dF = (row['F'] - F_prev) / 2
+                            k_cs = cs_prev_numer + k1_numer * dF
+                            k_cl = k_cs * (1 - F_prev - dF) / (D_numer * (1 - F_prev) - Pbar_numer * (dF))
+                            k2_numer = (k_cs - k_cl) / (1 - (F_prev + dF))
+                            k_cs = cs_prev_denom + k1_denom * dF
+                            k_cl = k_cs * (1 - F_prev - dF) / (D_denom * (1 - F_prev) - Pbar_denom * (dF))
+                            k2_denom = (k_cs - k_cl) / (1 - (F_prev + dF))
+
+                            dF = (row['F'] - F_prev) / 2
+                            k_cs = cs_prev_numer + k2_numer * dF
+                            k_cl = k_cs * (1 - F_prev - dF) / (D_numer * (1 - F_prev) - Pbar_numer * (dF))
+                            k3_numer = (k_cs - k_cl) / (1 - (F_prev + dF))
+                            k_cs = cs_prev_denom + k2_denom * dF
+                            k_cl = k_cs * (1 - F_prev - dF) / (D_denom * (1 - F_prev) - Pbar_denom * (dF))
+                            k3_denom = (k_cs - k_cl) / (1 - (F_prev + dF))
+
+                            dF = (row['F'] - F_prev)
+                            k_cs = cs_prev_numer + k3_numer * dF
+                            k_cl = k_cs * (1 - F_prev - dF) / (D_numer * (1 - F_prev) - Pbar_numer * (dF))
+                            k4_numer = (k_cs - k_cl) / (1 - (F_prev + dF))
+                            k_cs = cs_prev_denom + k3_denom * dF
+                            k_cl = k_cs * (1 - F_prev - dF) / (D_denom * (1 - F_prev) - Pbar_denom * (dF))
+                            k4_denom = (k_cs - k_cl) / (1 - (F_prev + dF))
+                            
+                            
+                            cs_numer = cs_prev_numer + (1 / 6) * (row['F'] - F_prev) * (k1_numer + 2*k2_numer + 2*k3_numer + k4_numer)
+                            cl_numer = cs_numer * (1 - row['F']) / (D_numer * (1 - F_prev) - Pbar_numer * (row['F'] - F_prev))
+                            cs_denom = cs_prev_denom + (1 / 6) * (row['F'] - F_prev) * (k1_denom + 2*k2_denom + 2*k3_denom + k4_denom)
+                            cl_denom = cs_denom * (1 - row['F']) / (D_denom * (1 - F_prev) - Pbar_denom * (row['F'] - F_prev))
+
+                            bulk[lith] = (cs_numer / cs_denom - 1) * 1e3
+                            results[i, 0] = (cl_numer / cl_denom - 1) * 1e3
+                            results[i, 1:] = a * (results[i,0] + 1e3) - 1e3
+
+                            for j in range(len(x)):
+                                if x[j] < 1e-2:
+                                    results[i, j+1] = _np.nan
+                        
+
+            constructdf = _pd.DataFrame(results, columns=colnames)
+            # Check if the element exists already:
+            repeats = [value for value in colnames if value in self.composition[lith].columns]
+            self.composition[lith].drop(repeats, inplace=True, axis=1)
+            self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
 
     def _create_species_objects(self, elements, method, **kwargs):
         methods = {'batch': _chemistry.batchSpecies,
