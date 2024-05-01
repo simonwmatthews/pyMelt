@@ -144,7 +144,7 @@ class batchSpecies(species):
     """
 
     def __init__(self, name, c0, D, **kwargs):
-        self.calculation_type = "accumulated"
+        self.calculation_type = "liquidConcentrationAccumulated"
         self.name = name
         self.c0 = c0
         self._D = D
@@ -201,7 +201,7 @@ class continuousSpecies_instantaneous(species):
     """
 
     def __init__(self, name, c0, D, phi=0.005, **kwargs):
-        self.calculation_type = "instantaneous"
+        self.calculation_type = "liquidConcentrationInstantaneous"
         self.name = name
         self.c0 = c0
         self._D = D
@@ -265,7 +265,7 @@ class continuousSpecies_accumulated(species):
     """
 
     def __init__(self, name, c0, D, phi=0.005, **kwargs):
-        self.calculation_type = "accumulated"
+        self.calculation_type = "liquidConcentrationAccumulated"
         self.name = name
         self.c0 = c0
         self._D = D
@@ -445,7 +445,7 @@ class invmelSpecies(species):
         plagioclaseIn=mineralTransition_isobaric({'transition_pressure': 35.0 * 0.033}),
         **kwargs
     ):
-        self.calculation_type = "instantaneous"
+        self.calculation_type = "liquidConcentrationInstantaneous"
         self.name = name
         self.c0 = c0
         self._D = {
@@ -777,7 +777,7 @@ class phaseDiagramTraceSpecies(species):
     def __init__(self, name=None, c0=None, phaseDiagram=None,
                  olv_D=None, cpx_D=None, opx_D=None, spn_D=None, grt_D=None, plg_D=None,
                  porosity=0.0, **kwargs):
-        self.calculation_type = "instantaneous"
+        self.calculation_type = "liquidConcentrationInstantaneous"
         self.name = name
         self.c0 = c0
         self.phaseDiagram = phaseDiagram
@@ -968,7 +968,7 @@ class phaseDiagramMajorSpecies(species):
     # proportions without having to provide fake information.
     def __init__(self, name=None, phaseDiagram=None, suffix='_wtpt',
                  **kwargs):
-        self.calculation_type = "instantaneous"
+        self.calculation_type = "liquidConcentrationInstantaneous"
         self.name = name
         self.phaseDiagram = phaseDiagram
         self.suffix = suffix

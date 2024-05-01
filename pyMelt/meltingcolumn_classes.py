@@ -54,7 +54,18 @@ class meltingColumn():
         self.P = calculation_results.P
         self.T = calculation_results['T']
         self.chemistry_output = None
+
+        # This variable should be replaced with the one below
         self._species_calc_type = {}
+
+        # New composition registry structure
+        # Keeps track of what kind of variable each column in the composition tables
+        # is, i.e., concentration, mineral composition, stable isotope ratio...
+        self._composition_variable_type = {}
+        for lith in self.mantle.names:
+            self._composition_variable_type[lith] = {'P': 'metadata', 
+                                                     'T': 'metadata',
+                                                     'F': 'metadata'}
 
         # New structure for storing composition information (solid + liquid)
         self.composition = {}
@@ -66,8 +77,8 @@ class meltingColumn():
             df['T'] = self.T
             df['F'] = self.calculation_results[self.mantle.names[i]]
             self.lithologies[self.mantle.names[i]] = df
-            self.composition[self.mantle.names[i]] = _copy(df)
-
+            self.composition[self.mantle.names[i]] = _copy(df) # These contributions to the composition table are already registered above
+            
         self.F = _np.zeros(_np.shape(self.P)[0])
 
         for i in range(self.mantle.number_lithologies):
@@ -172,6 +183,10 @@ class meltingColumn():
             repeats = [value for value in mineralNames if value in self.composition[lith].columns]
             self.composition[lith].drop(repeats, inplace=True, axis=1)
             self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
+
+            # Register the new entries:
+            for mineral in mineralNames:
+                self._composition_variable_type[lith][mineral] = 'mineralProportion'
             
             
 
@@ -299,7 +314,9 @@ class meltingColumn():
                 species_objects[lith] = self._create_species_objects(elements[lith],
                                                                      method_recon,
                                                                      **kwargs_recon)
-
+                
+        # This block can be deleted once moved completely over to new variable registry: ###########
+        _warnings.warn("Need to delete legacy code below.")
         for lith in species_objects:
             species_calc_type = []
             for species in species_objects[lith]:
@@ -309,6 +326,12 @@ class meltingColumn():
                 self._species_calc_type[lith] += species_calc_type
             else:
                 self._species_calc_type[lith] = species_calc_type
+        # End of block to be deleted ################################################################
+
+        # Register the variables:
+        for lith in species_objects:
+            for species in species_objects[lith]:
+                self._composition_variable_type[lith]['liq_' + species.name] = species.calculation_type
 
         # Check that the lithology names are correct
         for lith in species_objects:
@@ -358,18 +381,33 @@ class meltingColumn():
             # Need to store this lithology's solid compositions, if generated:
             if solidcomp is not None:
                 constructdf = _pd.DataFrame(solidcomp, columns=mineral_element_labels)
-            # Check if the element exists already:
-            repeats = [value for value in mineral_element_labels if value in self.composition[lith].columns]
-            self.composition[lith].drop(repeats, inplace=True, axis=1)
-            self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
+
+                # Register the variables:
+                for label in mineral_element_labels:
+                    if label.split('_')[0] != 'liq':
+                        self._composition_variable_type[lith][label] = 'solidComposition'
+
+                # Check if the element exists already:
+                repeats = [value for value in mineral_element_labels if value in self.composition[lith].columns]
+                self.composition[lith].drop(repeats, inplace=True, axis=1)
+                self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
 
 
             # Store the liquid compositions
             constructdf = _pd.DataFrame(results, columns=species_names)
 
             # Checks if the element exists already, and drops in original if so:
+            repeats = [value for value in species_names if value in self.composition[lith].columns]
+            self.composition[lith].drop(repeats, inplace=True, axis=1)
+
+            self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
+
+            ### REMOVE FOLLOWING BLOCK WHEN CHEMISTRY IS SEPARATED FROM LITHOLOGIES:
+            _warnings.warn("Need to remove legacy code that follows...")
+            # Checks if the element exists already, and drops in original if so:
             repeats = [value for value in species_names if value in self.lithologies[lith].columns]
             self.lithologies[lith].drop(repeats, inplace=True, axis=1)
+            #### END OF BLOCK
 
             self.lithologies[lith] = _pd.concat([self.lithologies[lith], constructdf], axis=1)
     
@@ -443,6 +481,12 @@ class meltingColumn():
                 if ph + '_' + species not in self.composition[lith].columns:
                     raise InputError("{0} was not found in {1} for {2}. The composition of each "
                                     "phase must have already been calculated.".format(species, ph, lith))
+        
+        # Register the variables:
+        for lith in self.mantle.names:
+            self._composition_variable_type[lith]['liq_' + isotopeRatioLabel] = 'liquidIsotopeRatio_' + species
+            for ph in phases:
+                self._composition_variable_type[lith][ph + '_' + isotopeRatioLabel] = 'solidIsotopeRatio_' + species
 
         for lith in self.mantle.names:
 
