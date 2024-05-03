@@ -55,8 +55,6 @@ class meltingColumn():
         self.T = calculation_results['T']
         self.chemistry_output = None
 
-        # This variable should be replaced with the one below
-        self._species_calc_type = {}
 
         # New composition registry structure
         # Keeps track of what kind of variable each column in the composition tables
@@ -315,23 +313,11 @@ class meltingColumn():
                                                                      method_recon,
                                                                      **kwargs_recon)
                 
-        # This block can be deleted once moved completely over to new variable registry: ###########
-        _warnings.warn("Need to delete legacy code below.")
-        for lith in species_objects:
-            species_calc_type = []
-            for species in species_objects[lith]:
-                species_calc_type.append(species.calculation_type)
-            # Check whether calculations have been performed previously
-            if lith in self._species_calc_type:
-                self._species_calc_type[lith] += species_calc_type
-            else:
-                self._species_calc_type[lith] = species_calc_type
-        # End of block to be deleted ################################################################
 
         # Register the variables:
         for lith in species_objects:
             for species in species_objects[lith]:
-                self._composition_variable_type[lith]['liq_' + species.name] = species.calculation_type
+                self._composition_variable_type[lith][species.name] = species.calculation_type
 
         # Check that the lithology names are correct
         for lith in species_objects:
@@ -360,6 +346,7 @@ class meltingColumn():
                         # Check if method returns mineral compositions too:
                         if isinstance(calc_return, dict):
                             results[i, j] = calc_return['liq']
+                            calc_return.pop('liq')
                             
                             # Check if the solid + liquid comp table needs to be initialised:
                             if solidcomp is None:
@@ -402,14 +389,6 @@ class meltingColumn():
 
             self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
 
-            ### REMOVE FOLLOWING BLOCK WHEN CHEMISTRY IS SEPARATED FROM LITHOLOGIES:
-            _warnings.warn("Need to remove legacy code that follows...")
-            # Checks if the element exists already, and drops in original if so:
-            repeats = [value for value in species_names if value in self.lithologies[lith].columns]
-            self.lithologies[lith].drop(repeats, inplace=True, axis=1)
-            #### END OF BLOCK
-
-            self.lithologies[lith] = _pd.concat([self.lithologies[lith], constructdf], axis=1)
     
     def calculateStableIsotopes(self, species, fractionationFactors, isotopeRatioLabel, 
                                 bulk=0.0, fractionalExtraction=False, porosity=0.0, 
@@ -452,7 +431,7 @@ class meltingColumn():
         # Prepare the columns for results, and check the fractionationFactors input is correct
         if isinstance(fractionationFactors, dict):
             phases = list(fractionationFactors.keys())
-            colnames = ['liq_' + isotopeRatioLabel]
+            colnames = [isotopeRatioLabel]
             for ph in phases:
                 colnames.append(ph + '_' + isotopeRatioLabel)
         else:
@@ -477,14 +456,17 @@ class meltingColumn():
         
         # Check the species exists for each of the phases:
         for lith in self.mantle.names:
-            for ph in phases + ['liq']:
+            if species not in self.composition[lith].columns:
+                raise InputError("{0} was not found in {1} for {2}. The composition of each "
+                                    "phase must have already been calculated.".format(species, 'liquid', lith))
+            for ph in phases:
                 if ph + '_' + species not in self.composition[lith].columns:
                     raise InputError("{0} was not found in {1} for {2}. The composition of each "
                                     "phase must have already been calculated.".format(species, ph, lith))
         
         # Register the variables:
         for lith in self.mantle.names:
-            self._composition_variable_type[lith]['liq_' + isotopeRatioLabel] = 'liquidIsotopeRatio_' + species
+            self._composition_variable_type[lith][isotopeRatioLabel] = 'liquidIsotopeRatio_' + species
             for ph in phases:
                 self._composition_variable_type[lith][ph + '_' + isotopeRatioLabel] = 'solidIsotopeRatio_' + species
 
@@ -495,7 +477,7 @@ class meltingColumn():
             for i, row in self.composition[lith].iterrows():
 
                 if row['F'] > 1e-15:
-                    cliq = row['liq_' + species]
+                    cliq = row[species]
                     xliq = row['F']
 
                     # Assemble arrays for the summations:
@@ -552,13 +534,13 @@ class meltingColumn():
                             for ph in phases:
                                 cs_prev_denom += row_prev[ph + '_' + species] * row_prev[ph]
                             cs_prev_numer = cs_prev_denom * (bulk[lith] / 1e3 + 1)
-                            D_prev_denom = cs_prev_denom / row_prev['liq_' + species]
+                            D_prev_denom = cs_prev_denom / row_prev[species]
                             D_prev_numer = D_prev_denom * bulk_a
                             
                             cs_denom = 0.0
                             for ph in phases:
                                 cs_denom += row[ph + '_' + species] * row[ph]
-                            D_denom = cs_denom / row['liq_' + species]
+                            D_denom = cs_denom / row[species]
 
                             D_numer = D_denom * bulk_a
 

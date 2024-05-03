@@ -416,8 +416,7 @@ class spreadingCentre(geoSetting):
             elif first_lithology is True and self.lithology_contributions[lith] > 0:
                 species = list(self.composition[lith].columns)[3:]
                 first_lithology = False
-                print(species)
-
+                
         weights = self._weighting_coefficients(self.P)
         if isinstance(weights, _np.ndarray) is False:
             weights = weights.to_numpy()
@@ -456,7 +455,7 @@ class spreadingCentre(geoSetting):
                     r = self.composition[lith][spname]
                     r = r.to_numpy()
                     r = _np.nan_to_num(r, nan=0.0)
-                    c = self.composition[lith]['liq_' + concvariable]
+                    c = self.composition[lith][concvariable]
                     c = c.to_numpy()
                     c = _np.nan_to_num(c, nan=0.0)
                     

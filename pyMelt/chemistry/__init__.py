@@ -851,8 +851,8 @@ class phaseDiagramTraceSpecies(species):
         
         # Calculate mineral compositions
         c = {'liq': cl}
-        for min in D:
-            c[min] = cl * D[min]
+        for min in self._D:
+            c[min] = cl * self._D[min]
 
         self._F_prev = state.F
         self._cl_prev = cl
