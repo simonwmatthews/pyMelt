@@ -258,6 +258,8 @@ class meltingColumn():
         The 'phase_diagram_major' melting routine uses:
          - FILL IN THE DOCUMENTATION!
         """
+        _warnings.warn("The fractional melting routine for phase diagrams is not implemented correctly.")
+
         # Check if using defaults, and assemble args if so:
         if method == 'default':
             default_kwargs = {'olv_D': _chemistry.data.olv_D,
@@ -465,8 +467,12 @@ class meltingColumn():
                                     "phase must have already been calculated.".format(species, ph, lith))
         
         # Register the variables:
+        if fractionalExtraction is True:
+            suffix = 'Instantaneous'
+        else:
+            suffix = 'Aggregated'
         for lith in self.mantle.names:
-            self._composition_variable_type[lith][isotopeRatioLabel] = 'liquidIsotopeRatio_' + species
+            self._composition_variable_type[lith][isotopeRatioLabel] = 'liquidIsotopeRatio' + suffix + '_' + species
             for ph in phases:
                 self._composition_variable_type[lith][ph + '_' + isotopeRatioLabel] = 'solidIsotopeRatio_' + species
 

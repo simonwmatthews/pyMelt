@@ -412,7 +412,7 @@ class spreadingCentre(geoSetting):
         for lith in self.mantle.names:
             if first_lithology is False and self.lithology_contributions[lith] > 0:
                 specieslith = list(self.composition[lith].columns)[3:]
-                species = [s for s in species if s in specieslith and self.MeltingColumn._composition_variable_type[lith][s].split('_')[0] in ['liquidConcentrationInstantaneous', 'liquidConcentrationAggregated', 'liquidIsotopeRatio']]
+                species = [s for s in species if s in specieslith and self.MeltingColumn._composition_variable_type[lith][s].split('_')[0] in ['liquidConcentrationInstantaneous', 'liquidConcentrationAggregated', 'liquidIsotopeRatioInstantaneous', 'liquidIsotopeRatioAggregated']]
             elif first_lithology is True and self.lithology_contributions[lith] > 0:
                 species = list(self.composition[lith].columns)[3:]
                 first_lithology = False
@@ -422,6 +422,7 @@ class spreadingCentre(geoSetting):
             weights = weights.to_numpy()
 
         cm = _np.zeros([len(species)])
+        norm = _np.full([len(species)], 0.0) # This is needed for averaging the isotope ratios
 
         for lith in self.mantle.names:
             # Get the melt fractions for the lithology
@@ -430,27 +431,33 @@ class spreadingCentre(geoSetting):
             for j in range(len(species)):
                 spname = species[j]
                 sptype = self.MeltingColumn._composition_variable_type[lith][spname].split('_')[0]
+
+                ### Concentrations ###
                 if sptype in ['liquidConcentrationInstantaneous', 'liquidConcentrationAggregated']:
                     c = self.composition[lith][spname]
                     c = c.to_numpy()
                     c = _np.nan_to_num(c, nan=0.0)
-                if sptype == 'liquidConcentrationInstantaneous':
-                    cnormed = _np.zeros(_np.shape(c)[0])
-                    for i in range(_np.shape(c)[0] - 1):
-                        if f[i] > 0 and f[i-1] > 0:
-                            cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
-                                              / _np.sum(df[:i]))
-                        elif f[i] > 0:
-                            cnormed[i + 1] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(df[:i]))
-                        else:
-                            cnormed[i + 1] = 0.0
-                    c = cnormed
-                    # The rest of the method is the same as the aggregated melts, so continued below...
-                if sptype in ['liquidConcentrationAggregated', 'liquidConcentrationInstantaneous']:
+
+                    # If the melts are instantaneous they need to be averaged over each column first
+                    if sptype == 'liquidConcentrationInstantaneous':
+                        cnormed = _np.zeros(_np.shape(c)[0])
+                        for i in range(_np.shape(c)[0] - 1):
+                            if f[i] > 0 and f[i-1] > 0:
+                                cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
+                                                / _np.sum(df[:i]))
+                            elif f[i] > 0:
+                                cnormed[i + 1] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(df[:i]))
+                            else:
+                                cnormed[i + 1] = 0.0
+                        c = cnormed
+
                     c = _trapz((1 + weights) * c * f / (1 - f))
                     c = c / _trapz((1 + weights) * f / (1 - f))
                     cm[j] += c * self.lithology_contributions[lith]
-                elif sptype == 'liquidIsotopeRatio':
+                    norm[j] = 1.0
+
+                ### Isotopes ###
+                elif sptype in ['liquidIsotopeRatioAggregated', 'liquidIsotopeRatioInstantaneous']:
                     concvariable = self.MeltingColumn._composition_variable_type[lith][spname].split('_')[1]
                     r = self.composition[lith][spname]
                     r = r.to_numpy()
@@ -458,67 +465,37 @@ class spreadingCentre(geoSetting):
                     c = self.composition[lith][concvariable]
                     c = c.to_numpy()
                     c = _np.nan_to_num(c, nan=0.0)
-                    
-                    rnormed = _np.zeros(_np.shape(c)[0])
-                    cnormed = _np.zeros(_np.shape(c)[0])
-                    for i in range(_np.shape(c)[0] - 1):
-                        if f[i] > 0 and f[i-1] > 0:
-                            rnormed[i + 1] = (_np.sum(0.5 * (r[1:i + 1] * c[1:i + 1] +  r[0:i] * c[0:i]) * df[:i])
-                                              / _np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i]))
-                            cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
-                                              / _np.sum(df[:i]))
-                        elif f[i] > 0:
-                            rnormed[i + 1] = (_np.sum(r[1:i + 1] * c[1:i + 1] * df[:i]) / _np.sum(df[:i] * c[1:i + 1]))
-                            cnormed[i + 1] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(df[:i]))
-                        else:
-                            rnormed[i + 1] = 0.0
-                            cnormed[i + 1] = 0.0
-                    r = rnormed
-                    c = cnormed
+
+                    # If the melts are instantaneous they need to be averaged over each column first
+                    if sptype == 'liquidIsotopeRatioInstantaneous':
+                        rnormed = _np.zeros(_np.shape(c)[0])
+                        cnormed = _np.zeros(_np.shape(c)[0])
+                        for i in range(_np.shape(c)[0] - 1):
+                            if f[i] > 0 and f[i-1] > 0:
+                                rnormed[i + 1] = (_np.sum(0.5 * (r[1:i + 1] * c[1:i + 1] +  r[0:i] * c[0:i]) * df[:i])
+                                                / _np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i]))
+                                cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
+                                                / _np.sum(df[:i]))
+                            elif f[i] > 0:
+                                rnormed[i + 1] = (_np.sum(r[1:i + 1] * c[1:i + 1] * df[:i]) / _np.sum(df[:i] * c[1:i + 1]))
+                                cnormed[i + 1] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(df[:i]))
+                            else:
+                                rnormed[i + 1] = 0.0
+                                cnormed[i + 1] = 0.0
+                        r = rnormed
+                        c = cnormed
 
                     c = _trapz((1 + weights) * c * f / (1 - f))
                     c = c / _trapz((1 + weights) * f / (1 - f))
                     r = _trapz((1 + weights) * r * c * f / (1 - f))
                     r = r / _trapz((1 + weights) * f * c / (1 - f))
-                    cm[j] += r * c * self.lithology_contributions[lith]
+                    cm[j] += r * c * self.lithology_contributions[lith] # This needs to be normalised after all lithologies are calculated
+                    norm[j] += c * self.lithology_contributions[lith]
+        
+        cm = cm / norm
         self.chemistry = _pd.Series(cm, species)
 
 
-        ### Former version of the code before adding isotopes in:
-        # for lith in self.mantle.names:
-        #     if self.lithology_contributions[lith] > 0:
-        #         # Get the chemistry for the lithology
-        #         c = self.lithologies[lith][species]
-        #         # Convert it a numpy array
-        #         c = c.to_numpy()
-        #         # Change nans to 0.0 to avoid affecting summation
-        #         c = _np.nan_to_num(c, nan=0.0)
-        #         # Get the melt fractions for the lithology
-        #         f = self.lithologies[lith].F.to_numpy()
-        #         # If instantaneous melts, need to pool over columns first
-        #         for j in range(len(species)):
-        #             if self.MeltingColumn._species_calc_type[lith][j] == 'instantaneous':
-        #                 cnormed = _np.zeros(_np.shape(c)[0])
-        #                 df = f[1:] - f[: - 1]
-        #                 for i in range(_np.shape(c)[0] - 1):
-        #                     if f[i] > 0 and f[i - 1] > 0:
-        #                         cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1, j] + c[0:i, j])
-        #                                           * df[:i], axis=0) / _np.sum(df[:i])) #f[i])
-        #                     elif f[i] > 0:
-        #                         cnormed[i + 1] = (_np.sum(c[1:i + 1, j]
-        #                                           * df[:i], axis=0) / _np.sum(df[:i])) #f[i])
-        #                     else:
-        #                         cnormed[i + 1] = 0
-        #                 c[:, j] = cnormed
-        #         # Normalise melts for this lithology
-        #         c = _trapz((1 + weights[:, None]) * c * f[:, None] / (1.0 - f[:, None]),axis=0)
-        #                    # self.lithologies[lith]['P'].to_numpy()[:], axis=0)
-        #         c = c / _trapz((1 + weights) * f / (1 - f),)
-        #                        # self.lithologies[lith]['P'].to_numpy())
-
-        #         # Normalise melts for all lithologies
-        #         cm += c * self.lithology_contributions[lith]
-        # self.chemistry = _pd.Series(cm, species)
 
     def meltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
         """
@@ -624,6 +601,7 @@ class intraPlate(geoSetting):
         self.T = _copy(self.MeltingColumn.T)
         self.F = _copy(self.MeltingColumn.F)
         self.weightingFunction = weightingFunction
+        self.composition = _copy(MeltingColumn.composition)
         self.kwargs = kwargs
 
         # Remove melts that are produced more shallow than the base of the lithosphere
@@ -718,13 +696,14 @@ class intraPlate(geoSetting):
         species = []
         for lith in self.mantle.names:
             if first_lithology is False and self.lithology_contributions[lith] > 0:
-                specieslith = list(self.lithologies[lith].columns)[3:]
-                species = [s for s in species if s in specieslith]
+                specieslith = list(self.composition[lith].columns)[3:]
+                species = [s for s in species if s in specieslith and self.MeltingColumn._composition_variable_type[lith][s].split('_')[0] in ['liquidConcentrationInstantaneous', 'liquidConcentrationAggregated', 'liquidIsotopeRatioInstantaneous', 'liquidIsotopeRatioAggregated']]
             elif first_lithology is True and self.lithology_contributions[lith] > 0:
-                species = list(self.lithologies[lith].columns)[3:]
+                species = list(self.composition[lith].columns)[3:]
                 first_lithology = False
 
         cm = _np.zeros([len(species)])
+        norm = _np.full([len(species)], 0.0) # This is needed for averaging the isotope ratios
 
         # Calculate the weighting for each melt
         w = self._weighting_coefficients(self.MeltingColumn.P, empty_value=1.0)
@@ -733,43 +712,77 @@ class intraPlate(geoSetting):
 
         for lith in self.mantle.names:
             if self.lithology_contributions[lith] > 0:
-                # Get the chemistry for the lithology
-                c = self.lithologies[lith][species]
-                # Convert it a numpy array
-                c = c.to_numpy()
-                # Change nans to 0.0 to avoid affecting summation
-                c = _np.nan_to_num(c, nan=0.0)
                 # Get the melt fractions for the lithology
-                f = self.lithologies[lith].F.to_numpy()
-
-                # If instantaneous melts, need to pool over columns first
-                # If accumulated melts, the existing number at top of column will be used
+                f = self.composition[lith].F.to_numpy()
+                df = f[1:] - f[: -1]
                 for j in range(len(species)):
-                    if self.MeltingColumn._species_calc_type[lith][j] == 'instantaneous':
-                        cnormed = _np.zeros(_np.shape(c)[0])
-                        df = f[1:] - f[: - 1]
-                        for i in range(_np.shape(c)[0] - 1):
-                            if f[i] > 0 and f[i - 1] > 0:
-                                cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1, j] + c[0:i, j])
-                                                  * df[:i] * w[1:i + 1], axis=0)
-                                                  / _np.sum(df[:i] * w[1:i + 1]))
-                            elif f[i] > 0:
-                                cnormed[i + 1] = (_np.sum(c[1:i + 1, j]
-                                                  * df[:i] * w[1:i + 1], axis=0)
-                                                  / _np.sum(df[:i] * w[1:i + 1]))
-                            else:
-                                cnormed[i + 1] = 0
-                        c[:, j] = cnormed
+                    spname = species[j]
+                    sptype = self.MeltingColumn._composition_variable_type[lith][spname].split('_')[0]
 
-                    # If accumulated melts are calculated but a weighting function exists
-                    elif self.weightingFunction is not None:
-                        _warn("Accumulated melts cannot be used with a weighting function for "
-                              " an intra-plate melting region.")
-                        c[:, j] = [_np.nan] * _np.shape(c)[0]
+                    ### Concentrations ###
+                    if sptype in ['liquidConcentrationInstantaneous', 'liquidConcentrationAggregated']:
+                        # Get the chemistry for the lithology
+                        c = self.composition[lith][spname]
+                        # Convert it a numpy array
+                        c = c.to_numpy()
+                        # Change nans to 0.0 to avoid affecting summation
+                        c = _np.nan_to_num(c, nan=0.0)
 
-                # Normalise melts for all lithologies
-                cm += c[-1, :] * self.lithology_contributions[lith]
-            self.chemistry = _pd.Series(cm, species)
+
+                        # If instantaneous melts, need to pool over columns first
+                        if sptype == 'liquidConcentrationInstantaneous':
+                            cnormed = (_np.sum(0.5 * (c[1:] + c[:-1]) * df * w[1:])
+                                               / _np.sum(df * w[1:]))
+                            cm[j] += cnormed * self.lithology_contributions[lith]
+
+
+                        # Accumulated melts:
+                        else:
+                            # If accumulated melts are calculated but a weighting function exists
+                            if self.weightingFunction is not None:
+                                _warn("Accumulated melts cannot be used with a weighting function for "
+                                    " an intra-plate melting region.")
+                                c = [_np.nan]
+
+                            # Normalise melts for all lithologies
+                            cm[j] += c[-1] * self.lithology_contributions[lith]
+                        
+                        norm[j] = 1.0
+
+
+                    ### Isotopes ###
+                    elif sptype in ['liquidIsotopeRatioAggregated', 'liquidIsotopeRatioInstantaneous']:
+                        concvariable = self.MeltingColumn._composition_variable_type[lith][spname].split('_')[1]
+                        r = self.composition[lith][spname]
+                        r = r.to_numpy()
+                        r = _np.nan_to_num(r, nan=0.0)
+                        c = self.composition[lith][concvariable]
+                        c = c.to_numpy()
+                        c = _np.nan_to_num(c, nan=0.0)
+
+                        # If the melts are instantaneous they need to be averaged over each column first
+                        if sptype == 'liquidIsotopeRatioInstantaneous':
+                            rnormed = (_np.sum(0.5 * (r[1:] * c[1:] +  r[:-1] * c[:-1]) * df * w[1:])
+                                               / _np.sum(0.5 * (c[1:] + c[:-1]) * df * w[1:]))
+                            cnormed = (_np.sum(0.5 * (c[1:] + c[:-1]) * df * w[1:])
+                                               / _np.sum(df * w[1:]))
+                            
+                            cm[j] += cnormed * rnormed * self.lithology_contributions[lith]
+                            norm[j] += cnormed * self.lithology_contributions[lith]
+                        
+                        else:
+                            # If accumulated melts are calculated but a weighting function exists
+                            if self.weightingFunction is not None:
+                                _warn("Accumulated melts cannot be used with a weighting function for "
+                                    " an intra-plate melting region.")
+                                c = [_np.nan]
+                                r = [_np.nan]
+                            cm[j] += c[-1] * r[-1] * self.lithology_contributions[lith]
+                            norm[j] += c[-1] * self.lithology_contributions[lith]
+            
+        cm = cm / norm
+
+        self.chemistry = _pd.Series(cm, species)
 
     def meltCrystallisationT(self, ShallowMeltP=None, MeltStorageP=None, liqdTdP=39.16):
         """
