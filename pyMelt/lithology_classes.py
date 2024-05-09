@@ -53,7 +53,8 @@ class lithology(object):
                  rhos=default_properties['rhos'],
                  rhof=default_properties['rhof'],
                  DeltaS=default_properties['DeltaS'],
-                 parameters={}):
+                 parameters={},
+                 phaseDiagram=None):
         self.CP = CP
         self.alphas = alphas
         self.alphaf = alphaf
@@ -61,6 +62,7 @@ class lithology(object):
         self.rhof = rhof
         self.DeltaS = DeltaS
         self.parameters = parameters
+        self.phaseDiagram = phaseDiagram
 
     def TSolidus(self, P):
         """
