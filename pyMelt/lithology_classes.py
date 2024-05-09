@@ -43,6 +43,9 @@ class lithology(object):
         Entropy of fusion. (J kg-1 K-1). Default is 300.0.
     parameters: dict
         A dictionary of the parameters required by the lithology.
+    phaseDiagram : phaseDiagram object or None, default: None
+        The phaseDiagram to be associated with the lithology. Necessary for calculating the
+        mineral proportions of the residue
 
     """
 
