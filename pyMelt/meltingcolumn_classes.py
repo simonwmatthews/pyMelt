@@ -466,6 +466,8 @@ class meltingColumn():
                     raise InputError("{0} was not found in {1} for {2}. The composition of each "
                                     "phase must have already been calculated.".format(species, ph, lith))
         
+        
+        
         # Register the variables:
         if fractionalExtraction is True:
             suffix = 'Instantaneous'
@@ -483,6 +485,7 @@ class meltingColumn():
             for i, row in self.composition[lith].iterrows():
 
                 if row['F'] > 1e-15:
+
                     cliq = row[species]
                     xliq = row['F']
 
