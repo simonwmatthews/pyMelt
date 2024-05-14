@@ -184,6 +184,19 @@ class lithology(object):
 
         return dTdP
 
+    def addPhaseDiagram(self, phaseDiagram):
+        """
+        Add a pyMelt phaseDiagram object to the lithology. This will be used in calculations
+        of solid phase fractions and liquid compositions (following generation of a melting column).
+
+        Parameters
+        ----------
+        phaseDiagram : pyMelt.phaseDiagram
+            The phaseDiagram object, already imported or loaded.
+
+        """
+        self.phaseDiagram = phaseDiagram
+
 
 class hydrousLithology(object):
     r"""
