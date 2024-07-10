@@ -8,6 +8,7 @@ Implentation of the melting models developed by Matthews et al. (2021).
 
 from pyMelt.lithology_classes import lithology as _lithology
 from pyMelt.lithology_classes import default_properties as _default_properties
+from pyMelt.phaseDiagramTools import load_phaseDiagram as _load_phaseDiagram
 
 
 import numpy as _np
@@ -79,7 +80,8 @@ class kg1(_lithology):
                              'r1': 0.342,
                              'r2': 0.191,
                              'Mcpx': 0.342
-                             }
+                             },
+                 phaseDiagram='thermocalc_kg1'
                  ):
         self.CP = CP
         self.alphas = alphas
@@ -88,6 +90,10 @@ class kg1(_lithology):
         self.rhof = rhof
         self.DeltaS = DeltaS
         self.parameters = parameters
+        if isinstance(phaseDiagram, str):
+            self.phaseDiagram = _load_phaseDiagram(phaseDiagram)
+        else:
+            self.phaseDiagram = phaseDiagram
 
     def TSolidus(self, P, **kwargs):
         """
@@ -497,7 +503,7 @@ class kg1(_lithology):
         return FopxDry
 
 
-class klb1:
+class klb1(_lithology):
     """
     Implementation of the KLB1 melting model from Matthews et al. (2021).
 
@@ -561,7 +567,8 @@ class klb1:
                              'beta2': 1.5000,
                              'r1': 0.5000,
                              'r2': 0.0800
-                             }
+                             },
+                 phaseDiagram='thermocalc_klb1'
                  ):
         self.CP = CP
         self.alphas = alphas
@@ -570,6 +577,10 @@ class klb1:
         self.rhof = rhof
         self.DeltaS = DeltaS
         self.parameters = parameters
+        if isinstance(phaseDiagram, str):
+            self.phaseDiagram = _load_phaseDiagram(phaseDiagram)
+        else:
+            self.phaseDiagram = phaseDiagram
 
     def TSolidus(self, P, **kwargs):
         """

@@ -185,12 +185,140 @@ class meltingColumn():
             # Register the new entries:
             for mineral in mineralNames:
                 self._composition_variable_type[lith][mineral] = 'mineralProportion'
+    
+    def calculateMajorOxides(self):
+        """
+        Calculate the major element oxide concentrations of the melts generated from each
+        lithology. The concentrations are looked up from the phase diagrams attached to
+        each lithology. The results are stored in column.composition.
+        """
+
+        for n in range(len(self.mantle.lithologies)):
+            lith = self.mantle.lithologies[n]
+            lithname = self.mantle.names[n]
+            if lith.phaseDiagram is not None:
+                for ph in ['liq'] + lith.phaseDiagram.minerals:
+                    labels = []
+                    # Check which oxides are in this phase:
+                    for ox in lith.phaseDiagram.oxides:
+                        label = ph + '_' + ox + '_wtpt'
+                        if label in lith.phaseDiagram.variables:
+                            labels.append(label)
+                    nox = len(labels)
+                    nsteps = len(self.P)
+                    results = _np.zeros([nsteps, nox])
+                    for i, row in self.lithologies[lithname].iterrows():
+                        for j in range(nox):
+                            label = labels[j]
+                            results[i,j] = lith.phaseDiagram(label, row)
+
+
+                    constructdf = _pd.DataFrame(results, columns=labels)
+
+                    # Register the variables:
+                    for label in labels:
+                        if label.split('_')[0] != 'liq':
+                            self._composition_variable_type[lithname][label] = 'solidComposition'
+                        else:
+                            self._composition_variable_type[lithname][label] = "liquidConcentrationInstantaneous"
+                    
+                    # Check if the element exists already:
+                    repeats = [value for value in labels if value in self.composition[lithname].columns]
+                    self.composition[lithname].drop(repeats, inplace=True, axis=1)
+                    self.composition[lithname] = _pd.concat([self.composition[lithname], constructdf], axis=1)
+    
+    def calculateTraceElements(self, cs, D=None, **kwargs):
+        """
+        Calculate the trace element composition of liquid (and solid) using partition
+        coefficients. These partition coefficients may represent the bulk partitioning
+        (by setting D) or mineral-melt partitioning by supplying arguments formatted as
+        D_min. If supplying mineral-melt partition coefficients then the lithologies must
+        have a phaseDiagram attached to them.
+
+        Default mineral-melt partition coefficients are automatically used if none
+        are specified. See Notes.
+
+        Parameters
+        ----------
+        cs : nested dict or pandas.DataFrame
+            The concentration of each element in each lithology prior to melting. If
+            supplying a nested dict, then the first layer is the lithology names. If
+            supplying a DataFrame then each lithology should have a row.
+        D : dict, nested dict, pandas.DataFrame, or None, default: None
+            The bulk partition coefficients for each element in each lithology. If a 
+            single dict is supplied then the same partition coefficient will be used 
+            for each lithology. If using mineral-melt partition coefficients then leave
+            as None. The partition coefficient can be a float or a function which takes
+            a state Series as input.
+        
+        Notes
+        -----
+        Explain the default mineral-melt partition coefficients etc.
+        """
+        for n in range(len(self.mantle.lithologies)):
+            lith = self.mantle.lithologies[n]
+            lithname = self.mantle.names[n]
+
+            # Determine whether bulk partition coefficient are being used.
+            useBulk = False
+            if D is not None:
+                if isinstance(D, dict):
+                    if isinstance(D[list(D.values())[0]], dict):
+                        # Nested dictionary
+                        if lithname in D:
+                            # Nested dictionary that has this lithology!
+                            Dlith = D[lithname]
+                            useBulk = True
+                            continue
+                    else:
+                        # Non-nested dict, so use same D for all lith
+                        Dlith = D
+                        useBulk = True
+                elif isinstance(D, _pd.DataFrame):
+                    if lithname in D.index:
+                        Dlith = D.loc[lithname]
+                        useBulk = True
+                else:
+                    raise InputError("The input format for D was not recognised")
             
-            
+            if useBulk:
+                # Do the calculation with bulk partition coefficients!
+                if isinstance(cs, dict):
+                    nel = len(cs[lithname])
+                    elnames = list(cs[lithname].keys())
+                    cslith = list(cs[lithname].values())
+                elif isinstance(cs, _pd.DataFrame):
+                    elnames = list(cs.columns)
+                    cslith = list(cs.loc[lithname])
+                    nel = len(elnames)
+                
+                nsteps = len(self.P)
+                results = _np.zeros([nsteps, nel])
+                for i in range(len(nel)):
+                    el = elnames[i]
+                    Del = Dlith[el]
+                    for j, state in self.lithologies[lithname].iterrows():
+                        if callable(Del):
+                            Del_j = Del(state)
+                        else:
+                            Del_j = Del
+                    
+                    results[j, i] = 0.0
+
+            else:
+                # Do the calculation with mineral-melt partition coefficients!
+                continue
+
+
+        
+
+    # def calculateChemistry_new(self, )
 
 
     def calculateChemistry(self, elements=None, species_objects=None, method='default', **kwargs):
         """
+        DEPRECATED ROUTINE. NEEDS TO BE REMOVED.
+
         Calculate the composition of the melt according to default (or user defined) chemical
         models. The method may be run with default options if the mantle consists of only one
         lithology. Otherwise the parameters for each lithology must be specified, or pre-defined

@@ -11,6 +11,7 @@ from scipy.optimize import root_scalar as _root_scalar
 import numpy as _np
 from pyMelt.core import ConvergenceError
 from warnings import warn as _warn
+import pandas as _pd
 
 # Default constant values taken from Katz et al., 2003:
 default_properties = {'CP': 1000.0,  # Heat capacity in J Kg-1 K-1
@@ -196,6 +197,60 @@ class lithology(object):
 
         """
         self.phaseDiagram = phaseDiagram
+    
+    def mineralProportions(self, P, T):
+        """
+        Lookup the mineral proportions given by the phase diagram attached to the lithology.
+
+        Parameters
+        ----------
+        P : float
+            Pressure in GPa
+        T : float
+            Temperature in degC
+        
+        Returns
+        -------
+        dict
+            The proportion of each mineral phase present.
+        """
+        if self.phaseDiagram is None:
+            return {}
+        else:
+            minprops = {}
+            # The phase diagram needs the melt fraction, not temperature:
+            F = self.F(P, T)
+            for mineral in self.phaseDiagram.minerals:
+                minprops[mineral] = self.phaseDiagram(mineral + '_mass', _pd.Series({'P': P, 'F':F}))
+            return minprops
+    
+    def majorOxideConcentrations(self, P, T):
+        """
+        Lookup the major element oxide concentrations in the phase diagram attached to the
+        lithology.
+
+        Parameters
+        ----------
+        P : float
+            Pressure in GPa
+        T : float
+            Temperature in degC
+        
+        Returns
+        -------
+        dict
+            The major element oxide concentrations in wtpt.
+        """
+        if self.phaseDiagram is None:
+            return {}
+        else:
+            oxides = {}
+            # The phase diagram needs the melt fraction, not temperature:
+            F = self.F(P, T)
+            for ox in self.phaseDiagram.oxides:
+                oxides[ox] = self.phaseDiagram('liq_' + ox + '_wtpt', _pd.Series({'P':P, 'F':F}))
+            return oxides
+
 
 
 class hydrousLithology(object):

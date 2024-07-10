@@ -236,6 +236,12 @@ class gridsThermocalc(object):
         self.calculate_phase_Mgn()
         self.df = self.df.copy()
 
+        # Filter for the oxides which are actually contained in the input
+        self.oxide_list = []
+        for ox in oxides:
+            if 'liq_' + ox + '_wtpt' in self.df.columns:
+                self.oxide_list.append(ox)
+
         # Thermocalc uses kbar as the pressure unit. pyMelt uses GPa, convert:
         self.df['pressure'] = self.df['pressure'] / 10
 
@@ -434,6 +440,8 @@ class phaseDiagram(object):
         gridsMelts classes.
     minerals : list of str
         The mineral names that are included in the phase diagram
+    oxides : list of str
+        The major element oxides contained in the phase diagram
     variables : list or None, default: None
         The variables to add to the phaseDiagram. If None then all the columns
         in the grid will be added.
@@ -456,6 +464,8 @@ class phaseDiagram(object):
         
         self.minerals = minerals
         self.liquid_name = liquid_name
+
+        self.oxides = grids.oxide_list
 
         if variables is None:
             self.variables = grids.df.columns
