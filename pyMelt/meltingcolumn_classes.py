@@ -255,6 +255,8 @@ class meltingColumn():
         -----
         Explain the default mineral-melt partition coefficients etc.
         """
+        # NEED TO SET UP DEFAULT PARTITION COEFFICIENTS
+
         for n in range(len(self.mantle.lithologies)):
             lith = self.mantle.lithologies[n]
             lithname = self.mantle.names[n]
@@ -281,29 +283,47 @@ class meltingColumn():
                 else:
                     raise InputError("The input format for D was not recognised")
             
-            if useBulk:
-                # Do the calculation with bulk partition coefficients!
-                if isinstance(cs, dict):
-                    nel = len(cs[lithname])
-                    elnames = list(cs[lithname].keys())
-                    cslith = list(cs[lithname].values())
-                elif isinstance(cs, _pd.DataFrame):
-                    elnames = list(cs.columns)
-                    cslith = list(cs.loc[lithname])
-                    nel = len(elnames)
-                
-                nsteps = len(self.P)
-                results = _np.zeros([nsteps, nel])
-                for i in range(len(nel)):
-                    el = elnames[i]
-                    Del = Dlith[el]
-                    for j, state in self.lithologies[lithname].iterrows():
+            # Prepare calculation inputs
+            if isinstance(cs, dict):
+                nel = len(cs[lithname])
+                elnames = list(cs[lithname].keys())
+                cslith = list(cs[lithname].values())
+            elif isinstance(cs, _pd.DataFrame):
+                elnames = list(cs.columns)
+                cslith = list(cs.loc[lithname])
+                nel = len(elnames)
+            
+            nsteps = len(self.P)
+            results = _np.zeros([nsteps, nel])
+
+            for i, state in self.lithologies[lithname].iterrows():
+                # Assemble bulk partition coefficients
+                Dstep = _np.zeros(nel)
+                if useBulk:
+                    # Do the calculation with bulk partition coefficients!
+                    for j in range(len(nel)):
+                        el = elnames[j]
+                        Del = Dlith[el]
                         if callable(Del):
-                            Del_j = Del(state)
+                            Dstep[j] = Del(state, lith)
                         else:
-                            Del_j = Del
-                    
-                    results[j, i] = 0.0
+                            Dstep[j] = Del
+                else:
+                    # Calculate bulk partition coefficients from mineral proportions
+                    for j in range(len(nel)):
+                        el = elnames[j]
+                        for min in lith.minerals:
+
+                
+
+
+
+
+
+
+            
+            
+                
 
             else:
                 # Do the calculation with mineral-melt partition coefficients!
