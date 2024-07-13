@@ -127,64 +127,41 @@ class meltingColumn():
 
         return f, a
     
-    def calculateMineralProportions(self, method='invmel', species_objects=None, **kwargs):
+    def calculateMineralProportions(self):
         """
-        Calculate the mineral proportions in the residue at each stage using one of the
-        chemistry models. 
-
-        NEED TO FINISH WRITING THIS DOCUMENTATION.
+        Calculate the mineral proportions in the residue at each calculation step using the
+        phase diagrams attached to each lithology. The results are stored in each lithology's
+        table in meltingColumn.composition.
         """
 
-        # Assemble the species_objects dictionary if not provided
-        if species_objects is None:
-            species_objects = {}
-            for lith in self.mantle.names:
-                method_recon = {}
-                kwargs_recon = {}
-                if isinstance(method, dict):
-                    method_recon = method[lith]
-                else:
-                    method_recon = method
-                for kw in kwargs:
-                    if isinstance(kwargs[kw], dict):
-                        kwargs_recon[kw] = kwargs[kw][lith]
-                    else:
-                        kwargs_recon[kw] = kwargs[kw]
-                
-                species_objects[lith] = self._create_species_objects({'Fake': _np.nan},
-                                                                      method_recon,
-                                                                      **kwargs_recon)
-        
-        for lith in self.mantle.names:
+        for n in range(len(self.mantle.names)):
+            lith = self.mantle.lithologies[n]
+            lithname = self.mantle.names[n]
 
-            # Prepare the variables for storage:
-            mineralProps = None
+            if lith.phaseDiagram is None:
+                raise InputError("A phase diagram must be attached to the lithology in order"
+                                 " to calculate mineral proportions.")
+            
+            nmin = len(lith.phaseDiagram.minerals)
+            nsteps = len(self.P)
+            minprops = _np.zeros([nsteps, nmin])
 
-            for i, row in self.lithologies[lith].iterrows():
-                if row.F > 1e-15:
-                    calc_return = species_objects[lith][0].mineralProportions(row)
-
-                    if isinstance(calc_return, dict) is False:
-                        raise InputError("This model does not support mineral proportion calculations")
-                    
-                    # Check if the table needs to be initialised:
-                    if mineralProps is None:
-                        mineralProps = _np.full([_np.shape(self.P)[0], len(calc_return)], _np.nan)
-                        mineralNames = list(calc_return.keys())
-                    
-                    mineralProps[i, :] = list(calc_return.values())
+            for i, state in self.lithologies[lithname].iterrows():
+                for j in range(nmin):  
+                    minprops[i,j] = lith.phaseDiagram(lith.phaseDiagram.minerals[j] + "_mass", state)
             
             # Store this lithology's phase fractions:
-            constructdf = _pd.DataFrame(mineralProps, columns=mineralNames)
+            constructdf = _pd.DataFrame(minprops, columns=lith.phaseDiagram.minerals)
 
             # Check if these phase fractions exist already:
-            repeats = [value for value in mineralNames if value in self.composition[lith].columns]
-            self.composition[lith].drop(repeats, inplace=True, axis=1)
-            self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
+            repeats = [value for value in lith.phaseDiagram.minerals if value in self.composition[lithname].columns]
+            self.composition[lithname].drop(repeats, inplace=True, axis=1)
+            self.composition[lithname] = _pd.concat([self.composition[lithname], constructdf], axis=1)
 
             # Register the new entries:
-            for mineral in mineralNames:
-                self._composition_variable_type[lith][mineral] = 'mineralProportion'
+            for mineral in lith.phaseDiagram.minerals:
+                self._composition_variable_type[lithname][mineral] = 'mineralProportion'
+            
     
     def calculateMajorOxides(self):
         """
@@ -227,7 +204,7 @@ class meltingColumn():
                     self.composition[lithname].drop(repeats, inplace=True, axis=1)
                     self.composition[lithname] = _pd.concat([self.composition[lithname], constructdf], axis=1)
     
-    def calculateTraceElements(self, cs, D=None, **kwargs):
+    def calculateTraceElements(self, c0, D=None, porosity=0.0, calcMineralCompositions=True, **kwargs):
         """
         Calculate the trace element composition of liquid (and solid) using partition
         coefficients. These partition coefficients may represent the bulk partitioning
@@ -240,7 +217,7 @@ class meltingColumn():
 
         Parameters
         ----------
-        cs : nested dict or pandas.DataFrame
+        c0 : nested dict or pandas.DataFrame
             The concentration of each element in each lithology prior to melting. If
             supplying a nested dict, then the first layer is the lithology names. If
             supplying a DataFrame then each lithology should have a row.
@@ -250,18 +227,48 @@ class meltingColumn():
             for each lithology. If using mineral-melt partition coefficients then leave
             as None. The partition coefficient can be a float or a function which takes
             a state Series as input.
+        porosity: float or dict, default: 0.0
+            The residual porosity during melting, as a fraction. Different values can
+            be set for each lithology by using a dict, with the lithology name as the key.
+        calcMineralCompositions: bool, default: True
+            If mineral-melt partition coefficients are supplied then calculate and store
+            the trace element concentrations in each mineral too. You might want to disable
+            this if you need the calculation to run as fast as possible and you are only
+            interested in the liquid composition.
         
         Notes
         -----
         Explain the default mineral-melt partition coefficients etc.
         """
-        # NEED TO SET UP DEFAULT PARTITION COEFFICIENTS
 
+        # Set up default partition coefficients if not supplied:
+        if "D_olv" not in kwargs:
+            kwargs['D_olv'] = asdict(_chemistry.data.olv_D())
+        if "D_cpx" not in kwargs:
+            kwargs['D_cpx'] = asdict(_chemistry.data.cpx_D())
+        if "D_opx" not in kwargs:
+            kwargs['D_opx'] = asdict(_chemistry.data.opx_D())
+        if "D_grt" not in kwargs:
+            kwargs['D_grt'] = asdict(_chemistry.data.grt_D())
+        if "D_spn" not in kwargs:
+            kwargs['D_spn'] = asdict(_chemistry.data.spn_D())
+        if "D_plg" not in kwargs:
+            kwargs['D_plg'] = asdict(_chemistry.data.plg_D())
+
+        # Handle one lithology at a time to allow for different number of calculation steps
         for n in range(len(self.mantle.lithologies)):
             lith = self.mantle.lithologies[n]
             lithname = self.mantle.names[n]
 
-            # Determine whether bulk partition coefficient are being used.
+            # Get the porosity
+            if isinstance(porosity, dict):
+                lithporosity = porosity[lithname]
+            elif isinstance(porosity, float):
+                lithporosity = porosity
+            else:
+                raise InputError("The input format for porosity was not recognised.")
+
+            # Determine whether bulk partition coefficients are being used.
             useBulk = False
             if D is not None:
                 if isinstance(D, dict):
@@ -281,263 +288,129 @@ class meltingColumn():
                         Dlith = D.loc[lithname]
                         useBulk = True
                 else:
-                    raise InputError("The input format for D was not recognised")
+                    raise InputError("The input format for D was not recognised.")
             
             # Prepare calculation inputs
-            if isinstance(cs, dict):
-                nel = len(cs[lithname])
-                elnames = list(cs[lithname].keys())
-                cslith = list(cs[lithname].values())
-            elif isinstance(cs, _pd.DataFrame):
-                elnames = list(cs.columns)
-                cslith = list(cs.loc[lithname])
+            if isinstance(c0, dict):
+                nel = len(c0[lithname])
+                elnames = list(c0[lithname].keys())
+                cs = _np.array(list(c0[lithname].values()))
+            elif isinstance(c0, _pd.DataFrame):
+                elnames = list(c0.columns)
+                cs = _np.array(list(c0.loc[lithname]))
                 nel = len(elnames)
             
+            
+            # Setup output array
             nsteps = len(self.P)
             results = _np.zeros([nsteps, nel])
 
-            for i, state in self.lithologies[lithname].iterrows():
-                # Assemble bulk partition coefficients
-                Dstep = _np.zeros(nel)
-                if useBulk:
+            # Retrieve bulk D and P for each step
+            prevState = None
+
+            # Create an array to store mineral-melt partition coefficients in case they are needed
+            # to calculate mineral compositions
+            mineralDs = _np.zeros([nsteps, nel, len(lith.phaseDiagram.minerals)])
+
+            for i, state in self.composition[lithname].iterrows():
+                # Don't calculate using the first step, as we need a change in min props to calculate P
+                if prevState is not None and prevState['F'] > 1e-15:
+
+                    # Assemble bulk partition coefficients
+                    bulkD = _np.zeros([nel])
+                    bulkP = _np.zeros([nel])
+                    if useBulk:
                     # Do the calculation with bulk partition coefficients!
-                    for j in range(len(nel)):
-                        el = elnames[j]
-                        Del = Dlith[el]
-                        if callable(Del):
-                            Dstep[j] = Del(state, lith)
-                        else:
-                            Dstep[j] = Del
-                else:
+                        for j in range(len(nel)):
+                            el = elnames[j]
+                            Del = Dlith[el]
+                            if callable(Del):
+                                bulkD[j] = (Del(state, lith, **kwargs) + lithporosity) / (1 + lithporosity)
+                                bulkP[j] = bulkD[i,j] # If D is constant then P is the same
+                            else:
+                                bulkD[j] = (Del + lithporosity) / (1 + lithporosity)
+                                bulkP[j] = Del # If D is constant then P is the same
+
+                    else:
                     # Calculate bulk partition coefficients from mineral proportions
-                    for j in range(len(nel)):
-                        el = elnames[j]
-                        for min in lith.minerals:
 
-                
+                        for j in range(nel):
+                            el = elnames[j]
+                            for k in range(len(lith.phaseDiagram.minerals)):
+                                min = lith.phaseDiagram.minerals[k]
+                                if "D_" + min in kwargs:
+                                    Del = kwargs["D_"+min][el]
+                                    if callable(Del):
+                                        stepD = Del(state, lith, **kwargs)
+                                    else:
+                                        stepD = Del
+                                    mineralDs[i, j, k] = stepD
+                                    bulkD[j] += state[min] * stepD
+                                    bulkP[j] += (prevState[min] * (1-prevState['F']) - state[min] * (1 - state['F']) ) * stepD / (1- state['F'])
+                            bulkD[j] = (bulkD[j] + lithporosity) / (1 + lithporosity)
+                    
+                    # Integrate Shaw equations to find new cs and cl
+                    cl = cs * (1 - prevState['F']) / (bulkD - bulkP * prevState['F'])
+                    k1 = (cs - cl) / (1 - prevState['F'])
+                    
+                    F = prevState['F'] + (state['F'] - prevState['F']) / 2
+                    cs = cs + k1 * (state['F'] - prevState['F']) / 2
+                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+                    k2 = (cs - cl) / (1 - F)
+
+                    # Same F as for k2
+                    cs = cs + k2 * (state['F'] - prevState['F']) / 2
+                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+                    k3 = (cs - cl) / (1 - F)
+
+                    F = state['F']
+                    cs = cs + k3 * (state['F'] - prevState['F'])
+                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+                    k4 = (cs - cl) / (1 - F)
+
+                    cs = cs + (1 / 6) * (state['F'] - prevState['F']) * (k1 + 2*k2 + 2*k3 + k4)
+                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+
+                    # Store results
+                    results[i, :] = cl
 
 
+                # Store this state for use in the next step of the calculation
+                prevState = state
 
+            # Store this in the composition dataframe
+            colnames = []
+            for i in range(nel):
+                colnames.append("liq_" + elnames[i])
 
+            constructdf = _pd.DataFrame(results, columns=colnames)
+            # Check if the element exists already:
+            repeats = [value for value in colnames if value in self.composition[lithname].columns]
+            self.composition[lithname].drop(repeats, inplace=True, axis=1)
+            self.composition[lithname] = _pd.concat([self.composition[lithname], constructdf], axis=1)
 
-
+            # Register the new entries:
+            for colname in colnames:
+                self._composition_variable_type[lithname][colname] = 'liquidConcentrationInstantaneous'
             
-            
-                
 
-            else:
-                # Do the calculation with mineral-melt partition coefficients!
-                continue
+            # Calculate mineral compositions if required
+            if calcMineralCompositions and useBulk is False:
+                for k in range(len(lith.phaseDiagram.minerals)):
+                    min = lith.phaseDiagram.minerals[k]
+                    mincomp = results * mineralDs[:, :, k]
+                    colnames = [min + "_" + elname for elname in elnames]
+                    constructdf = _pd.DataFrame(mincomp, columns=colnames)
 
+                    # Check if the element exists already:
+                    repeats = [value for value in colnames if value in self.composition[lithname].columns]
+                    self.composition[lithname].drop(repeats, inplace=True, axis=1)
+                    self.composition[lithname] = _pd.concat([self.composition[lithname], constructdf], axis=1)
 
-        
+                    # Register the new entries:
+                    for colname in colnames:
+                        self._composition_variable_type[lithname][colname] = 'mineralConcentration'
 
-    # def calculateChemistry_new(self, )
-
-
-    def calculateChemistry(self, elements=None, species_objects=None, method='default', **kwargs):
-        """
-        DEPRECATED ROUTINE. NEEDS TO BE REMOVED.
-
-        Calculate the composition of the melt according to default (or user defined) chemical
-        models. The method may be run with default options if the mantle consists of only one
-        lithology. Otherwise the parameters for each lithology must be specified, or pre-defined
-        species objects must be provided.
-
-        If elements is not set and the mantle is made of one lithology, the composition will be
-        set to the depleted mantle of Workman & Hart (2005). The INVMEL forward model is used by
-        default, except for Ba and Rb which are modelled using continuous_instantaneous. The
-        mineral-specific partition coefficients for INVMEL are the constant values compiled by
-        Gibson & Geist (2010). The bulk partition coefficients for Ba and Rb are from Workman &
-        Hart (2005).
-
-        Unless passing the species objects directly, the parameters used by the trace element
-        model must be given also. If a constant value should be used for every lithology and
-        every element (e.g., phi for continuous melting) it can be passed as a float. If a value
-        varies for each element, but not each lithology, for example a mineral-specific D, a
-        dict can be passed with each element name as a key. If the parameter varies for each
-        element and lithology, it can be supplied as a nested-dictionary, much like the
-        `elements` parameter. See Notes for a list of parameters for the default models.
-
-        Parameters
-        ----------
-        elements : dict of dicts of floats (optional)
-            A dictionary with each lithology as a key, the values are themselves dictionaries
-            with species names as keys, and their concentrations as the values. The elements must
-            be among the default element list. Ignore if supplying the species objects directly in
-            the `species_objects` argument.
-        species_objects : dict or None, default: None
-            Each lithology name is a key of the dictionary, the values are a list of
-            pyMelt.chemical_classes.species objects. If None, the species objects will be generated
-            from the `elements` argument.
-        method : string or dict or dict of dicts, default: 'default'
-            One of 'default', 'batch', 'continuous_accumulated', 'continuous_instantaneous',
-            'invmel', 'phase_diagram_trace', 'phase_diagram_major'. If using different models for
-            different elements, specify them as a dictionary. This can be nested within another
-            dictionary if you wish to use different combinations for each lithology.
-
-        Notes
-        -----
-
-        The 'batch' melting routine uses:
-         - D, the bulk partition coefficient
-
-        The 'continuous' melting routine uses:
-         - D, the bulk partition coefficient
-         - phi, the porosity during melting (as a fraction, not percent).
-
-        The 'invmel' melting routine uses:
-         - olv_D, the olivine-melt partition coefficient
-         - cpx_D, the clinopyroxene-melt partition coefficient
-         - opx_D, the orthopyroxene-melt partition coefficient
-         - spn_D, the spinel-melt partition coefficient
-         - grt_D, the garnet-melt partition coefficient
-         - plg_D, the plagioclase-melt partition coefficient
-         - MineralProportions, the mass fraction of each mineral present (prior to melting) in the
-           spinel, plagioclase, and garnet field.
-         - cpxExhaustion, the melt fraction at which cpx (and grt/plg/spn) are exhausted.
-         - garnetInCoeffs, coefficients controlling the P and T of the garnet in reaction
-         - spinelOutCoeffs, coefficients controlling the P and T of the spinel out reaction
-         - plagioclaseInInterval, The plagioclase in interval (in km).
-
-        The 'phase_diagram_trace' melting routine uses:
-         - FILL IN THE DOCUMENTATION!
-
-        The 'phase_diagram_major' melting routine uses:
-         - FILL IN THE DOCUMENTATION!
-        """
-        _warnings.warn("The fractional melting routine for phase diagrams is not implemented correctly.")
-
-        # Check if using defaults, and assemble args if so:
-        if method == 'default':
-            default_kwargs = {'olv_D': _chemistry.data.olv_D,
-                              'cpx_D': _chemistry.data.cpx_D,
-                              'opx_D': _chemistry.data.opx_D,
-                              'spn_D': _chemistry.data.spn_D,
-                              'grt_D': _chemistry.data.grt_D,
-                              'plg_D': _chemistry.data.plg_D,
-                              'D': _chemistry.data.workman05_D}
-
-            for argname in default_kwargs:
-                if argname not in kwargs:
-                    kwargs[argname] = default_kwargs[argname]
-
-            method = _chemistry.default_methods
-
-        # Check if all elements are provided for each lithology
-        if elements is not None and len(elements) > 1:
-            lithologies = list(elements.keys())
-            if any(set(elements[lith].keys()) != set(elements[lithologies[0]].keys())
-                   for lith in lithologies):
-                elements = self._tidy_chemistry_inputs(elements)
-
-        if elements is not None and any([el in ['P', 'T', 'F']
-                                         for el in elements[list(elements.keys())[0]]]):
-            raise InputError("Please rename elements so that none of P, T, or F appear.")
-
-        # Assemble the species_objects dictionary if not provided
-        if species_objects is None:
-            if elements is None and self.mantle.number_lithologies == 1:
-                print("Lithology composition is set to the depleted mantle of Workman & Hart "
-                      "(2005).")
-                elements = {self.mantle.names[0]: asdict(_chemistry.data.workman05_dmm())}
-            elif elements is None:
-                raise InputError("Either species_objects or elements must be provided.")
-
-            species_objects = {}
-            for lith in elements:
-                method_recon = {}
-                kwargs_recon = {}
-                if (isinstance(method, dict)
-                        and any(item in method.keys() for item in elements.keys())):
-                    method_recon = method[lith]
-                else:
-                    method_recon = method
-                for kw in kwargs:
-                    if (isinstance(kwargs[kw], dict)
-                            and any(item in kwargs[kw].keys() for item in elements.keys())):
-                        kwargs_recon[kw] = kwargs[kw][lith]
-                    else:
-                        kwargs_recon[kw] = kwargs[kw]
-                species_objects[lith] = self._create_species_objects(elements[lith],
-                                                                     method_recon,
-                                                                     **kwargs_recon)
-                
-
-        # Register the variables:
-        for lith in species_objects:
-            for species in species_objects[lith]:
-                self._composition_variable_type[lith][species.name] = species.calculation_type
-
-        # Check that the lithology names are correct
-        for lith in species_objects:
-            if lith not in self.mantle.names:
-                raise InputError("The lithology specified (" + lith + ") was not found in "
-                                 "the mantle from which this melting column was constructed.")
-
-        # Iterate through calculations for each lithology:
-        for lith in species_objects:
-
-            # Prepare the storage for liquid compositions
-            species_names = []
-            for j in range(len(species_objects[lith])):
-                species_names.append(species_objects[lith][j].name)
-            results = _np.zeros([_np.shape(self.P)[0], len(species_objects[lith])])
-
-            # Prepare the storage for solid + liquid compositions
-            solidcomp = None
-            mineral_element_labels = []
-
-            for i, row in self.lithologies[lith].iterrows():
-                for j in range(len(species_objects[lith])):
-                    if row.F > 1e-15:
-                        calc_return = species_objects[lith][j].composition(row)
-
-                        # Check if method returns mineral compositions too:
-                        if isinstance(calc_return, dict):
-                            results[i, j] = calc_return['liq']
-                            calc_return.pop('liq')
-                            
-                            # Check if the solid + liquid comp table needs to be initialised:
-                            if solidcomp is None:
-                                solidcomp = _np.full([_np.shape(self.P)[0], 
-                                                       len(calc_return) * len(species_names)],
-                                                       _np.NaN)
-                                mineral_names = list(calc_return.keys())
-                                for k in range(len(species_names)):
-                                    mineral_element_labels += [mn + '_' + species_names[k] for mn in mineral_names]
-                            
-                            solidcomp[i, j*len(mineral_names) : (j+1)*len(mineral_names)] = list(calc_return.values())
-
-                        # If the method just returns the liquid composition:
-                        else:
-                            results[i, j] = calc_return
-                    else:
-                        results[i, j] = _np.nan
-                
-            # Need to store this lithology's solid compositions, if generated:
-            if solidcomp is not None:
-                constructdf = _pd.DataFrame(solidcomp, columns=mineral_element_labels)
-
-                # Register the variables:
-                for label in mineral_element_labels:
-                    if label.split('_')[0] != 'liq':
-                        self._composition_variable_type[lith][label] = 'solidComposition'
-
-                # Check if the element exists already:
-                repeats = [value for value in mineral_element_labels if value in self.composition[lith].columns]
-                self.composition[lith].drop(repeats, inplace=True, axis=1)
-                self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
-
-
-            # Store the liquid compositions
-            constructdf = _pd.DataFrame(results, columns=species_names)
-
-            # Checks if the element exists already, and drops in original if so:
-            repeats = [value for value in species_names if value in self.composition[lith].columns]
-            self.composition[lith].drop(repeats, inplace=True, axis=1)
-
-            self.composition[lith] = _pd.concat([self.composition[lith], constructdf], axis=1)
 
     
     def calculateStableIsotopes(self, species, fractionationFactors, isotopeRatioLabel, 
