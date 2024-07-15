@@ -178,8 +178,8 @@ class meltingColumn():
                     labels = []
                     # Check which oxides are in this phase:
                     for ox in lith.phaseDiagram.oxides:
-                        label = ph + '_' + ox + '_wtpt'
-                        if label in lith.phaseDiagram.variables:
+                        label = ph + '_' + ox #+ '_wtpt'
+                        if label + '_wtpt' in lith.phaseDiagram.variables:
                             labels.append(label)
                     nox = len(labels)
                     nsteps = len(self.P)
@@ -187,7 +187,7 @@ class meltingColumn():
                     for i, row in self.lithologies[lithname].iterrows():
                         for j in range(nox):
                             label = labels[j]
-                            results[i,j] = lith.phaseDiagram(label, row)
+                            results[i,j] = lith.phaseDiagram(label + '_wtpt', row)
 
 
                     constructdf = _pd.DataFrame(results, columns=labels)
@@ -415,16 +415,18 @@ class meltingColumn():
     
     def calculateStableIsotopes(self, species, fractionationFactors, isotopeRatioLabel, 
                                 bulk=0.0, fractionalExtraction=False, porosity=0.0, 
+                                speciesMassConversion=[],
                                 **kwargs):
         """
         Write some documentation here...
 
         Parameters
         ----------
-        species: str 
+        species: str , list
             The species to calculate the stable isotope fractionation for. E.g., MgO.
             Must correspond to a species that has been calculated in the liquid and
-            solid already.
+            solid already. If multiple species exist for the same isotope system (e.g.,
+            FeO and Fe2O3), then provide this as a list, and specify a species_mass_conversion.
         fractionationFactors : dict
             The mineral-liquid fractionation factors (1000 ln beta) for each mineral 
             in the calculation. The mineral name should be given as the key. A number 
@@ -445,16 +447,46 @@ class meltingColumn():
             is assumed by default. If modelling a trace element system then this should
             be set to the same value used during the calculation of trace element
             concentrations.
+        speciesMassConversion : list, default: []
+            If using multiple species (e.g., FeO and Fe2O3), then specify the constant with
+            which to divide each by in order to conserve mass when the two variables are
+            combined. If this is FeO and Fe2O3, then this will be set automatically.
         """
 
         _warnings.warn("Isotope ratios for solid phases where their phase fraction "
                        "goes < 0.01 are masked as a temporary fix to problematic "
                        "imports.")
         
+        # If the species has multiple forms, e.g., FeO + Fe2O3
+        # There may be a more elegant way of doing this, but this should work for now.
+
+        if isinstance(species, list):
+            if len(speciesMassConversion) == 0:
+                if (species[0] == 'FeO' and species[1] == 'Fe2O3'):
+                    speciesMassConversion = [1.0, 1.111]
+                elif (species[0] == 'Fe2O3' and species[1] == 'FeO'):
+                    speciesMassConversion = [1.111, 1.0]
+                else:
+                    raise InputError("Multiple species declared, but no mass conversion specified.")
+
+            phases = list(fractionationFactors.keys()) + ['liq']
+
+            specieslabel = species[0] + 'T'
+
+            for lith in self.mantle.names:
+                for ph in phases:
+                    totspeciesconc = _np.zeros(len(self.composition[lith]))
+                    for n in range(len(species)):
+                        sp = species[n]
+                        totspeciesconc += self.composition[lith][ph + "_" + sp] / speciesMassConversion[n]
+                    self.composition[lith][ph + '_' + specieslabel] = totspeciesconc
+                    self._composition_variable_type[lith][ph + '_' + specieslabel] = 'liquidConcentrationInstantaneous'
+            species = specieslabel
+        
         # Prepare the columns for results, and check the fractionationFactors input is correct
         if isinstance(fractionationFactors, dict):
             phases = list(fractionationFactors.keys())
-            colnames = [isotopeRatioLabel]
+            colnames = ['liq_' + isotopeRatioLabel]
             for ph in phases:
                 colnames.append(ph + '_' + isotopeRatioLabel)
         else:
@@ -479,7 +511,7 @@ class meltingColumn():
         
         # Check the species exists for each of the phases:
         for lith in self.mantle.names:
-            if species not in self.composition[lith].columns:
+            if 'liq_' + species not in self.composition[lith].columns:
                 raise InputError("{0} was not found in {1} for {2}. The composition of each "
                                     "phase must have already been calculated.".format(species, 'liquid', lith))
             for ph in phases:
@@ -495,11 +527,13 @@ class meltingColumn():
         else:
             suffix = 'Aggregated'
         for lith in self.mantle.names:
-            self._composition_variable_type[lith][isotopeRatioLabel] = 'liquidIsotopeRatio' + suffix + '_' + species
+            self._composition_variable_type[lith]['liq_' + isotopeRatioLabel] = 'liquidIsotopeRatio' + suffix + '_' + species
             for ph in phases:
                 self._composition_variable_type[lith][ph + '_' + isotopeRatioLabel] = 'solidIsotopeRatio_' + species
 
-        for lith in self.mantle.names:
+        for n in range(len(self.mantle.names)):
+            lithobj = self.mantle.lithologies[n]
+            lith = self.mantle.names[n]
 
             results = _np.full([_np.shape(self.P)[0], len(phases) + 1], _np.nan)
             
@@ -507,7 +541,7 @@ class meltingColumn():
 
                 if row['F'] > 1e-15:
 
-                    cliq = row[species]
+                    cliq = row['liq_' + species]
                     xliq = row['F']
 
                     # Assemble arrays for the summations:
@@ -519,7 +553,7 @@ class meltingColumn():
                         x[n] = row[phases[n]] * (1.0-xliq)
                         c[n] = row[phases[n] + '_' + species]
                         if callable(fractionationFactors[phases[n]]):
-                            a[n] = fractionationFactors[phases[n]](row)
+                            a[n] = fractionationFactors[phases[n]](row, lithobj.phaseDiagram)
                         else:
                             a[n] = fractionationFactors[phases[n]]
                     a = _np.exp(a/1000)
