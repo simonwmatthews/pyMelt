@@ -586,7 +586,7 @@ class meltingColumn():
                         row_prev = self.composition[lith].iloc[i-1]
                         F_prev = row_prev['F']
 
-                        if F_prev > 1e-15:
+                        if F_prev > 1e-15 and row_prev['liq_'+species] > 0:
 
                             bulk_a = (_np.sum(x * c * a) + porosity * cliq) / (_np.sum(x * c) + porosity * cliq)
 
@@ -598,13 +598,13 @@ class meltingColumn():
                             for ph in phases:
                                 cs_prev_denom += row_prev[ph + '_' + species] * row_prev[ph]
                             cs_prev_numer = cs_prev_denom * (bulk[lith] / 1e3 + 1)
-                            D_prev_denom = cs_prev_denom / row_prev[species]
+                            D_prev_denom = cs_prev_denom / row_prev['liq_' + species]
                             D_prev_numer = D_prev_denom * bulk_a
                             
                             cs_denom = 0.0
                             for ph in phases:
                                 cs_denom += row[ph + '_' + species] * row[ph]
-                            D_denom = cs_denom / row[species]
+                            D_denom = cs_denom / row['liq_' + species]
 
                             D_numer = D_denom * bulk_a
 
@@ -623,10 +623,10 @@ class meltingColumn():
                             Pbar_numer = _np.sum(pbar_numer) / norm
                             Pbar_denom = _np.sum(pbar_denom) / norm
 
-
                             # Calculate dcs/dX over integration range (Shaw eqns)
                             k1_numer = (cs_prev_numer - cl_prev_numer) / (1 - F_prev)
                             k1_denom = (cs_prev_denom - cl_prev_denom) / (1 - F_prev)
+
 
                             dF = (row['F'] - F_prev) / 2
                             k_cs = cs_prev_numer + k1_numer * dF
@@ -657,6 +657,7 @@ class meltingColumn():
                             cl_numer = cs_numer * (1 - row['F']) / (D_numer * (1 - F_prev) - Pbar_numer * (row['F'] - F_prev))
                             cs_denom = cs_prev_denom + (1 / 6) * (row['F'] - F_prev) * (k1_denom + 2*k2_denom + 2*k3_denom + k4_denom)
                             cl_denom = cs_denom * (1 - row['F']) / (D_denom * (1 - F_prev) - Pbar_denom * (row['F'] - F_prev))
+
 
                             bulk[lith] = (cs_numer / cs_denom - 1) * 1e3
                             results[i, 0] = (cl_numer / cl_denom - 1) * 1e3
