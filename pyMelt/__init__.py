@@ -15,7 +15,7 @@ and complete chemical disequilibrium between adjacent mantle lithologies. Variou
 provided for performing decompression melting calculations.
 """
 
-__version__ = "2.02"
+__version__ = "2.2"
 __author__ = "Simon Matthews, Kevin Wong, Matthew Glesson"
 
 
