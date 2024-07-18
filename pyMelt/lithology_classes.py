@@ -6,7 +6,10 @@ Lithology classes
 The lithology classes module provides the `lithology` class for implementing melting models, and
 the `hydrous_lithology` class for converting an anhydrous lithology to a hydrous lithology.
 """
-from scipy._lib._finite_differences import _derivative as _derivative
+try:
+    from scipy.misc import derivative as _derivative
+except:
+    from scipy._lib._finite_differences import _derivative as _derivative
 from scipy.optimize import root_scalar as _root_scalar
 import numpy as _np
 from pyMelt.core import ConvergenceError

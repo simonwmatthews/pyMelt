@@ -12,7 +12,10 @@ import numpy as _np
 from scipy.optimize import fsolve as _fsolve
 from scipy.special import expit as _expit
 
-from scipy._lib._finite_differences import _derivative as _derivative
+try:
+    from scipy.misc import derivative as _derivative
+except:
+    from scipy._lib._finite_differences import _derivative as _derivative
 from scipy.optimize import root_scalar as _root_scalar
 
 
