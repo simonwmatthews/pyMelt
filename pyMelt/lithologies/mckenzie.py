@@ -14,7 +14,7 @@ from scipy.special import expit as _expit
 
 try:
     from scipy.misc import derivative as _derivative
-except:
+except Exception:
     from scipy._lib._finite_differences import _derivative as _derivative
 from scipy.optimize import root_scalar as _root_scalar
 
