@@ -1,8 +1,11 @@
-name: pyMelt_dev
+name: pyMelt
 channels:
   - defaults
-dependancies:
+dependencies:
+  - python=3.9.13
   - numpy=1.21.5
   - pandas=1.4.4
   - scipy=1.9.1
   - matplotlib=3.5.2
+  - pip:
+    - -e .
