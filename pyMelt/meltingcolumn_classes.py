@@ -314,7 +314,7 @@ class meltingColumn():
 
             for i, state in self.composition[lithname].iterrows():
                 # Don't calculate using the first step, as we need a change in min props to calculate P
-                if prevState is not None and prevState['F'] > 1e-15:
+                if prevState is not None and state['F'] > 1e-15:
 
                     # Assemble bulk partition coefficients
                     bulkD = _np.zeros([nel])
@@ -373,6 +373,8 @@ class meltingColumn():
 
                     # Store results
                     results[i, :] = cl
+                else:
+                    results[i, :] = _np.nan
 
 
                 # Store this state for use in the next step of the calculation
