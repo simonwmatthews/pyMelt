@@ -15,10 +15,10 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     package_data={'pyMelt':['phaseDiagrams/*', 'phaseDiagrams/build/*']},
     install_requires=[
-            'pandas=1.4.4',
-            'numpy=1.21.5',
-            'matplotlib=3.5.2',
-            'scipy=1.9.1',
+            'pandas==1.4.4',
+            'numpy==1.21.5',
+            'matplotlib==3.5.2',
+            'scipy==1.9.1',
             ],
     classifiers=[
         "Programming Language :: Python :: 3",
