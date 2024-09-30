@@ -125,21 +125,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-manuscript/tables/~$List_of_Datasets.xlsx
-
-testDataSets/~$Moore_et_al_1998.xlsx
-
-testDataSets/~$cerro_negro.xlsx
-
-batch_test.xlsx
-
-manuscript/Supplement/JupyterNotebooks/Moore/~$output_moore.xlsx
-
-tests/~$ImportTest.xlsx
-
-Debugging.ipynb
-
-H2O_CO2_SensitivityTesting.xlsx
 
 dist/
 
