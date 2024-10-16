@@ -364,7 +364,7 @@ class mantle:
 
         return T
 
-    def adiabaticMelt(self, Tp, Pstart=None, Pend=0.01, dP=-0.001, steps=None, ReportSSS=True,
+    def adiabaticMelt(self, Tp, Pstart=None, Pend=0.01, dP=-0.004, steps=None, ReportSSS=True,
                       adjust_pressure=True, prevent_freezing=True, warn_prevent_freezing=True):
         """
         Performs simultaneous integration of dFdP and dTdP to obtain the thermal gradient
@@ -409,6 +409,7 @@ class mantle:
             crustal thickness may then be performed on this instance, if desired.
         """
 
+        supersolidus_start = False # Track this for generating the melting column class
         solidus_intersect = self.solidusIntersection(Tp)
 
         if Pstart is None:
@@ -446,9 +447,11 @@ class mantle:
         F = _np.zeros([steps, self.number_lithologies])
 
         if T[0] > _np.nanmin(self.solidusIntersectionIsobaric(Pstart)):
+            supersolidus_start = True
             if ReportSSS is True:
                 _warn("Super solidus start")
             T[0] = self.isobaricMelt(T[0], Pstart)
+
 
         for i in range(steps):
             if i == 0:
@@ -479,4 +482,4 @@ class mantle:
         results['P'] = P
         results['T'] = T
 
-        return _meltingColumn(results, self, Tp)
+        return _meltingColumn(results, self, Tp, supersolidus_start)
