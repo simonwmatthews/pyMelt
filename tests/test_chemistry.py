@@ -10,6 +10,20 @@ import pyMelt as m
 from numpy import allclose
 import numpy as np
 
+def test_should_conserve_trace_element_mass():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(1400.0) # High enough to completely deplete solid of La and Yb
+    column.calculateMineralProportions()
+    column.calculateTraceElements(c0={'lz':{'La':1.0, 'Yb':1.0}})
+    F = np.array(column.composition['lz'].F)
+    dF = F[1:] - F[:-1]
+    cLa = np.array(column.composition['lz'].liq_La)[1:]
+    cYb = np.array(column.composition['lz'].liq_Yb)[1:]
+    total_La = np.sum(cLa[~np.isnan(cLa)] * dF[~np.isnan(cLa)])
+    total_Yb = np.sum(cLa[~np.isnan(cYb)] * dF[~np.isnan(cYb)])
+    assert allclose(total_La, 1.0, atol=0.01) and allclose(total_Yb, 1.0, atol=0.01)
+
 def test_should_calculate_majors_with_isobaric_melting_start():
     lz = m.lithologies.matthews.klb1()
     mantle = m.mantle([lz], [1.0], ['lz'])
@@ -19,20 +33,7 @@ def test_should_calculate_majors_with_isobaric_melting_start():
     testcomp = column.composition['lz'].liq_MgO.iloc[0]
     assert allclose(target, testcomp)
 
-def test_should_calculate_traces_with_isobaric_melting_start():
-    lz = m.lithologies.matthews.klb1()
-    mantle = m.mantle([lz], [1.0], ['lz'])
-    column = mantle.adiabaticMelt(1400.0, Pstart=8.0)
-    column.calculateMineralProportions()
-    column.calculateTraceElements(c0={'lz':{'La':1.0}})
-    F = np.array(column.composition['lz'].F)
-    dF = F[1:] - F[:-1]
-    c = np.array(column.composition['lz'].liq_La)[1:]
-    total = np.sum(c[~np.isnan(c)] * dF[~np.isnan(c)])
-    print(total)
-    print(column.composition['lz'].liq_La)
-    print(column.F)
-    assert False
+
 
 # These are old tests for the previous version of pyMelt and need to be rewritten for the new chemistry interface
 @pytest.mark.skip

@@ -358,26 +358,27 @@ class meltingColumn():
                             bulkD[j] = (bulkD[j] + lithporosity) / (1 + lithporosity)
                     
                     # Integrate Shaw equations to find new cs and cl
-                    cl = cs * (1 - prevState['F']) / (bulkD - bulkP * prevState['F'])
+                    c0 = cs
+                    cl = cs * (1 - prevState['F']) / (bulkD * (1 - prevState['F'])) # - bulkP * (prevState['F'] - prevState['F'])) 
                     k1 = (cs - cl) / (1 - prevState['F'])
                     
                     F = prevState['F'] + (state['F'] - prevState['F']) / 2
-                    cs = cs + k1 * (state['F'] - prevState['F']) / 2
-                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+                    cs = c0 + k1 * (state['F'] - prevState['F']) / 2
+                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
                     k2 = (cs - cl) / (1 - F)
 
                     # Same F as for k2
-                    cs = cs + k2 * (state['F'] - prevState['F']) / 2
-                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+                    cs = c0 + k2 * (state['F'] - prevState['F']) / 2
+                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
                     k3 = (cs - cl) / (1 - F)
 
                     F = state['F']
-                    cs = cs + k3 * (state['F'] - prevState['F'])
-                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+                    cs = c0 + k3 * (state['F'] - prevState['F'])
+                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
                     k4 = (cs - cl) / (1 - F)
 
-                    cs = cs + (1 / 6) * (state['F'] - prevState['F']) * (k1 + 2*k2 + 2*k3 + k4)
-                    cl = cs * (1 - F) / (bulkD - bulkP * F)
+                    cs = c0 + (1 / 6) * (state['F'] - prevState['F']) * (k1 + 2*k2 + 2*k3 + k4)
+                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
 
                     # Store results
                     results[i, :] = cl

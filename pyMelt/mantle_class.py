@@ -364,7 +364,7 @@ class mantle:
 
         return T
 
-    def adiabaticMelt(self, Tp, Pstart=None, Pend=0.01, dP=-0.004, steps=None, ReportSSS=True,
+    def adiabaticMelt(self, Tp, Pstart=None, Pend=0.01, dP=-0.001, steps=None, ReportSSS=True,
                       adjust_pressure=True, prevent_freezing=True, warn_prevent_freezing=True):
         """
         Performs simultaneous integration of dFdP and dTdP to obtain the thermal gradient
