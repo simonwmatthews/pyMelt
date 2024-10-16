@@ -312,9 +312,14 @@ class meltingColumn():
             # to calculate mineral compositions
             mineralDs = _np.zeros([nsteps, nel, len(lith.phaseDiagram.minerals)])
 
+            firstcalc = True
             for i, state in self.composition[lithname].iterrows():
+                if prevState is None and state['F'] > 1e-15:
+                    prevState = _copy(state)
+                    prevState['F'] = 0.0
                 # Don't calculate using the first step, as we need a change in min props to calculate P
-                if prevState is not None and state['F'] > 1e-15:
+                if state['F'] > 1e-15:
+                # if prevState is not None and state['F'] > 1e-15:
 
                     # Assemble bulk partition coefficients
                     bulkD = _np.zeros([nel])
@@ -346,7 +351,10 @@ class meltingColumn():
                                         stepD = Del
                                     mineralDs[i, j, k] = stepD
                                     bulkD[j] += state[min] * stepD
-                                    bulkP[j] += (prevState[min] * (1-prevState['F']) - state[min] * (1 - state['F']) ) * stepD / (1- state['F'])
+                                    if firstcalc:
+                                        bulkP[j] = bulkD[j]
+                                    else:
+                                        bulkP[j] += (prevState[min] * (1-prevState['F']) - state[min] * (1 - state['F']) ) * stepD / (1- state['F'])
                             bulkD[j] = (bulkD[j] + lithporosity) / (1 + lithporosity)
                     
                     # Integrate Shaw equations to find new cs and cl
@@ -373,9 +381,9 @@ class meltingColumn():
 
                     # Store results
                     results[i, :] = cl
+                    firstcalc = False
                 else:
                     results[i, :] = _np.nan
-
 
                 # Store this state for use in the next step of the calculation
                 prevState = state

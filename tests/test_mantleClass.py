@@ -4,11 +4,18 @@ Mantle Class Tests
 This module provides testing routines for the Mantle class
 """
 
+import pytest
 import unittest
 import pyMelt as m
 import numpy as np
 
 from pyMelt.core import InputError
+
+def test_should_report_error_if_no_solidus_intersection():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    with pytest.raises(m.core.InputError):
+        column = mantle.adiabaticMelt(2000.0)
 
 
 class test_mantle(unittest.TestCase):
