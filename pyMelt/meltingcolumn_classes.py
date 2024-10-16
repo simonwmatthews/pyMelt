@@ -31,6 +31,9 @@ class meltingColumn():
         The mantle object used to generate the melting column.
     Tp : float
         The potential temperature used to generate the melting column, if applicable.
+    supersolidus_start : bool, default: False
+        Records whether a melting column was generated with an isobaric melting interval
+        at the start. This will be important for producing sane trace element outputs.
 
     Attributes
     ----------
@@ -47,13 +50,14 @@ class meltingColumn():
 
     """
 
-    def __init__(self, calculation_results, mantle, Tp=None):
+    def __init__(self, calculation_results, mantle, Tp=None, supersolidus_start=False):
         self.calculation_results = calculation_results
         self.mantle = mantle
         self.Tp = Tp
         self.P = calculation_results.P
         self.T = calculation_results['T']
         self.chemistry_output = None
+        self.supersolidus_start = supersolidus_start
 
 
         # New composition registry structure
@@ -357,28 +361,37 @@ class meltingColumn():
                                         bulkP[j] += (prevState[min] * (1-prevState['F']) - state[min] * (1 - state['F']) ) * stepD / (1- state['F'])
                             bulkD[j] = (bulkD[j] + lithporosity) / (1 + lithporosity)
                     
-                    # Integrate Shaw equations to find new cs and cl
-                    c0 = cs
-                    cl = cs * (1 - prevState['F']) / (bulkD * (1 - prevState['F'])) # - bulkP * (prevState['F'] - prevState['F'])) 
-                    k1 = (cs - cl) / (1 - prevState['F'])
-                    
-                    F = prevState['F'] + (state['F'] - prevState['F']) / 2
-                    cs = c0 + k1 * (state['F'] - prevState['F']) / 2
-                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
-                    k2 = (cs - cl) / (1 - F)
+                    if firstcalc and self.supersolidus_start:
+                        # Do a batch melting step
+                        # cl = cs / (bulkD + state['F'] * (1 - bulkP))
+                        # cs = bulkD * cl
+                        # Do a aggregate fractional melting step
+                        cl = cs / state['F'] * (1 - (1 - bulkP * state['F'] / bulkD)**(1/bulkP))
+                        cs = (cs - cl * state['F']) / (1 - state['F'])
+                    else:
 
-                    # Same F as for k2
-                    cs = c0 + k2 * (state['F'] - prevState['F']) / 2
-                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
-                    k3 = (cs - cl) / (1 - F)
+                        # Integrate Shaw equations to find new cs and cl
+                        c0 = cs
+                        cl = cs * (1 - prevState['F']) / (bulkD * (1 - prevState['F'])) # - bulkP * (prevState['F'] - prevState['F'])) 
+                        k1 = (cs - cl) / (1 - prevState['F'])
+                        
+                        F = prevState['F'] + (state['F'] - prevState['F']) / 2
+                        cs = c0 + k1 * (state['F'] - prevState['F']) / 2
+                        cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
+                        k2 = (cs - cl) / (1 - F)
 
-                    F = state['F']
-                    cs = c0 + k3 * (state['F'] - prevState['F'])
-                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
-                    k4 = (cs - cl) / (1 - F)
+                        # Same F as for k2
+                        cs = c0 + k2 * (state['F'] - prevState['F']) / 2
+                        cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
+                        k3 = (cs - cl) / (1 - F)
 
-                    cs = c0 + (1 / 6) * (state['F'] - prevState['F']) * (k1 + 2*k2 + 2*k3 + k4)
-                    cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
+                        F = state['F']
+                        cs = c0 + k3 * (state['F'] - prevState['F'])
+                        cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
+                        k4 = (cs - cl) / (1 - F)
+
+                        cs = c0 + (1 / 6) * (state['F'] - prevState['F']) * (k1 + 2*k2 + 2*k3 + k4)
+                        cl = cs * (1 - F) / (bulkD * (1 - prevState['F']) - bulkP * (F - prevState['F']))
 
                     # Store results
                     results[i, :] = cl

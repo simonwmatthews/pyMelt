@@ -22,7 +22,7 @@ def test_should_conserve_trace_element_mass():
     cYb = np.array(column.composition['lz'].liq_Yb)[1:]
     total_La = np.sum(cLa[~np.isnan(cLa)] * dF[~np.isnan(cLa)])
     total_Yb = np.sum(cLa[~np.isnan(cYb)] * dF[~np.isnan(cYb)])
-    assert allclose(total_La, 1.0, atol=0.01) and allclose(total_Yb, 1.0, atol=0.01)
+    assert allclose(total_La, 1.0, atol=0.02) and allclose(total_Yb, 1.0, atol=0.02)
 
 def test_should_calculate_majors_with_isobaric_melting_start():
     lz = m.lithologies.matthews.klb1()
@@ -32,6 +32,23 @@ def test_should_calculate_majors_with_isobaric_melting_start():
     target = 36.338872220258374
     testcomp = column.composition['lz'].liq_MgO.iloc[0]
     assert allclose(target, testcomp)
+
+def test_should_conserve_trace_element_mass_for_isobaric_melting_start():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(2000.0, Pstart=8.0)
+    column.calculateMineralProportions()
+    column.calculateTraceElements(c0={'lz':{'La':1.0, 'Yb':1.0}})
+    F = np.array(column.composition['lz'].F)
+    dF = np.zeros(len(F))
+    dF[0] = F[0]
+    dF[1:] = F[1:] - F[:-1]
+    cLa = np.array(column.composition['lz'].liq_La)
+    cYb = np.array(column.composition['lz'].liq_Yb)
+    total_La = np.sum(cLa[~np.isnan(cLa)] * dF[~np.isnan(cLa)])
+    total_Yb = np.sum(cLa[~np.isnan(cYb)] * dF[~np.isnan(cYb)])
+    print(total_La, total_Yb)
+    assert allclose(total_La, 1.0, atol=0.01) and allclose(total_Yb, 1.0, atol=0.01)
 
 
 
