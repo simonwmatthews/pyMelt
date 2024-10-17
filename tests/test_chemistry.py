@@ -10,7 +10,7 @@ import pyMelt as m
 from numpy import allclose
 import numpy as np
 
-def test_should_conserve_trace_element_mass():
+def test_should_conserve_trace_element_mass_highF():
     lz = m.lithologies.matthews.klb1()
     mantle = m.mantle([lz], [1.0], ['lz'])
     column = mantle.adiabaticMelt(1400.0) # High enough to completely deplete solid of La and Yb
@@ -22,6 +22,34 @@ def test_should_conserve_trace_element_mass():
     cYb = np.array(column.composition['lz'].liq_Yb)[1:]
     total_La = np.sum(cLa[~np.isnan(cLa)] * dF[~np.isnan(cLa)])
     total_Yb = np.sum(cLa[~np.isnan(cYb)] * dF[~np.isnan(cYb)])
+    assert allclose(total_La, 1.0, atol=0.02) and allclose(total_Yb, 1.0, atol=0.02)
+
+def test_should_conserve_trace_element_mass_lowF():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(1200.0) # High enough to completely deplete solid of La and Yb
+    column.calculateMineralProportions()
+    column.calculateTraceElements(c0={'lz':{'La':1.0, 'Yb':1.0}})
+
+    F = np.array(column.composition['lz'].F)
+
+    # Solid budget
+    minerals = lz.phaseDiagram.minerals
+    solidLa = 0.0
+    solidYb = 0.0
+    for mineral in minerals:
+        solidLa += column.composition['lz'][mineral].iloc[len(F)-1] * column.composition['lz'][mineral + '_La'].iloc[len(F)-1]
+        solidYb += column.composition['lz'][mineral].iloc[len(F)-1] * column.composition['lz'][mineral + '_Yb'].iloc[len(F)-1]
+
+    # Liquid budget
+    dF = F[1:] - F[:-1]
+    cLa = np.array(column.composition['lz'].liq_La)[1:]
+    cYb = np.array(column.composition['lz'].liq_Yb)[1:]
+
+    # Combine
+    total_La = np.sum(cLa[~np.isnan(cLa)] * dF[~np.isnan(cLa)]) + (1-F[-1]) * solidLa
+    total_Yb = np.sum(cYb[~np.isnan(cYb)] * dF[~np.isnan(cYb)]) + (1-F[-1]) * solidYb
+    print(total_La, total_Yb)
     assert allclose(total_La, 1.0, atol=0.02) and allclose(total_Yb, 1.0, atol=0.02)
 
 def test_should_calculate_majors_with_isobaric_melting_start():
