@@ -10,6 +10,13 @@ import pyMelt as m
 from numpy import allclose
 import numpy as np
 
+
+
+
+# ====================================
+# == Conservation of Mass Tests ======
+# ====================================
+
 def test_should_conserve_trace_element_mass_highF():
     lz = m.lithologies.matthews.klb1()
     mantle = m.mantle([lz], [1.0], ['lz'])
@@ -52,15 +59,6 @@ def test_should_conserve_trace_element_mass_lowF():
     print(total_La, total_Yb)
     assert allclose(total_La, 1.0, atol=0.02) and allclose(total_Yb, 1.0, atol=0.02)
 
-def test_should_calculate_majors_with_isobaric_melting_start():
-    lz = m.lithologies.matthews.klb1()
-    mantle = m.mantle([lz], [1.0], ['lz'])
-    column = mantle.adiabaticMelt(2000.0, Pstart=8.0)
-    column.calculateMajorOxides()
-    target = 36.338872220258374
-    testcomp = column.composition['lz'].liq_MgO.iloc[0]
-    assert allclose(target, testcomp)
-
 def test_should_conserve_trace_element_mass_for_isobaric_melting_start():
     lz = m.lithologies.matthews.klb1()
     mantle = m.mantle([lz], [1.0], ['lz'])
@@ -77,6 +75,81 @@ def test_should_conserve_trace_element_mass_for_isobaric_melting_start():
     total_Yb = np.sum(cLa[~np.isnan(cYb)] * dF[~np.isnan(cYb)])
     print(total_La, total_Yb)
     assert allclose(total_La, 1.0, atol=0.01) and allclose(total_Yb, 1.0, atol=0.01)
+
+def test_should_conserve_major_element_stable_isotope_mass():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(1200.0, Pstart=8.0)
+    column.calculateMajorOxides()
+    column.calculateMineralProportions()
+
+    # The fractionation factors are arbitrary values, they should never
+    # be used in a calculation where you expect physically meaningful results!
+    column.calculateStableIsotopes(
+        species= 'MgO',
+        fractionationFactors= {'olv': 0.1, 
+                               'cpx':-0.1, 
+                               'opx': 0.05, 
+                               'grt':0.0},
+        isotopeRatioLabel='d26Mg',
+    )
+
+    # Liquid
+    F = np.array(column.composition['lz'].F)
+    dF = np.zeros(len(F))
+    dF[0] = F[0]
+    dF[1:] = F[1:] - F[:-1]
+    liq_homog_dMg = (np.sum(dF * column.composition['lz'].liq_d26Mg * column.composition['lz'].liq_MgO) )
+
+    # Solid
+    sol_homog_dMg = 0.0
+    sol_homog_MgO = 0.0
+    for mineral in ['olv', 'cpx', 'opx', 'grt']:
+        if column.composition['lz'][mineral].iloc[-1] > 0:
+            sol_homog_dMg += (
+                column.composition['lz'][mineral+'_d26Mg'].iloc[-1] 
+                * column.composition['lz'][mineral+'_MgO'].iloc[-1] 
+                * column.composition['lz'][mineral].iloc[-1]
+            )
+
+    total_dMg = sol_homog_dMg * (1-F[-1]) + liq_homog_dMg
+
+    assert allclose(total_dMg, 0.0, atol=0.0002)
+
+
+
+
+# =================================================================
+# == Test the major and isotope routines for an isobaric start ====
+# =================================================================
+
+def test_should_calculate_majors_with_isobaric_melting_start():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(2000.0, Pstart=8.0)
+    column.calculateMajorOxides()
+    target = 36.338872220258374
+    testcomp = column.composition['lz'].liq_MgO.iloc[0]
+    assert allclose(target, testcomp)
+
+def test_should_calculate_major_stable_with_isobaric_melting_start():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(2000.0, Pstart=8.0)
+    column.calculateMajorOxides()
+    column.calculateMineralProportions()
+    column.calculateStableIsotopes(
+        species= 'MgO',
+        fractionationFactors= {'olv': 0.1, 'cpx':0.1, 'opx': 0.1, 
+                               'plg': 0.1, 'grt':0.1, 'spn': 0.1},
+        isotopeRatioLabel='d26Mg',
+    )
+
+    print(column.composition['lz']['liq_d26Mg'])
+
+    assert allclose(column.composition['lz']['liq_d26Mg'].iloc[-1], -0.012979)
+
+
 
 
 
