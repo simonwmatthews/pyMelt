@@ -22,7 +22,7 @@ __author__ = "Simon Matthews, Kevin Wong, Matthew Glesson"
 from pyMelt import lithologies
 from pyMelt import geosettings
 from pyMelt.mantle_class import mantle
-from pyMelt.lithology_classes import hydrousLithology
+from pyMelt.lithology_classes import hydrousLithology, phaseDiagramLithology
 from pyMelt.phaseDiagramTools import phaseDiagram, load_phaseDiagram
 
 __all__ = ['hydrousLithology', 'mantle', 'lithologies', 'geosettings']

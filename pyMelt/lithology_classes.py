@@ -537,3 +537,18 @@ class hydrousLithology(object):
         fcalc = self.F_function(P, T, F=x)
         misfit = fcalc - x
         return misfit
+
+class phaseDiagramLithology(lithology):
+    def __init__(self, phaseDiagram):
+        print(phaseDiagram)
+        self.phaseDiagram = phaseDiagram
+    
+    def TSolidus(self, P):
+        return self.phaseDiagram('temperature', state=_pd.Series({'F':0.0, 'P':P}))
+    
+    def TLiquidus(self, P):
+        return self.phaseDiagram('temperature', state=_pd.Series({'F':1.0, 'P':P}))
+    
+
+    # def _find_solidus(self):
+        
