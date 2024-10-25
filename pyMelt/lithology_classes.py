@@ -540,15 +540,43 @@ class hydrousLithology(object):
 
 class phaseDiagramLithology(lithology):
     def __init__(self, phaseDiagram):
-        print(phaseDiagram)
-        self.phaseDiagram = phaseDiagram
+        super().__init__(phaseDiagram=phaseDiagram)
+        # print(phaseDiagram)
+        # self.phaseDiagram = phaseDiagram
     
     def TSolidus(self, P):
-        return self.phaseDiagram('temperature', state=_pd.Series({'F':0.0, 'P':P}))
+        if isinstance(P, float) or isinstance(P, int):
+            return self.phaseDiagram('temperature', state=_pd.Series({'F':0.0, 'P':P}))
+        else:
+            Tlist = []
+            for i in range(len(P)):
+                Tlist.append(self.phaseDiagram('temperature', state=_pd.Series({'F':0.0, 'P':P[i]})))
+            return Tlist
     
     def TLiquidus(self, P):
-        return self.phaseDiagram('temperature', state=_pd.Series({'F':1.0, 'P':P}))
+        if isinstance(P, float) or isinstance(P, int):
+            return self.phaseDiagram('temperature', state=_pd.Series({'F':1.0, 'P':P}))
+        else:
+            Tlist = []
+            for i in range(len(P)):
+                Tlist.append(self.phaseDiagram('temperature', state=_pd.Series({'F':1.0, 'P':P[i]})))
+            return Tlist
     
+    def F(self, P, T):
 
-    # def _find_solidus(self):
+        Tsol = self.TSolidus(P)
+        Tliq = self.TLiquidus(P)
+        if T <= Tsol:
+            return 0.0
+        elif T >= Tliq:
+            return 1.0
         
+        def find_F(x, P, T):
+            Tcalc = self.phaseDiagram('temperature', state=_pd.Series({'F':x, 'P':P}))
+            return Tcalc - T
+        
+        res = _root_scalar(find_F, x0=0.1, args=(P, T), bracket=[0,1])
+        if res.flag != 'converged':
+            raise ConvergenceError('The melt fraction calculation did not converge.')
+        else:
+            return res.root
