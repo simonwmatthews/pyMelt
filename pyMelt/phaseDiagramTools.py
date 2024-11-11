@@ -693,17 +693,20 @@ class phaseDiagram(object):
 
 
 
-def load_phaseDiagram(name='thermocalc_klb1'):
+def load_phaseDiagram(name=None, filepath=None):
     """
-    Loads any of the phaseDiagrams included with pyMelt. At the moment this includes:
-    - thermocalc_klb1
-    - thermocalc_kg1
-    - melts_klb1
-    By default the function will return the THERMOCALC KLB1 phase diagram
+    Loads a phaseDiagram object that is included with pyMelt. The built in
+    phaseDiagrams are:
+    - klb1_holland2018
+    - depma_holland2018
+    - g2_holland2018
+    - kg1_holland2018
 
     Parameters
     ----------
-    name : str; default: 'thermocalc_klb1'
+    name : str; default: None
+        If loading one of the built in phase diagrams you can specify just its
+        name here.
 
     Returns
     -------
@@ -711,29 +714,29 @@ def load_phaseDiagram(name='thermocalc_klb1'):
         The requested phaseDiagram object
     """
 
-    available_models = ['thermocalc_klb1', 'thermocalc_kg1', 'melts_klb1']
-    build_files = ['import_thermocalc_klb1.ipynb',
-                   'import_thermocalc_kg1.ipynb',
-                   'import_pmelts_klb1.ipynb']
+    available_models = ['klb1_holland2018', 
+                        'depma_holland2018', 
+                        'g2_holland2018',
+                        'kg1_holland2018']
 
     if name in available_models:
         pyMelt_path = os.path.dirname(os.path.realpath(__file__))
         try:
-            f = open(pyMelt_path + '/phaseDiagrams/' + name +'.p', 'rb')
+            f = open(pyMelt_path + '/phaseDiagrams/' + name + '/' + name +'.p', 'rb')
 
             phaseDiagram_object = pickle.load(f)
 
             f.close()
 
         except Exception:
-            print("Building Phase Diagram Object...")
+            print("Building Phase Diagram Object (one time only)...")
 
             original_directory = os.getcwd()
 
-            env_dir = pyMelt_path + '/phaseDiagrams/build/'
+            env_dir = pyMelt_path + '/phaseDiagrams/' + name + '/'
             os.chdir(env_dir)
 
-            filename = pyMelt_path + '/phaseDiagrams/build/' + build_files[available_models.index(name)]
+            filename = pyMelt_path + '/phaseDiagrams/' + name + '/make_' + name + '.ipynb'
 
             with open(filename) as fp:
                 nb = load(fp)
@@ -747,9 +750,9 @@ def load_phaseDiagram(name='thermocalc_klb1'):
 
             os.chdir(original_directory)
 
-            os.rename(pyMelt_path + '/phaseDiagrams/build/' + name + '.p', pyMelt_path + '/phaseDiagrams/' + name + '.p')
+            # os.rename(pyMelt_path + '/phaseDiagrams/build/' + name + '.p', pyMelt_path + '/phaseDiagrams/' + name + '.p')
 
-            f = open(pyMelt_path + '/phaseDiagrams/' + name +'.p')
+            f = open(pyMelt_path + '/phaseDiagrams/' + name + '/' + name +'.p', 'rb')
 
             phaseDiagram_object = pickle.load(f)
 

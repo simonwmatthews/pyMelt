@@ -81,7 +81,7 @@ class kg1(_lithology):
                              'r2': 0.191,
                              'Mcpx': 0.342
                              },
-                 phaseDiagram='thermocalc_kg1'
+                 phaseDiagram='kg1_holland2018'
                  ):
         self.CP = CP
         self.alphas = alphas
@@ -568,7 +568,7 @@ class klb1(_lithology):
                              'r1': 0.5000,
                              'r2': 0.0800
                              },
-                 phaseDiagram='thermocalc_klb1'
+                 phaseDiagram='klb1_holland2018'
                  ):
         self.CP = CP
         self.alphas = alphas
@@ -1045,8 +1045,14 @@ class eclogite(_lithology):
                              'D3': - 11.778,
                              'D4': - 862.641,
                              'beta': 2.134,
-                             }
+                             },
+                phaseDiagram='g2_holland2018'
                  ):
+        
+        if isinstance(phaseDiagram, str):
+            self.phaseDiagram = _load_phaseDiagram(phaseDiagram)
+        else:
+            self.phaseDiagram = phaseDiagram
 
         self.DeltaS = DeltaS
         self.CP = CP
