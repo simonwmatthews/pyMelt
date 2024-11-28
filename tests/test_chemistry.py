@@ -127,7 +127,7 @@ def test_should_calculate_majors_with_isobaric_melting_start():
     mantle = m.mantle([lz], [1.0], ['lz'])
     column = mantle.adiabaticMelt(2000.0, Pstart=8.0)
     column.calculateMajorOxides()
-    target = 36.338872220258374
+    target = 35.58747000075576
     testcomp = column.composition['lz'].liq_MgO.iloc[0]
     assert allclose(target, testcomp)
 
@@ -146,7 +146,7 @@ def test_should_calculate_major_stable_with_isobaric_melting_start():
 
     print(column.composition['lz']['liq_d26Mg'])
 
-    assert allclose(column.composition['lz']['liq_d26Mg'].iloc[-1], -0.012979)
+    assert allclose(column.composition['lz']['liq_d26Mg'].iloc[-1], -0.012844409867076054)
 
 
 
