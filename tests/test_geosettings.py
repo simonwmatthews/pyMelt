@@ -27,10 +27,12 @@ def test_should_create_an_oib_from_a_supersolidus_start():
     oib = m.geosettings.intraPlate(column, P_lithosphere=2.0)
     print(oib.chemistry.liq_d26Mg)
     print(oib.chemistry.liq_La)
-    assert allclose(oib.chemistry.liq_d26Mg, -0.012978970723878424)
+    print(column.F)
+    print(column.composition['lz'].liq_La)
+    assert allclose(oib.chemistry.liq_d26Mg, -0.012844409867076054)
     # The value currently being returned is way too small. There is something
     # going wrong with the homogenization for a supersolidus start
-    assert allclose(oib.chemistry.liq_La, 0.0)
+    assert allclose(oib.chemistry.liq_La, 1.357368830872643)
 
 def test_should_create_a_mor_from_a_supersolidus_start():
     lz = m.lithologies.matthews.klb1()
@@ -48,12 +50,15 @@ def test_should_create_a_mor_from_a_supersolidus_start():
         isotopeRatioLabel='d26Mg',
     )
 
+    print(column.composition['lz'].liq_La)
+    print(column.composition['lz'].F)
+
     mor = m.geosettings.spreadingCentre(column, P_lithosphere=2.0)
     print(mor.chemistry.liq_d26Mg)
     print(mor.chemistry.liq_La)
 
-    assert allclose(mor.chemistry.liq_d26Mg, -0.029178154557631463)
-    assert allclose(mor.chemistry.liq_La, 0.0)
+    assert allclose(mor.chemistry.liq_d26Mg, -0.031203326121393506)
+    assert allclose(mor.chemistry.liq_La, 1.9245679326878817)
 
 def test_should_only_place_liq_comps_in_geosetting():
     lz = m.lithologies.matthews.klb1()

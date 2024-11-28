@@ -428,7 +428,17 @@ class spreadingCentre(geoSetting):
             if self.lithology_contributions[lith] > 0.0:
                 # Get the melt fractions for the lithology
                 f = self.composition[lith].F.to_numpy()
-                df = f[1:] - f[: -1]
+                # Allow for melt existing on first step:
+                fprev = _np.zeros(len(f))
+                fprev[1:] = f[:-1]
+                df = f - fprev
+                # To correctly deal with a supersolidus start, need to integrate a rectangle
+                # rather than one edge of a trapezium. This is achieved by doubling the first
+                # element of df, but only in the numerator sum, not the denominator sum, which
+                # remains the same by making a copy.
+                dfnorm = _copy(df)
+                if self.MeltingColumn.supersolidus_start is True:
+                    df[0] = df[0] * 2
                 for j in range(len(species)):
                     spname = species[j]
                     sptype = self.MeltingColumn._composition_variable_type[lith][spname].split('_')[0]
@@ -443,13 +453,15 @@ class spreadingCentre(geoSetting):
                         if sptype == 'liquidConcentrationInstantaneous':
                             cnormed = _np.zeros(_np.shape(c)[0])
                             for i in range(_np.shape(c)[0] - 1):
-                                if f[i] > 0 and f[i-1] > 0:
-                                    cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
-                                                    / _np.sum(df[:i]))
+                                if i == 0 and f[i] > 0:
+                                    cnormed[i] = c[0]
+                                elif f[i] > 0 and f[i-1] > 0:
+                                    cnormed[i] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
+                                                    / _np.sum(dfnorm[:i]))
                                 elif f[i] > 0:
-                                    cnormed[i + 1] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(df[:i]))
+                                    cnormed[i] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(dfnorm[:i]))
                                 else:
-                                    cnormed[i + 1] = 0.0
+                                    cnormed[i] = 0.0
                             c = cnormed
 
                         c = _trapz((1 + weights) * c * f / (1 - f))
@@ -474,12 +486,12 @@ class spreadingCentre(geoSetting):
                             for i in range(_np.shape(c)[0] - 1):
                                 if f[i] > 0 and f[i-1] > 0:
                                     rnormed[i + 1] = (_np.sum(0.5 * (r[1:i + 1] * c[1:i + 1] +  r[0:i] * c[0:i]) * df[:i])
-                                                    / _np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i]))
+                                                    / _np.sum(0.5 * (c[1:i + 1] + c[0:i]) * dfnorm[:i]))
                                     cnormed[i + 1] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
-                                                    / _np.sum(df[:i]))
+                                                    / _np.sum(dfnorm[:i]))
                                 elif f[i] > 0:
-                                    rnormed[i + 1] = (_np.sum(r[1:i + 1] * c[1:i + 1] * df[:i]) / _np.sum(df[:i] * c[1:i + 1]))
-                                    cnormed[i + 1] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(df[:i]))
+                                    rnormed[i + 1] = (_np.sum(r[1:i + 1] * c[1:i + 1] * df[:i]) / _np.sum(dfnorm[:i] * c[1:i + 1]))
+                                    cnormed[i + 1] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(dfnorm[:i]))
                                 else:
                                     rnormed[i + 1] = 0.0
                                     cnormed[i + 1] = 0.0
@@ -700,7 +712,8 @@ class intraPlate(geoSetting):
                 specieslith = list(self.composition[lith].columns)[3:]
                 species = [s for s in species if s in specieslith and self.MeltingColumn._composition_variable_type[lith][s].split('_')[0] in ['liquidConcentrationInstantaneous', 'liquidConcentrationAggregated', 'liquidIsotopeRatioInstantaneous', 'liquidIsotopeRatioAggregated']]
             elif first_lithology is True and self.lithology_contributions[lith] > 0:
-                species = list(self.composition[lith].columns)[3:]
+                specieslith = list(self.composition[lith].columns)[3:]
+                species = [s for s in specieslith if self.MeltingColumn._composition_variable_type[lith][s].split('_')[0] in ['liquidConcentrationInstantaneous', 'liquidConcentrationAggregated', 'liquidIsotopeRatioInstantaneous', 'liquidIsotopeRatioAggregated']]
                 first_lithology = False
 
         cm = _np.zeros([len(species)])
@@ -715,7 +728,16 @@ class intraPlate(geoSetting):
             if self.lithology_contributions[lith] > 0:
                 # Get the melt fractions for the lithology
                 f = self.composition[lith].F.to_numpy()
-                df = f[1:] - f[: -1]
+                fprev = _np.zeros(len(f))
+                fprev[1:] = f[:-1]
+                df = f - fprev
+                # To correctly deal with a supersolidus start, need to integrate a rectangle
+                # rather than one edge of a trapezium. This is achieved by doubling the first
+                # element of df, but only in the numerator sum, not the denominator sum, which
+                # remains the same by making a copy.
+                dfnorm = _copy(df)
+                if self.MeltingColumn.supersolidus_start is True:
+                    df[0] = df[0] * 2
                 for j in range(len(species)):
                     spname = species[j]
                     sptype = self.MeltingColumn._composition_variable_type[lith][spname].split('_')[0]
@@ -730,10 +752,10 @@ class intraPlate(geoSetting):
                         c = _np.nan_to_num(c, nan=0.0)
 
 
-                        # If instantaneous melts, need to pool over columns first
+                        # If instantaneous melts
                         if sptype == 'liquidConcentrationInstantaneous':
-                            cnormed = (_np.sum(0.5 * (c[1:] + c[:-1]) * df * w[1:])
-                                               / _np.sum(df * w[1:]))
+                            cnormed = (_np.sum(0.5 * (c[1:] + c[:-1]) * df[:-1] * w[:-1])
+                                               / _np.sum(dfnorm[:-1] * w[:-1]))
                             cm[j] += cnormed * self.lithology_contributions[lith]
 
 
@@ -764,9 +786,9 @@ class intraPlate(geoSetting):
                         # If the melts are instantaneous they need to be averaged over each column first
                         if sptype == 'liquidIsotopeRatioInstantaneous':
                             rnormed = (_np.sum(0.5 * (r[1:] * c[1:] +  r[:-1] * c[:-1]) * df * w[1:])
-                                               / _np.sum(0.5 * (c[1:] + c[:-1]) * df * w[1:]))
+                                               / _np.sum(0.5 * (c[1:] + c[:-1]) * dfnorm * w[1:]))
                             cnormed = (_np.sum(0.5 * (c[1:] + c[:-1]) * df * w[1:])
-                                               / _np.sum(df * w[1:]))
+                                               / _np.sum(dfnorm * w[1:]))
                             
                             cm[j] += cnormed * rnormed * self.lithology_contributions[lith]
                             norm[j] += cnormed * self.lithology_contributions[lith]
