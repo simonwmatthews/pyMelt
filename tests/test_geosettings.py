@@ -8,6 +8,58 @@ import unittest
 import pyMelt as m
 from numpy import allclose
 
+def test_should_create_a_morb():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(1400.0)
+    column.calculateMajorOxides()
+    column.calculateMineralProportions()
+    column.calculateTraceElements(c0={'lz':{'La':1.0, 'Yb':1.0}})
+    column.calculateStableIsotopes(
+        species= 'MgO',
+        fractionationFactors= {'olv': 0.1, 
+                               'cpx':-0.1, 
+                               'opx': 0.05, 
+                               'grt':0.0},
+        isotopeRatioLabel='d26Mg',
+    )
+
+    morb = m.geosettings.spreadingCentre(column)
+    print(morb.chemistry.liq_d26Mg)
+    print(morb.chemistry.liq_La)
+    print(morb.chemistry.liq_MgO)
+    print(column.F)
+    print(column.composition['lz'].liq_La)
+    assert allclose(morb.chemistry.liq_d26Mg, -0.08434647601577007)
+    assert allclose(morb.chemistry.liq_La, 7.131408636047671)
+    assert allclose(morb.chemistry.liq_MgO, 12.533973119586175)
+
+def test_should_create_an_oib():
+    lz = m.lithologies.matthews.klb1()
+    mantle = m.mantle([lz], [1.0], ['lz'])
+    column = mantle.adiabaticMelt(1400.0)
+    column.calculateMajorOxides()
+    column.calculateMineralProportions()
+    column.calculateTraceElements(c0={'lz':{'La':1.0, 'Yb':1.0}})
+    column.calculateStableIsotopes(
+        species= 'MgO',
+        fractionationFactors= {'olv': 0.1, 
+                               'cpx':-0.1, 
+                               'opx': 0.05, 
+                               'grt':0.0},
+        isotopeRatioLabel='d26Mg',
+    )
+
+    oib = m.geosettings.intraPlate(column, P_lithosphere=2.0)
+    print(oib.chemistry.liq_d26Mg)
+    print(oib.chemistry.liq_La)
+    print(oib.chemistry.liq_MgO)
+    print(column.F)
+    print(column.composition['lz'].liq_La)
+    assert allclose(oib.chemistry.liq_d26Mg, -0.08562195671320802)
+    assert allclose(oib.chemistry.liq_La, 3.241480955733488)
+    assert allclose(oib.chemistry.liq_MgO, 12.395091722191811)
+
 def test_should_create_an_oib_from_a_supersolidus_start():
     lz = m.lithologies.matthews.klb1()
     mantle = m.mantle([lz], [1.0], ['lz'])
@@ -30,8 +82,6 @@ def test_should_create_an_oib_from_a_supersolidus_start():
     print(column.F)
     print(column.composition['lz'].liq_La)
     assert allclose(oib.chemistry.liq_d26Mg, -0.012844409867076054)
-    # The value currently being returned is way too small. There is something
-    # going wrong with the homogenization for a supersolidus start
     assert allclose(oib.chemistry.liq_La, 1.357368830872643)
 
 def test_should_create_a_mor_from_a_supersolidus_start():

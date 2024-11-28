@@ -448,7 +448,8 @@ class spreadingCentre(geoSetting):
                         c = self.composition[lith][spname]
                         c = c.to_numpy()
                         c = _np.nan_to_num(c, nan=0.0)
-
+                        if spname == 'liq_La':
+                            print(c)
                         # If the melts are instantaneous they need to be averaged over each column first
                         if sptype == 'liquidConcentrationInstantaneous':
                             cnormed = _np.zeros(_np.shape(c)[0])
@@ -459,11 +460,12 @@ class spreadingCentre(geoSetting):
                                     cnormed[i] = (_np.sum(0.5 * (c[1:i + 1] + c[0:i]) * df[:i])
                                                     / _np.sum(dfnorm[:i]))
                                 elif f[i] > 0:
-                                    cnormed[i] = (_np.sum(c[1:i + 1] * df[:i]) / _np.sum(dfnorm[:i]))
+                                    cnormed[i] = c[i] #(_np.sum(c[1:i + 1] * df[:i]) / _np.sum(dfnorm[:i]))
                                 else:
                                     cnormed[i] = 0.0
                             c = cnormed
-
+                        if spname == 'liq_La':
+                            print(c)
                         c = _trapz((1 + weights) * c * f / (1 - f))
                         c = c / _trapz((1 + weights) * f / (1 - f))
                         cm[j] += c * self.lithology_contributions[lith]
