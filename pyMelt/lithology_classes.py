@@ -314,7 +314,7 @@ class hydrousLithology(object):
         self.lithology = lithology
 
         for m in dir(lithology):
-            if '__' not in m and m not in ['TSolidus', 'TLiquidus', 'F', 'dTdF', 'dTdP']:
+            if '__' not in m and m not in ['TSolidus', 'TLiquidus', 'F', 'dTdF', 'dTdP', 'phaseDiagram']:
                 f = lithology.__getattribute__(m)
                 if callable(f):
                     self.__setattr__(m, f.__func__.__get__(self, self.__class__))
