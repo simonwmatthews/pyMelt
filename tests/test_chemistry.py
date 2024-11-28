@@ -95,24 +95,23 @@ def test_should_conserve_major_element_stable_isotope_mass():
     )
 
     # Liquid
-    F = np.array(column.composition['lz'].F)
-    dF = np.zeros(len(F))
-    dF[0] = F[0]
-    dF[1:] = F[1:] - F[:-1]
-    liq_homog_dMg = (np.sum(dF * column.composition['lz'].liq_d26Mg * column.composition['lz'].liq_MgO) )
+    liq_homog_dMg = (column.composition['lz'].F.iloc[-1] * column.composition['lz'].liq_d26Mg.iloc[-1] * column.composition['lz'].liq_MgO.iloc[-1])
+    print(liq_homog_dMg)
 
     # Solid
     sol_homog_dMg = 0.0
     sol_homog_MgO = 0.0
     for mineral in ['olv', 'cpx', 'opx', 'grt']:
-        if column.composition['lz'][mineral].iloc[-1] > 0:
+        if column.composition['lz'][mineral].iloc[-1] > 1e-15:
             sol_homog_dMg += (
                 column.composition['lz'][mineral+'_d26Mg'].iloc[-1] 
                 * column.composition['lz'][mineral+'_MgO'].iloc[-1] 
                 * column.composition['lz'][mineral].iloc[-1]
             )
+            print(column.composition['lz'][mineral].iloc[-1])
+    print(sol_homog_dMg)
 
-    total_dMg = sol_homog_dMg * (1-F[-1]) + liq_homog_dMg
+    total_dMg = sol_homog_dMg * (1-column.composition['lz'].F.iloc[-1]) + liq_homog_dMg
 
     assert allclose(total_dMg, 0.0, atol=0.0002)
 
