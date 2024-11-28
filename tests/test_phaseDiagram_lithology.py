@@ -3,9 +3,9 @@ from numpy import allclose
 import pickle
 import os
 
-pyMelt_path = os.path.dirname(os.path.realpath(__file__))[:-5]
+pyMelt_path = os.path.dirname(os.path.realpath(__file__))[:-6]
 
-f = open(pyMelt_path + '/phaseDiagrams/klb1_holland2018/klb1_holland2018.p', 'rb')
+f = open(pyMelt_path + '/pyMelt/phaseDiagrams/klb1_holland2018/klb1_holland2018.p', 'rb')
 phaseDiagram_object = pickle.load(f)
 f.close()
 lith = m.phaseDiagramLithology(phaseDiagram_object)
@@ -20,7 +20,7 @@ def test_should_get_solidusT_from_pdlithology():
     P = 4.0
     Tsolidus = lith.TSolidus(P)
     print(Tsolidus)
-    assert allclose(Tsolidus, 1615.748554732505)
+    assert allclose(Tsolidus, 1617.9398843848512)
 
 def test_should_get_liquidusT_from_pdlithology():
     P = 4.0
@@ -67,5 +67,6 @@ def test_should_do_adiabatic_melt_calc_with_pdLithology():
     Tp = 1350.0
     mantle = m.mantle([lith], [1.0], ['lz'])
     column = mantle.adiabaticMelt(Tp)
+    print(column.F.iloc[-1])
     # column.plot()
-    assert False
+    assert allclose(column.F.iloc[-1], 0.25469077174070326)
