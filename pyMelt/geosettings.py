@@ -159,9 +159,12 @@ class geoSetting(object):
         if element_order is None:
             element_order = []
             # Need this otherwise if there are major elements it will break!
-            for el in self.chemistry.keys():
-                if el in normalisation:
-                    element_order.append(el)
+            for el_name in self.chemistry.keys():
+                split = el_name.split('_')
+                if len(split) > 1 and split[0] == 'liq':
+                    el = el_name.split('_')[1]
+                    if el in normalisation:
+                        element_order.append(el)
 
         if plot_instantaneous is True:
             normed_hi = []
@@ -170,8 +173,8 @@ class geoSetting(object):
                 hi = 0.0
                 lo = 1e16
                 for lith in self.MeltingColumn.lithologies:
-                    lithmax = _np.max(self.MeltingColumn.lithologies[lith][el])
-                    lithmin = _np.min(self.MeltingColumn.lithologies[lith][el])
+                    lithmax = _np.max(self.MeltingColumn.composition[lith]['liq_'+el])
+                    lithmin = _np.min(self.MeltingColumn.composition[lith]['liq_'+el])
                     if lithmax > hi:
                         hi = lithmax
                     if lithmin < lo:
@@ -183,14 +186,14 @@ class geoSetting(object):
         if plot_original is True:
             normed = []
             for el in element_order:
-                normed.append(self.chemistry[el] / normalisation[el])
+                normed.append(self.chemistry['liq_'+el] / normalisation[el])
             a.plot(range(len(element_order)), normed)
 
         if crystal_fraction is not None:
             unnormed = self.crystallisationChemistry(crystal_fraction, **kwargs)
             normed = []
             for el in element_order:
-                normed.append(unnormed[el] / normalisation[el])
+                normed.append(unnormed['liq_'+el] / normalisation[el])
             a.plot(range(len(element_order)), normed)
 
         a.set_yscale('log')
@@ -448,8 +451,6 @@ class spreadingCentre(geoSetting):
                         c = self.composition[lith][spname]
                         c = c.to_numpy()
                         c = _np.nan_to_num(c, nan=0.0)
-                        if spname == 'liq_La':
-                            print(c)
                         # If the melts are instantaneous they need to be averaged over each column first
                         if sptype == 'liquidConcentrationInstantaneous':
                             cnormed = _np.zeros(_np.shape(c)[0])
@@ -464,8 +465,6 @@ class spreadingCentre(geoSetting):
                                 else:
                                     cnormed[i] = 0.0
                             c = cnormed
-                        if spname == 'liq_La':
-                            print(c)
                         c = _trapz((1 + weights) * c * f / (1 - f))
                         c = c / _trapz((1 + weights) * f / (1 - f))
                         cm[j] += c * self.lithology_contributions[lith]

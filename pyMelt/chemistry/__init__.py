@@ -48,6 +48,99 @@ class default_methods:
     Yb: str = "invmel"
     Lu: str = "invmel"
 
+# TEMPORARY: TO MAKE SPIDER DIAGRAM WORK. NEEDS REPLACING.
+palme13_pm = {
+    "Rb": 0.605,
+    "Ba": 6.85,
+    "Th": 0.0849,
+    "U": 0.0229,
+    "Nb": 0.595,
+    "Ta": 0.043,
+    "La": 0.6832,
+    "Ce": 1.7529,
+    "Pb": 0.185,
+    "Pr": 0.2657,
+    "Nd": 1.341,
+    "Sr": 22.0,
+    "Zr": 10.3,
+    "Hf": 0.3014,
+    "Sm": 0.4347,
+    "Eu": 0.1665,
+    "Ti": 1265.0,
+    "Gd": 0.5855,
+    "Tb": 0.1075,
+    "Dy": 0.7239,
+    "Ho": 0.1597,
+    "Y": 4.13,
+    "Er": 0.4684,
+    "Yb": 0.4774,
+    "Lu": 0.07083,
+}
+"""
+The composition of the primitive mantle (ppmw) from Palme & O'Neill (2013).
+"""
+
+palme13_ci = {
+    "Rb": 2.32,
+    "Ba": 2.42,
+    "Th": 0.03,
+    "U": 0.00810,
+    "Nb": 0.283,
+    "Ta": 0.015,
+    "La": 0.2414,
+    "Ce": 0.6194,
+    "Pb": 2.62,
+    "Pr": 0.09390,
+    "Nd": 0.4737,
+    "Sr": 7.79,
+    "Zr": 3.63,
+    "Hf": 0.1065,
+    "Sm": 0.1536,
+    "Eu": 0.05883,
+    "Ti": 447.0,
+    "Gd": 0.2069,
+    "Tb": 0.03797,
+    "Dy": 0.2558,
+    "Ho": 0.05644,
+    "Y": 1.46,
+    "Er": 0.1655,
+    "Yb": 0.1687,
+    "Lu": 0.02503,
+}
+"""
+Trace element concentrations in a CI chondrite (ppmw) from Palme & O'Neill (2013).
+"""
+workman05_dmm = {
+    "Rb": 0.05,
+    "Ba": 0.563,
+    "Th": 0.0079,
+    "U": 0.0032,
+    "Nb": 0.1485,
+    "Ta": 0.0096,
+    "La": 0.192,
+    "Ce": 0.550,
+    "Pb": 0.018,
+    "Pr": 0.107,
+    "Nd": 0.581,
+    "Sr": 7.664,
+    "Zr": 5.082,
+    "Hf": 0.157,
+    "Sm": 0.239,
+    "Eu": 0.096,
+    "Ti": 716.3,
+    "Gd": 0.358,
+    "Tb": 0.070,
+    "Dy": 0.505,
+    "Ho": 0.115,
+    "Y": 3.328,
+    "Er": 0.348,
+    "Yb": 0.365,
+    "Lu": 0.058,
+}
+"""
+The trace element concentrations in the depleted MORB mantle from Workman & Hart (2005). All
+concentrations are in ppmw.
+"""
 
 
 
