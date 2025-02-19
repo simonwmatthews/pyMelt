@@ -258,6 +258,8 @@ class meltingColumn():
             kwargs['D_spn'] = asdict(_chemistry.data.spn_D())
         if "D_plg" not in kwargs:
             kwargs['D_plg'] = asdict(_chemistry.data.plg_D())
+        
+        start_c0 = c0
 
         # Handle one lithology at a time to allow for different number of calculation steps
         for n in range(len(self.mantle.lithologies)):
@@ -295,15 +297,14 @@ class meltingColumn():
                     raise InputError("The input format for D was not recognised.")
             
             # Prepare calculation inputs
-            if isinstance(c0, dict):
-                nel = len(c0[lithname])
-                elnames = list(c0[lithname].keys())
-                cs = _np.array(list(c0[lithname].values()))
-            elif isinstance(c0, _pd.DataFrame):
-                elnames = list(c0.columns)
-                cs = _np.array(list(c0.loc[lithname]))
+            if isinstance(start_c0, dict):
+                nel = len(start_c0[lithname])
+                elnames = list(start_c0[lithname].keys())
+                cs = _np.array(list(start_c0[lithname].values()))
+            elif isinstance(start_c0, _pd.DataFrame):
+                elnames = list(start_c0.columns)
+                cs = _np.array(list(start_c0.loc[lithname]))
                 nel = len(elnames)
-            
             
             # Setup output array
             nsteps = len(self.P)
