@@ -14,7 +14,7 @@ import pandas as _pd
 import matplotlib.pyplot as _plt
 from copy import copy as _copy
 from scipy.interpolate import interp1d as _interp1d
-from scipy.integrate import trapz as _trapz
+from scipy.integrate import trapezoid as _trapz
 from warnings import warn as _warn
 
 import pyMelt.chemistry as _chemistry

@@ -8,8 +8,9 @@ Contains classes and methods for importing and using phase diagrams to do chemis
 """
 
 import numpy as _np
-from scipy.interpolate import interp2d as _interp2d
-from scipy.interpolate import interp1d as _interp1d
+import numpy as np
+from scipy.interpolate import RectBivariateSpline
+from scipy.interpolate import interp1d
 from copy import copy as _copy
 import pandas as _pd
 import os
@@ -180,12 +181,12 @@ class gridsMAGEMin(object):
                     y = y[(_np.isnan(x) == False) & (_np.isnan(y) == False)]
 
                     try:
-                        pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='quintic')
+                        pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='quintic')
                     except:
                         try:
-                            pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='cubic')
+                            pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='cubic')
                         except:
-                            pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False)
+                            pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False)
 
                     grid[2, :, i] = pinterp(f)
 
@@ -231,6 +232,7 @@ class gridsMelts(object):
                          'O': 15.999}):
 
         self.df = df.copy()
+        self.df.fillna(0.0, inplace=True)
         self.phases  = phases
         self.oxides = oxides
 
@@ -243,19 +245,40 @@ class gridsMelts(object):
         # Prevent segmentation warning and improve efficiency:
         self.df = self.df.copy()
 
-        # Calculate Mg# for every phase:
-        self.calculate_phase_Mgn()
+        self.calculate_phase_fractions()
         self.df = self.df.copy()
-    
-    def calculate_phase_Mgn(self):
+        # Filter for the oxides which are actually contained in the input
+        self.oxide_list = []
+        for ox in oxides:
+            if 'Liquid_' + ox + '_wtpt' in self.df.columns:
+                self.oxide_list.append(ox)
+
+
+        # Calculate Mg# for every phase:
+        # self.calculate_phase_Mgn()
+        # self.df = self.df.copy()
+        
+        # def calculate_phase_Mgn(self):
+        #     """
+        #     Calculate the Mg# of each phase from the mole fractions
+        #     """
+    #     for ph in self.phases:
+    #         if ph + '_MgO_wtpt' in self.df.columns and ph + '_FeO_wtpt' in self.df.columns:
+    #             mMgO = self.df[ph + '_MgO_wtpt'] / self.oxides['MgO']
+    #             mFeO = self.df[ph + '_FeO_wtpt'] / self.oxides['FeO']
+    #             self.df[ph + '_Mg#'] = mMgO / (mMgO + mFeO)
+
+    def calculate_phase_fractions(self):
         """
-        Calculate the Mg# of each phase from the mole fractions
+        Calculate phase mass fractions from (unnormalized phases masses)
         """
+        tot_mass = np.zeros(np.shape(self.df)[0])
         for ph in self.phases:
-            if ph + '_MgO_wtpt' in self.df.columns and ph + '_FeO_wtpt' in self.df.columns:
-                mMgO = self.df[ph + '_MgO_wtpt'] / self.oxides['MgO']
-                mFeO = self.df[ph + '_FeO_wtpt'] / self.oxides['FeO']
-                self.df[ph + '_Mg#'] = mMgO / (mMgO + mFeO)
+            tot_mass += self.df[f"{ph}_mass"]
+
+        for ph in self.phases:
+            self.df[f"{ph}_frac"] = self.df[f"{ph}_mass"] / tot_mass
+
 
 
     def make_f_grid(self, variable, deltaf=0.01, fill_value=[0.0, 0.0], use_edge_values=False):
@@ -293,7 +316,7 @@ class gridsMelts(object):
 
         for i in range(_np.shape(pp)[1]):
             dfp = self.df[(self.df.pressure==pp[0, i])]
-            x = dfp.liq_mass.copy()
+            x = dfp.Liquid_frac.copy()
             y = dfp[variable].copy()
 
             # Check that there's a liq=0 value, if not create one:
@@ -303,11 +326,12 @@ class gridsMelts(object):
                 xnew = _np.zeros(_np.shape(x)[0]+1)
                 xnew[1:] = x
                 xnew[0] = _np.nan
-                x = _pd.Series(xnew, index=ind)
+                x = _pd.Series(np.flip(xnew), index=ind)
                 ynew = _np.zeros(_np.shape(y)[0]+1)
                 ynew[1:] = y
                 ynew[0] = _np.nan
-                y = _pd.Series(ynew, index=ind)
+                y = _pd.Series(np.flip(ynew), index=ind)
+
 
 
             # To ensure smoothness to zero, we will artificially overshoot F=0:
@@ -321,6 +345,7 @@ class gridsMelts(object):
 
             # Now ensure that the variable can overshoot on both ends:
             y = y[(_np.isnan(x) == False)]
+
 
             if len(y[(_np.isnan(y) == False)]) > 1:
                 # Check lower end:
@@ -351,12 +376,12 @@ class gridsMelts(object):
                     y = y[(_np.isnan(x) == False) & (_np.isnan(y) == False)]
 
                     try:
-                        pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='quintic')
+                        pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='quintic')
                     except:
                         try:
-                            pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='cubic')
+                            pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='cubic')
                         except:
-                            pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False)
+                            pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False)
 
                     grid[2, :, i] = pinterp(f)
 
@@ -580,12 +605,12 @@ class gridsThermocalc(object):
                     y = y[(_np.isnan(x) == False) & (_np.isnan(y) == False)]
 
                     try:
-                        pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='quintic')
+                        pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='quintic')
                     except:
                         try:
-                            pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='cubic')
+                            pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False, kind='cubic')
                         except:
-                            pinterp = _interp1d(x, y, fill_value=fill_value_use, bounds_error=False)
+                            pinterp = interp1d(x, y, fill_value=fill_value_use, bounds_error=False)
 
                     grid[2, :, i] = pinterp(f)
 
@@ -593,7 +618,7 @@ class gridsThermocalc(object):
 
 class interpolate_grid(object):
     def __init__(self, grid, keep_positive=True):
-        self.interp = _interp2d(grid[0,0], grid[1,:,0], grid[2], kind='cubic')
+        self.interp = RectBivariateSpline(grid[0,0,:], grid[1,:,0], grid[2].T)#, kind='cubic')
         self.keep_positive = keep_positive
 
     def __call__(self, x, y):
@@ -628,7 +653,7 @@ class phaseDiagram(object):
         likely cause failures elsewhere in the code right now.
     """
     def __init__(self, grids, minerals, variables=None, extrapolate_to_zero=[],
-                 liquid_name='liq'):
+                 liquid_name='Liquid'):
         self._interpolated_functions = {}
 
         self.P_range = [_np.nanmin(grids.df['pressure'].unique()),
@@ -648,7 +673,7 @@ class phaseDiagram(object):
             self.variables = variables
 
         for col in self.variables:
-            if col not in ['pressure', 'X', 'liq', 'liq_mass']:
+            if col not in ['pressure', 'X', 'Liquid', 'Liquid_mass']:
                 if col not in extrapolate_to_zero:
                     grid = grids.make_f_grid(col, use_edge_values=True)
                 else:
@@ -675,7 +700,7 @@ class phaseDiagram(object):
         for i in range(_np.shape(pp)[0]):
             for j in range(_np.shape(pp)[1]):
                 state = _pd.Series({'P': pp[i,j],'F': ff[i,j]})
-                if mask_mineral_out is True and self(parameter[:3] + '_mass', state) < 1e-10:
+                if mask_mineral_out is True and self('_'.join(parameter.split('_')[:-1]) + '_mass', state) < 1e-10:
                     cc[i,j] = _np.nan
                 else:
                     cc[i,j] = self(parameter, state)
