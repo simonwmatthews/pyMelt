@@ -22,10 +22,10 @@ setuptools.setup(
                             'phaseDiagrams/klb1_holland2018/make_klb1_holland2018.ipynb', 
                             'phaseDiagrams/klb1_holland2018/table_klb1_holland2018.csv',]},
     install_requires=[
-            'pandas==1.4.4',
-            'numpy==1.21.5',
-            'matplotlib==3.5.2',
-            'scipy==1.9.1',
+            'pandas',
+            'numpy',
+            'matplotlib',
+            'scipy',
             ],
     classifiers=[
         "Programming Language :: Python :: 3",
